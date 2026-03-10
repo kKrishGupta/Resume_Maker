@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt'); 
 const User = require('../models/user.models');
 const jwt = require('jsonwebtoken');
+const BlackListToken = require('../models/blacklist.models');
 
 // @route registerUser
 async function registerUser(req, res) {
@@ -30,6 +31,7 @@ async function registerUser(req, res) {
     email,
     password: hash
   });
+
 
   const token = jwt.sign(
     { id: user._id, username: user.username },
@@ -93,7 +95,24 @@ async function loginUser(req, res) {
   });
 }
 
+
+const logoutUser = async (req, res) => {
+  const token = req.cookies.token;
+  if (!token) {
+    return res.status(400).json({ message: "No token provided" });
+  }
+
+  try {
+    const blackListToken = new BlackListToken({ token });
+    await blackListToken.save();
+    res.clearCookie("token");
+    res.status(200).json({ message: "User logged out successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error logging out user", error });
+  }
+};
+
 module.exports = {
   registerUser,
-  loginUser
+  loginUser, logoutUser
 };

@@ -11,4 +11,10 @@ router.post('/register', authController.registerUser);
 // @access Public 
 router.post('/login', authController.loginUser);
 
+
+// @routes get /api/auth/logout
+// @description Logout a user by blacklisting the token
+router.get('/logout', authController.logoutUser);
+
+
 module.exports = router;
