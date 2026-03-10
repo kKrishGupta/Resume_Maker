@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt'); 
 const User = require('../models/user.models');
 const jwt = require('jsonwebtoken');
-const BlackListToken = require('../models/blacklist.models');
+
 
 // @route registerUser
 async function registerUser(req, res) {
@@ -112,7 +112,27 @@ const logoutUser = async (req, res) => {
   }
 };
 
+// @name getMeController
+// @description Get the profile of the logged in user
+// access Private
+async function getMe(req,res){
+  const user = await User.findById(req.user.id);
+
+  if(!user){
+    return res.status(404).json({message:"User not found"});
+  }
+
+  res.status(200).json({
+    message: "User profile fetched successfully",
+    user: {
+      id: user._id,
+      username: user.username,
+      email: user.email
+    }
+  });
+}
+
 module.exports = {
   registerUser,
-  loginUser, logoutUser
+  loginUser, logoutUser ,getMe
 };

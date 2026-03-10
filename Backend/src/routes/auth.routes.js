@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controllers');
-
+const authUser = require('../middleware/auth.middleware');
 // @routes POST /api/auth/register
 // @description Register a new user
 router.post('/register', authController.registerUser);
@@ -16,5 +16,10 @@ router.post('/login', authController.loginUser);
 // @description Logout a user by blacklisting the token
 router.get('/logout', authController.logoutUser);
 
+
+// @routes get /api/auth/get-me
+// @description Get the profile of the logged in user
+
+router.get('/get-me', authUser,authController.getMe);
 
 module.exports = router;
