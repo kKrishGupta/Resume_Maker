@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
 import '../auth.form.scss'
 import { Link } from "react-router-dom";
-import { useNavigate } from 'react-router';
-import { useAuth } from "../auth.context";
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+
+
 const Login = () => {
 
   const {loading, handleLogin} = useAuth();
@@ -10,38 +12,39 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = async(e) =>{
-    e.preventDefault();
-    handleLogin({email, password})
-  };
-  if(loading){
-    return (<main><h1>Loading....</h1></main>)
+  const handleSubmit = async (e) => {
+        e.preventDefault()
+        await handleLogin({email,password})
+        navigate('/')
   }
+  if(loading){
+        return (<main><h1>Loading.......</h1></main>)
+    }
 
-  return (
-    <main>
-      <div className='form-container'>
-        <h1>Login</h1>
-        <form onSubmit = {handleSubmit} action="">
-            <div className='input-group'>
-              <label htmlFor="email">Email</label>
-              <input onChange = {(e) =>{setEmail(e.target.value)}} type="email" id="email" placeholder='Enter email address' />
+
+return (
+        <main>
+            <div className="form-container">
+                <h1>Login</h1>
+                <form onSubmit={handleSubmit}>
+                    <div className="input-group">
+                        <label htmlFor="email">Email</label>
+                        <input
+                            onChange={(e) => { setEmail(e.target.value) }}
+                            type="email" id="email" name='email' placeholder='Enter email address' />
+                    </div>
+                    <div className="input-group">
+                        <label htmlFor="password">Password</label>
+                        <input
+                            onChange={(e) => { setPassword(e.target.value) }}
+                            type="password" id="password" name='password' placeholder='Enter password' />
+                    </div>
+                    <button className='button primary-button' >Login</button>
+                </form>
+                <p>Don't have an account? <Link to={"/register"} >Register</Link> </p>
             </div>
-            <div className='input-group'>
-              <label htmlFor="password">Password</label>
-              <input onChange={(e) =>{setPassword(e.target.value)}} type="password" id="password" placeholder='Enter Password' />
-            </div>
-            <button type="submit" className='button primary-button'>Login</button>
-        </form>
-
-         <p> Create new account! {" "} <Link to="/Register" style={{ color: "blue", textDecoration: "underline" }}>Register
-          </Link>
-        </p>
-
-      </div>
-    </main>
-
-
-  )
+        </main>
+    )
 }
+
 export default Login
