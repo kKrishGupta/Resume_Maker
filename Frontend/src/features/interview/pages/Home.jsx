@@ -4,7 +4,8 @@ import { useInterview } from '../hooks/useInterview.js'
 import { useNavigate } from 'react-router'
 
 const Home = () => {
-   const { loading, generateReport,reports } = useInterview()
+
+    const { loading, generateReport, reports } = useInterview() || {};
     const [ jobDescription, setJobDescription ] = useState("")
     const [ selfDescription, setSelfDescription ] = useState("")
     const resumeInputRef = useRef()
@@ -24,7 +25,8 @@ const Home = () => {
             </main>
         )
     }
-return (
+
+    return (
         <div className='home-page'>
 
             {/* Page Header */}
@@ -145,6 +147,5 @@ return (
         </div>
     )
 }
-
 
 export default Home
