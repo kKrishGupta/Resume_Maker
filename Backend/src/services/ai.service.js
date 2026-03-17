@@ -36,22 +36,137 @@ const interviewReportSchema = z.object({
 
 async function generateInterviewReport({resume, selfDescription,jobDescription}) {
 
-  const prompt =  `Generate an interview report for a candidate with the following details
-  Resume: ${resume}
-  Self Description : ${selfDescription}
-  Job Description : ${jobDescription}
-  `
+const prompt = `
+You are an expert technical interviewer and hiring manager.
 
-  const response = await ai.models.generateContent({
-    model:"gemini-2.5-flash",
-    contents: prompt,
-    config:{
-      responseMimeType:"application/json",
-      responseJsonSchema:zodToJsonSchema(interviewReportSchema),
+Analyze the candidate profile and generate a COMPLETE interview preparation report.
+
+IMPORTANT RULES:
+- Return ONLY valid JSON
+- Do NOT return text outside JSON
+- Do NOT return strings where objects are required
+- Follow the structure EXACTLY
+- All arrays must contain OBJECTS, not strings
+
+Candidate Resume:
+${resume}
+
+Candidate Self Description:
+${selfDescription}
+
+Job Description:
+${jobDescription}
+
+Return JSON in EXACTLY this format:
+
+{
+  "matchScore": number,
+
+  "technicalQuestion": [
+    {
+      "question": "string",
+      "intention": "string",
+      "answer": "string"
     }
-  })
+  ],
 
-  console.log(JSON.parse(response.text))
+  "behavioralQuestions": [
+    {
+      "question": "string",
+      "intention": "string",
+      "answer": "string"
+    }
+  ],
+
+  "skillGaps": [
+    {
+      "skill": "string",
+      "severity": "low | medium | high"
+    }
+  ],
+
+  "preparationPlan": [
+    {
+      "day": number,
+      "focus": "string",
+      "tasks": ["string"]
+    }
+  ]
 }
 
+Requirements:
+- technicalQuestion → exactly 5 objects
+- behavioralQuestions → exactly 3 objects
+- preparationPlan → exactly 7 days
+- matchScore → between 0 and 100
+- severity must be ONLY: low, medium, or high
+
+Do NOT return:
+- plain strings
+- missing fields
+- extra fields
+
+ONLY return valid JSON.
+`;
+
+let response; // ✅ define here
+  let result;
+
+  try {
+    response = await ai.models.generateContent({
+      model: "gemini-2.5-flash", // ✅ better model
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseJsonSchema: zodToJsonSchema(interviewReportSchema),
+      }
+    });
+
+    if (!response.text) {
+      throw new Error("Empty AI response");
+    }
+
+    result = JSON.parse(response.text);
+
+  } catch (error) {
+    console.error("❌ AI ERROR:", error.message);
+
+    // ✅ now safe
+    if (response && response.text) {
+      console.error("❌ AI RAW RESPONSE:", response.text);
+    }
+
+    // ✅ fallback (prevents crash)
+    return {
+      matchScore: 50,
+      technicalQuestion: [],
+      behavioralQuestions: [],
+      skillGaps: [],
+      preparationPlan: []
+    };
+  }
+
+  // ✅ sanitize (important)
+  result.skillGaps = Array.isArray(result.skillGaps)
+    ? result.skillGaps.map(item =>
+        typeof item === "object"
+          ? item
+          : { skill: item, severity: "medium" }
+      )
+    : [];
+
+  result.preparationPlan = Array.isArray(result.preparationPlan)
+    ? result.preparationPlan.map((item, index) =>
+        typeof item === "object"
+          ? item
+          : {
+              day: index + 1,
+              focus: item,
+              tasks: [item]
+            }
+      )
+    : [];
+
+  return result;
+}
 module.exports = generateInterviewReport;

@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt'); 
 const User = require('../models/user.models');
 const jwt = require('jsonwebtoken');
-
+const BlackListToken = require("../Models/blacklist.models");
 
 // @route registerUser
 async function registerUser(req, res) {
@@ -95,9 +95,10 @@ async function loginUser(req, res) {
   });
 }
 
-
+// logout user
 const logoutUser = async (req, res) => {
   const token = req.cookies.token;
+
   if (!token) {
     return res.status(400).json({ message: "No token provided" });
   }
@@ -105,10 +106,20 @@ const logoutUser = async (req, res) => {
   try {
     const blackListToken = new BlackListToken({ token });
     await blackListToken.save();
+
     res.clearCookie("token");
-    res.status(200).json({ message: "User logged out successfully" });
+
+    return res.status(200).json({ 
+      message: "User logged out successfully" 
+    });
+
   } catch (error) {
-    res.status(500).json({ message: "Error logging out user", error });
+    console.error("Logout Error:", error);
+
+    return res.status(500).json({ 
+      message: "Error logging out user", 
+      error: error.message 
+    });
   }
 };
 
