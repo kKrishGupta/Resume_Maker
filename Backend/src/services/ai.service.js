@@ -2,7 +2,7 @@ const {GoogleGenAI} = require("@google/genai");
 const {z} = require ("zod");
 const { zodToJsonSchema } = require("zod-to-json-schema");
 const { recompileSchema } = require("../Models/InterViewReports.models");
-
+const puppeteer = require("puppeteer")
 const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_GENAI_API_KEY
 });
@@ -170,4 +170,37 @@ let response; // ✅ define here
 
   return result;
 }
-module.exports = generateInterviewReport;
+
+async function generateFromHtml(htmlContent){
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.setContent(htmlContent,{waitUntil : "networkidle0"})
+  const pdfBuffer = await page.pdf({format:"A4"})
+  await browser.close();
+  return pdfBuffer
+}
+
+async function generateResumePdf({resume,selfDescription, }){
+  const resumepdfSchema = z.object({
+    html:z.string().describe("The html content of the resume which can be converted to using a library")
+  })
+
+  const prompt = `Generate a resume PDF for a candidate with the following Details:
+  Resume : ${resume}
+  Self Description : ${selfDescription}
+  Job Description: ${jobDescription}
+  
+  the response should ne a json object with a single field using the data
+  `
+const response = await ai.models.generateContent({
+  model:"gemini-2.5-flash-preview",
+  contents : prompt,
+  config:{
+    responseMimeType : "application/json",
+    responseSchema : zodToJsonSchem(resumepdfSchema)
+  }
+}) 
+const jsonContent =  JSON.parse(response.text);
+
+}
+module.exports = {generateInterviewReport,generateFromHtml };
