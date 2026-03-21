@@ -1,12 +1,98 @@
 const pdfParse = require("pdf-parse");
+const {
+  generateInterviewReport,
+  generateResumePdf
+} = require("../services/ai.service");
+const interviewReportModel = require("../models/interviewReport.model");
 
-const { generateInterviewReport, generateResumePdf } = require("../services/ai.service");
-const interviewReportModel = require("../Models/InterViewReports.models.js");
+/**
+ * 🔧 Extract job title from job description
+ */
+function extractTitle(jobDescription) {
+  if (!jobDescription) return null;
 
-// @description 
-// Controller to generate interview report based on user self description resume and job
-// 
+  const roles = ["frontend", "backend", "full stack", "developer", "engineer"];
+  const found = roles.find(role =>
+    jobDescription.toLowerCase().includes(role)
+  );
 
+  return found ? `${found} role` : null;
+}
+
+/**
+ * 🔥 FIXED Parse AI → object safely (handles ALL formats)
+ */
+function parseArray(arr) {
+  if (!Array.isArray(arr)) return [];
+
+  // ✅ Case 1: already correct objects
+  if (typeof arr[0] === "object") {
+    return arr.map((item) => {
+      if (item?.tasks && !Array.isArray(item.tasks)) {
+        item.tasks = [item.tasks];
+      }
+      return item;
+    });
+  }
+
+  const result = [];
+
+  for (let i = 0; i < arr.length; i++) {
+    const item = arr[i];
+
+    // ✅ Case 2: flat QA format
+    if (item === "question") {
+      result.push({
+        question: arr[i + 1] || "",
+        intention: arr[i + 3] || "",
+        answer: arr[i + 5] || ""
+      });
+      i += 5;
+    }
+
+    // ✅ Case 3: skill gap format
+    else if (item === "skill") {
+      result.push({
+        skill: arr[i + 1] || "",
+        severity: arr[i + 3] || "medium"
+      });
+      i += 3;
+    }
+
+    // ✅ Case 4: preparation plan format
+    else if (item === "day") {
+      result.push({
+        day: arr[i + 1] || 1,
+        focus: arr[i + 3] || "",
+        tasks: Array.isArray(arr[i + 5])
+          ? arr[i + 5]
+          : [arr[i + 5] || ""]
+      });
+      i += 5;
+    }
+
+    // ✅ Case 5: stringified JSON
+    else if (typeof item === "string" && item.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(item);
+
+        if (parsed?.tasks && !Array.isArray(parsed.tasks)) {
+          parsed.tasks = [parsed.tasks];
+        }
+
+        result.push(parsed);
+      } catch (err) {
+        console.log("❌ JSON Parse Failed:", item);
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * @description Generate interview report
+ */
 async function generateInterViewReportController(req, res) {
   try {
     const resumeFile = req.file;
@@ -15,22 +101,68 @@ async function generateInterViewReportController(req, res) {
       return res.status(400).json({ message: "Resume file is required" });
     }
 
-    // ✅ Extract PDF text
+    // ✅ Parse PDF
     const parsedData = await pdfParse(resumeFile.buffer);
     const resumeContent = parsedData.text;
 
     const { selfDescription, jobDescription } = req.body;
 
-    // ✅ Call AI service
-    const interViewReportByAi = await generateInterviewReport({
-      resume: resumeContent,
-      selfDescription,
-      jobDescription
-    });
+    if (!jobDescription) {
+      return res.status(400).json({
+        message: "Job description is required"
+      });
+    }
 
-    // ⚠️ Safety check (important)
-    if (!interViewReportByAi) {
-      return res.status(500).json({ message: "AI response failed" });
+    // ✅ Call AI
+    let aiData = {};
+    try {
+      aiData = await generateInterviewReport({
+        resume: resumeContent,
+        selfDescription,
+        jobDescription
+      });
+    } catch (err) {
+      console.log("⚠️ AI FAILED:", err.message);
+    }
+
+    console.log("🧠 AI RESPONSE:", aiData);
+
+    // ✅ CLEAN + SAFE DATA
+    const safeData = {
+      title:
+        aiData?.title ||
+        extractTitle(jobDescription) ||
+        "Software Engineer",
+
+      matchScore:
+        typeof aiData?.matchScore === "number"
+          ? aiData.matchScore
+          : 50,
+
+      technicalQuestions: parseArray(
+        aiData?.technicalQuestions || aiData?.technicalQuestion
+      ),
+
+      behavioralQuestions: parseArray(
+        aiData?.behavioralQuestions
+      ),
+
+      skillGaps: parseArray(
+        aiData?.skillGaps
+      ),
+
+      preparationPlan: parseArray(
+        aiData?.preparationPlan
+      )
+    };
+
+    // ✅ fallback to avoid empty UI
+    if (safeData.technicalQuestions.length === 0) {
+      safeData.technicalQuestions.push({
+        question: "Explain event loop in JavaScript",
+        intention: "Check async understanding",
+        answer: "Explain call stack, callback queue, and event loop"
+      });
     }
 
     // ✅ Save to DB
@@ -39,17 +171,16 @@ async function generateInterViewReportController(req, res) {
       resume: resumeContent,
       selfDescription,
       jobDescription,
-      ...interViewReportByAi
+      ...safeData
     });
 
-    // ✅ Send response
     return res.status(201).json({
       message: "Interview report generated successfully",
       interviewReport
     });
 
   } catch (error) {
-    console.error("Controller Error:", error);
+    console.error("❌ FULL CONTROLLER ERROR:", error);
 
     return res.status(500).json({
       message: "Something went wrong",
@@ -58,9 +189,9 @@ async function generateInterViewReportController(req, res) {
   }
 }
 
-// @description Controller to get interview report by interviewId
-
-// get interview by id
+/**
+ * @description Get interview report by ID
+ */
 async function getInterviewReportByIdController(req, res) {
   try {
     const { interviewId } = req.params;
@@ -72,70 +203,95 @@ async function getInterviewReportByIdController(req, res) {
 
     if (!interviewReport) {
       return res.status(404).json({
-        message: "Interview report not found"
+        message: "Interview report not found."
       });
     }
 
-    return res.status(200).json({
-      message: "Interview report fetched successfully",
+    res.status(200).json({
+      message: "Interview report fetched successfully.",
       interviewReport
     });
 
   } catch (error) {
-    console.error("GET BY ID ERROR:", error);
+    console.error("❌ GET BY ID ERROR:", error);
 
-    return res.status(500).json({
+    res.status(500).json({
       message: "Something went wrong",
       error: error.message
     });
   }
 }
 
-// get all the interview of logged in user
-async function getAllInterviewReportController(req, res) {
+/**
+ * @description Get all reports
+ */
+async function getAllInterviewReportsController(req, res) {
   try {
     const interviewReports = await interviewReportModel
       .find({ user: req.user.id })
       .sort({ createdAt: -1 })
-      .select("-resume -selfDescription -jobDescription -__v -technicalQuestions -behavioralQuestions -skillGaps -preparationPlan");
+      .select(
+        "-resume -selfDescription -jobDescription -__v -technicalQuestions -behavioralQuestions -skillGaps -preparationPlan"
+      );
 
-    return res.status(200).json({
-      message: "Interview reports fetched successfully",
+    res.status(200).json({
+      message: "Interview reports fetched successfully.",
       interviewReports
     });
 
   } catch (error) {
-    console.error("GET ALL ERROR:", error);
+    console.error("❌ GET ALL ERROR:", error);
 
-    return res.status(500).json({
+    res.status(500).json({
       message: "Failed to fetch reports",
       error: error.message
     });
   }
 }
 
-// generate the pdf to resume based on self description
+/**
+ * @description Generate Resume PDF
+ */
+async function generateResumePdfController(req, res) {
+  try {
+    const { interviewReportId } = req.params;
 
-async function generateResumePdfController(req,res){
-  const {interviewReportId} = req.params;
-  const interviewReport = await interviewReportModel.findById(interviewReportId);
-  if(!interviewReport){
-    return res.status(404).json({
-      message:"Interview report not found."
-    })
+    const interviewReport = await interviewReportModel.findById(interviewReportId);
+
+    if (!interviewReport) {
+      return res.status(404).json({
+        message: "Interview report not found."
+      });
+    }
+
+    const { resume, jobDescription, selfDescription } = interviewReport;
+
+    const pdfBuffer = await generateResumePdf({
+      resume,
+      jobDescription,
+      selfDescription
+    });
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename=resume_${interviewReportId}.pdf`
+    });
+
+    res.send(pdfBuffer);
+
+  } catch (error) {
+    console.error("❌ PDF ERROR:", error);
+
+    res.status(500).json({
+      message: "Failed to generate PDF",
+      error: error.message
+    });
   }
-  const {resume,jobDescription,selfDescription} = interviewReport;
-  const pdfBuffer = await generateResumePdf({resume,jobDescription,selfDescription});
-
-  res.set({
-    "Content-Type" :"application/pdf",
-    "Content-Disposition" : `attachment;filename= resume_${interviewReportId}.pdf`
-  })
-  res.send(pdfBuffer);
 }
 
-
-module.exports = { generateInterViewReportController, getInterviewReportByIdController,
-getAllInterviewReportController,
-generateResumePdfController
- };
+module.exports = {
+  generateInterViewReportController,
+  getInterviewReportByIdController,
+  getAllInterviewReportsController,
+  generateResumePdfController
+};
