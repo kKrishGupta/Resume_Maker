@@ -6,11 +6,32 @@ app.use(cookieParser());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://resume-maker-c6ko.vercel.app"
+];
+
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://resume-maker-c6ko.vercel.app"
-  ],
+  origin: function (origin, callback) {
+    // allow requests without origin (Postman, mobile apps)
+    if (!origin) return callback(null, true);
+
+    // allow exact domains
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // 🔥 allow ONLY your Vercel preview domains
+    if (
+      origin.endsWith(".vercel.app") &&
+      origin.includes("resume-maker-c6ko")
+    ) {
+      return callback(null, true);
+    }
+
+    // block everything else
+    return callback(new Error("Not allowed by CORS"));
+  },
   credentials: true
 }));
 // require all the routes here
