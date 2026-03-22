@@ -35,16 +35,17 @@ const interviewReportSchema = z.object({
 async function generateInterviewReport({ resume, selfDescription, jobDescription }) {
 
 
-    const prompt = `
+const prompt = `
 You are an expert technical interviewer.
 
-STRICT RULES:
+CRITICAL INSTRUCTIONS (DO NOT BREAK):
 - Return ONLY valid JSON
-- DO NOT return empty arrays
-- Generate meaningful data
-- DO NOT skip any field
+- DO NOT return text, explanation, markdown, or code blocks
+- DO NOT return arrays of key-value pairs like ["key", value]
+- ALWAYS return proper JSON objects
+- Every array must contain ONLY objects (no strings, no mixed values)
 
-Return EXACT format:
+STRICT JSON FORMAT (FOLLOW EXACTLY):
 
 {
   "title": "string",
@@ -82,11 +83,31 @@ Return EXACT format:
   ]
 }
 
-REQUIREMENTS:
-- technicalQuestions → at least 5
-- behavioralQuestions → at least 3
-- preparationPlan → 5–7 days
-- skillGaps → at least 3
+STRICT REQUIREMENTS:
+- technicalQuestions → minimum 5 objects
+- behavioralQuestions → minimum 3 objects
+- skillGaps → minimum 3 objects
+- preparationPlan → between 5 to 7 objects
+- tasks MUST be an array of strings (NOT a single string)
+- Each object must contain ALL required fields
+
+FORBIDDEN OUTPUTS:
+❌ ["day", 1, "focus", "..."]
+❌ "technicalQuestions": ["question", "..."]
+❌ stringified JSON
+❌ missing fields
+❌ null or undefined values
+
+VALID OUTPUT EXAMPLE:
+{
+  "preparationPlan": [
+    {
+      "day": 1,
+      "focus": "System Design",
+      "tasks": ["Learn basics", "Practice problems"]
+    }
+  ]
+}
 
 Candidate Resume:
 ${resume}
@@ -145,33 +166,55 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
 const prompt = `
 You are an expert resume writer.
 
-STRICT HARD LIMITS (DO NOT BREAK):
-- Resume MUST fit EXACTLY 1 A4 page
-- If content exceeds → CUT content (do NOT overflow)
-- Prioritize most important content only
+CRITICAL RULES (VERY IMPORTANT):
+- Return ONLY valid JSON
+- Output must contain only one field: "html"
+- Resume MUST fit EXACTLY ONE A4 page (no overflow, no second page)
+- The page should look FULL and properly utilized (not too empty, not too crowded)
 
-CONTENT LIMITS:
-- Summary: max 2 lines
-- Skills: 1 compact line
-- Projects: ONLY 2 projects
-- Each project: max 3 bullet points
-- Experience: max 2 bullet points
-- Achievements: max 2 lines
+LAYOUT RULES:
+- Use full A4 space effectively
+- Maintain clean spacing and alignment
+- Avoid excessive white space
+- Avoid overly dense content
 
-STYLE:
-- Short bullet points (1 line each)
-- No paragraphs
-- No long sentences
+CONTENT GUIDELINES:
+- Keep content concise but meaningful
+- Do NOT overly shorten content
+- Do NOT remove important achievements
+- Maintain strong impact
 
-CRITICAL RULE:
-If content is too long → REMOVE LESS IMPORTANT DETAILS
+SECTION RULES:
+- Summary: 2–3 lines (clear and strong)
+- Skills: well-structured (1–2 lines, grouped if needed)
+- Projects: 2 projects (each with 3–4 bullet points)
+- Experience: 2–3 bullet points
+- Achievements: 2–3 bullet points
+- Education: concise
 
-OUTPUT:
+STYLE RULES:
+- Bullet points should be short but descriptive
+- Avoid long paragraphs
+- Maintain readability (not too compressed)
+- Professional and ATS-friendly format
+
+HTML REQUIREMENTS:
+- Wrap everything inside: <div class="page">
+- Design must fit inside A4 (210mm × 297mm)
+- No overflow outside the page
+- No page breaks
+
+VISUAL BALANCE:
+- The resume should look visually balanced
+- Fill the page properly (no large empty gaps)
+- Maintain consistent spacing between sections
+
+OUTPUT FORMAT:
 {
-  "html": "<HTML strictly fitting 1 A4 page>"
+  "html": "<complete HTML document>"
 }
 
-Resume:
+Candidate Resume:
 ${resume}
 
 Job Description:

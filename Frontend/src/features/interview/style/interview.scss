@@ -477,4 +477,20 @@ $severity-low: #3fb950;
         background-color: rgba($severity-low, 0.1);
         border-color: rgba($severity-low, 0.25);
     }
+    .logout-button {
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.8rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+    transition: background 0.2s ease;
+
+    &:hover {
+        background-color: #e60023;
+    }
 }
+}
+

@@ -46,12 +46,17 @@ export async function logout() {
   }
 }
 
-export async function getMe(params) {
-  try{
-      const response = await api.get('/api/auth/get-me')
-      return response.data;
+export async function getMe() {
+  try {
+    const response = await api.get('/api/auth/get-me');
+    return response.data;
+  } catch (err) {
+    // ✅ handle 401 silently
+    if (err.response?.status === 401) {
+      return null; // 👈 VERY IMPORTANT
+    }
+
+    console.error(err);
+    return null;
   }
-  catch(err){
-    console.log(err);
-  } 
 }
