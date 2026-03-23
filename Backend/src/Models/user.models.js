@@ -14,9 +14,12 @@ const userSchema = new mongoose.Schema({
   password: { 
     type: String,
     required: true 
-  }
+  },
+   // 🔥 OTP fields (for login only)
+  otp: String,
+  otpExpires: Date
 
-});
+}, { timestamps: true });
 
 const userModel = mongoose.model('User', userSchema);
 module.exports = userModel;

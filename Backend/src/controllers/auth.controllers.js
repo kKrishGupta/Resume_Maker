@@ -27,6 +27,8 @@ async function registerUser(req, res) {
 
   const hash = await bcrypt.hash(password, 10);
 
+
+
   const user = await User.create({
     username,
     email,
@@ -111,6 +113,103 @@ async function loginUser(req, res) {
     }
   });
 }
+// send otp
+async function sendLoginOtp(req, res) {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required"
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({
+        message: "User not found"
+      });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    user.otp = otp;
+    user.otpExpires = Date.now() + 5 * 60 * 1000;
+
+    await user.save();
+
+    await sendMail("otp", {
+      email: user.email,
+      username: user.username,
+      otp
+    });
+
+    return res.status(200).json({
+      message: "OTP sent to email"
+    });
+
+  } catch (error) {
+    console.error("Send OTP Error:", error);
+    return res.status(500).json({
+      message: "Server error"
+    });
+  }
+}
+
+// login with otp
+async function loginWithOtp(req, res) {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        message: "Email and OTP required"
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
+      return res.status(400).json({
+        message: "Invalid or expired OTP"
+      });
+    }
+
+    // ✅ clear OTP
+    user.otp = null;
+    user.otpExpires = null;
+    await user.save();
+
+    const token = jwt.sign(
+      { id: user._id, username: user.username },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      path: "/"
+    });
+
+    return res.status(200).json({
+      message: "Login successful (OTP)",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email
+      }
+    });
+
+  } catch (error) {
+    console.error("OTP Login Error:", error);
+    return res.status(500).json({
+      message: "Server error"
+    });
+  }
+}
 
 // logout user
 const logoutUser = async (req, res) => {
@@ -162,5 +261,6 @@ async function getMe(req,res){
 
 module.exports = {
   registerUser,
-  loginUser, logoutUser ,getMe
+  loginUser, logoutUser ,getMe, sendLoginOtp,
+  loginWithOtp
 };

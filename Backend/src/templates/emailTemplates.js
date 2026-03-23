@@ -72,7 +72,21 @@ function registerTemplate(user) {
   `;
 }
 
+function otpTemplate(data) {
+  return `
+    <div style="font-family:Arial;padding:20px;">
+      <h2>Hello ${data.username} 👋</h2>
+      <p>Your login OTP is:</p>
+      <h1 style="color:#e1034d;letter-spacing:5px;">
+        ${data.otp}
+      </h1>
+      <p>This OTP is valid for 5 minutes.</p>
+    </div>
+  `;
+}
+
 module.exports = {
   loginTemplate,
-  registerTemplate
+  registerTemplate,
+  otpTemplate
 };
