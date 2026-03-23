@@ -1,7 +1,7 @@
 const { GoogleGenAI } = require("@google/genai")
 const { z } = require("zod")
 const { zodToJsonSchema } = require("zod-to-json-schema")
-const puppeteer = require("puppeteer");
+const pdf = require("html-pdf-node");
 
 const ai = new GoogleGenAI({
     apiKey: process.env.GOOGLE_GENAI_API_KEY
@@ -136,29 +136,30 @@ ${jobDescription}
 
 
 async function generatePdfFromHtml(htmlContent) {
-    const browser = await puppeteer.launch({
-  args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  headless: true,
-  executablePath: puppeteer.executablePath()
-});
-    const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: "networkidle0" })
+  try {
+    const options = {
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "10mm",
+        bottom: "10mm",
+        left: "10mm",
+        right: "10mm"
+      }
+    };
 
-  const pdfBuffer = await page.pdf({
-  format: "A4",
-  printBackground: true,
-  preferCSSPageSize: true,
-  margin: {
-    top: "10mm",
-    bottom: "10mm",
-    left: "10mm",
-    right: "10mm"
+    const file = {
+      content: htmlContent
+    };
+
+    const pdfBuffer = await pdf.generatePdf(file, options);
+
+    return pdfBuffer;
+
+  } catch (error) {
+    console.error("❌ PDF GENERATION ERROR:", error);
+    throw new Error("PDF generation failed");
   }
-});
-
-    await browser.close()
-
-    return pdfBuffer
 }
 
 async function generateResumePdf({ resume, selfDescription, jobDescription }) {
