@@ -224,21 +224,43 @@ Self Description:
 ${selfDescription}
 `;
 
+try {
+
     const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: zodToJsonSchema(resumePdfSchema),
-        }
-    })
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: zodToJsonSchema(resumePdfSchema),
+      }
+    });
 
+    let text = response.text;
 
-    const jsonContent = JSON.parse(response.text)
+    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
 
-    const pdfBuffer = await generatePdfFromHtml(jsonContent.html)
+    let jsonContent;
 
-    return pdfBuffer
+    try {
+      jsonContent = JSON.parse(text);
+    } catch (err) {
+      console.error("❌ JSON PARSE ERROR:", text);
+      throw new Error("Invalid JSON from AI");
+    }
+
+    if (!jsonContent.html) {
+      throw new Error("HTML not generated");
+    }
+
+    const pdfBuffer = await generatePdfFromHtml(jsonContent.html);
+
+    return pdfBuffer;
+
+  } catch (err) {
+    console.error("❌ SERVICE ERROR:", err);
+    throw err;
+  }
+
 
 }
 
