@@ -2,47 +2,98 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router';
 import { Link } from "react-router-dom";
 import { useAuth } from '../hooks/useAuth';
-const Register = () => {
+import '../auth.form.scss';
 
+const Register = () => {
   const navigate = useNavigate();
-  const[username, setUsername] = useState("");
-  const[email,setEmail] = useState("");
-  const[password, setPassword] = useState("");
-  const{loading , handleRegister} = useAuth();
+  const { loading, handleRegister } = useAuth();
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
   const handleSubmit = async (e) =>{
     e.preventDefault()
-    await handleRegister({username, email,password})
-    navigate("/");
+    if (!username || !email || !password) {
+      setError("⚠ Please fill all fields");
+      return;
+    }
+    try {
+      setError("");
+      await handleRegister({ username, email, password });
+      navigate("/");
+    } catch {
+      setError("❌ Registration failed");
+    }
   };
 
-  if(loading){
-    return (<main><h1>Loading........</h1></main>)
+  if (loading) {
+    return (
+      <main>
+        <div className="loader"></div>
+      </main>
+    )
   }
+
   return (
  <main>
       <div className='form-container'>
-        <h1>Register</h1>
-        <form onSubmit = {handleSubmit} action="">
-            <div className='input-group'>
-              <label htmlFor="username">Username</label>
-              <input onChange={(e) =>{setUsername(e.target.value)}} type="username" id="username" placeholder='Enter your username' required/>
-            </div>
+        <h1 className="title">Create Account ✨</h1>
+        <p className="subtitle">Join us and start your journey 🚀</p>
+        {error && <div className="error-box">{error}</div>}
 
-            <div className='input-group'>
-              <label htmlFor="email">Email</label>
-              <input onChange={(e) =>{setEmail(e.target.value)}} type="email" id="email" placeholder='Enter email address' required />
-            </div>
+        <form onSubmit={handleSubmit}>
 
-            <div className='input-group'>
-              <label htmlFor="password">Password</label>
-              <input onChange={(e) => {setPassword(e.target.value)}} type="password" id="password" placeholder='Enter Password'required />
-            </div>
-            <button type="submit" className='button primary-button'>Register</button>
+          {/* USERNAME */}
+          <div className='input-group'>
+            <label>Username</label>
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              type="text"
+              placeholder='Enter your username'
+            />
+          </div>
+
+          {/* EMAIL */}
+          <div className='input-group'>
+            <label>Email</label>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              type="email"
+              placeholder='Enter your email'
+            />
+          </div>
+
+          {/* PASSWORD */}
+          <div className='input-group password-group'>
+            <label>Password</label>
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type={showPassword ? "text" : "password"}
+              placeholder='Enter your password'
+            />
+
+            <span
+              className="toggle"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? "🙈" : "👁"}
+            </span>
+          </div>
+
+          <button type="submit" className='button primary-button'>
+            {loading ? "Creating..." : "Register"}
+          </button>
+
         </form>
 
-       <p> Already have an account?{" "} <Link to="/login" style={{ color: "blue", textDecoration: "underline" }}>Login
-  </Link>
-</p>
+        <p className="footer">
+          Already have an account? <Link to="/login">Login</Link>
+        </p>
       </div>
     </main>
   )
