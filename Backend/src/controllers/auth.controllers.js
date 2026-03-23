@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const User = require('../Models/user.models');
 const jwt = require('jsonwebtoken');
 const BlackListToken = require("../Models/blacklist.models");
+const sendMail = require("../services/mail.service");
 
 // @route registerUser
 async function registerUser(req, res) {
@@ -32,6 +33,8 @@ async function registerUser(req, res) {
     password: hash
   });
 
+   // ✅ SEND MAIL (non-blocking safe)
+  await sendMail("register", user);
 
   const token = jwt.sign(
     { id: user._id, username: user.username },
@@ -81,6 +84,10 @@ async function loginUser(req, res) {
       message: "Invalid credentials"
     });
   }
+
+   // ✅ SEND LOGIN ALERT MAIL
+  
+  await sendMail("login", user);
 
   const token = jwt.sign(
     { id: user._id, username: user.username },
