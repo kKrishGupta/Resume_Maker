@@ -125,7 +125,7 @@ async function generateInterViewReportController(req, res) {
       console.log("⚠️ AI FAILED:", err.message);
     }
 
-    console.log("🧠 AI RESPONSE:", aiData);
+    // console.log("🧠 AI RESPONSE:", aiData);
 
     // ✅ CLEAN + SAFE DATA
     const safeData = {
