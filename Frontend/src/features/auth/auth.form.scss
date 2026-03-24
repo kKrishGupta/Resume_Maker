@@ -5,6 +5,26 @@ main {
   align-items: center;
   background: linear-gradient(135deg, #0f172a, #1e293b);
 
+  .auth-header {
+  position: absolute;
+  top: 40px;
+  text-align: center;
+  color: white;
+  width: 100%;
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+  }
+
+  p {
+    font-size: 0.95rem;
+    opacity: 0.85;
+  }
+}
+
   .form-container {
     width: 360px;
     padding: 2rem;

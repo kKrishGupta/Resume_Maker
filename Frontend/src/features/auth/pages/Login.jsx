@@ -97,6 +97,13 @@ const Login = () => {
 
     return (
     <main>
+        {/* 🔥 HEADLINE */}
+        <div className="auth-header">
+            <h1>Welcome to AI-Powered Interview Prep & Resume Builder</h1>
+            <p>
+            Practice technical questions, build strong resumes, and get job-ready 🚀
+            </p>
+        </div>
       <div className="form-container">
 
         <h1 className="title">Welcome Back 👋</h1>
