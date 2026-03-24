@@ -5,31 +5,58 @@ import { useAuth } from '../hooks/useAuth';
 
 const Login = () => {
 
-  const { loading, handleLogin } = useAuth();
+  const { loading, handleLogin, handleSendOtp, handleOtpLogin } = useAuth();;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [mode, setMode] = useState("password"); // password | otp
+   const [otp, setOtp] = useState("");
+   const [otpSent, setOtpSent] = useState(false);
 
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!email || !password) {
-      setError("⚠ Please fill all fields");
-      return;
-    }
+  try {
+    setError("");
 
-    try {
-      setError("");
+    if (mode === "password") {
       await handleLogin({ email, password });
-      navigate('/');
-    } catch {
-      setError("❌ Invalid email or password");
-    }
+      navigate("/");
+    } 
+    
+  else if (mode === "otp") {
+
+  if (!email) {
+    setError("⚠ Please enter email");
+    return;
   }
+
+  // STEP 1: SEND OTP
+  if (!otpSent) {
+    await handleSendOtp({ email });
+    setOtpSent(true);
+    return;
+  }
+
+  // 🔥 STEP 2: VALIDATE OTP INPUT
+  if (!otp) {
+    setError("⚠ Please enter OTP");
+    return;
+  }
+
+  // STEP 3: VERIFY OTP
+  await handleOtpLogin({ email, otp });
+  navigate("/");
+}
+
+  } catch {
+    setError("❌ Something went wrong");
+  }
+};
 
   if (loading) {
     return (
@@ -39,7 +66,7 @@ const Login = () => {
     )
   }
 
-  return (
+   return (
     <main>
       <div className="form-container">
 
@@ -50,6 +77,7 @@ const Login = () => {
 
         <form onSubmit={handleSubmit}>
 
+          {/* EMAIL */}
           <div className="input-group">
             <label>Email</label>
             <input
@@ -60,25 +88,69 @@ const Login = () => {
             />
           </div>
 
-          <div className="input-group password-group">
-            <label>Password</label>
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              type={showPassword ? "text" : "password"}
-              placeholder="Enter your password"
-            />
+          {/* 🔐 PASSWORD FIELD (ONLY FOR PASSWORD MODE) */}
+          {mode === "password" && (
+            <div className="input-group password-group">
+              <label>Password</label>
+              <input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter your password"
+              />
 
-            <span
-              className="toggle"
-              onClick={() => setShowPassword(!showPassword)}
+              <span
+                className="toggle"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? "🙈" : "👁"}
+              </span>
+            </div>
+          )}
+
+          {/* 📩 OTP FIELD */}
+          {mode === "otp" && otpSent && (
+            <div className="input-group">
+              <label>Enter OTP</label>
+              <input
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="Enter OTP"
+              />
+            </div>
+          )}
+
+          {/* ✅ SUCCESS MESSAGE */}
+          {otpSent && mode === "otp" && (
+            <p style={{ color: "green" }}>OTP sent to your email 📩</p>
+          )}
+
+          {/* 🔥 MODE SWITCH */}
+        <div className="mode-toggle">
+          <button
+            className={mode === "password" ? "active" : ""}
+            onClick={() => setMode("password")}
             >
-              {showPassword ? "🙈" : "👁"}
-            </span>
-          </div>
+            Password
+            </button>
 
+            <button
+            className={mode === "otp" ? "active" : ""}
+            onClick={() => setMode("otp")}
+            >
+            OTP
+            </button>
+        </div>
+
+          {/* 🔥 BUTTON */}
           <button className='button primary-button'>
-            {loading ? "Logging in..." : "Login"}
+            {loading
+              ? "Processing..."
+              : mode === "password"
+              ? "Login"
+              : otpSent
+              ? "Verify OTP"
+              : "Send OTP"}
           </button>
 
         </form>

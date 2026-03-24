@@ -30,6 +30,36 @@ main {
     color: #374151;
   }
 
+  /* 🔥 MODE TOGGLE (NEW) */
+  .mode-toggle {
+    display: flex;
+    gap: 0.5rem;
+    background: #f3f4f6;
+    padding: 0.3rem;
+    border-radius: 0.6rem;
+
+    button {
+      flex: 1;
+      padding: 0.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-weight: 500;
+      background: transparent;
+      transition: 0.3s;
+
+      &:hover {
+        background: #e5e7eb;
+      }
+
+      &.active {
+        background: linear-gradient(135deg, #e1034d, #ff4d6d);
+        color: white;
+        box-shadow: 0 5px 10px rgba(225, 3, 77, 0.3);
+      }
+    }
+  }
+
   form {
     display: flex;
     flex-direction: column;
@@ -42,28 +72,25 @@ main {
     position: relative;
 
     label {
-    color: #374151; // darker label
-    font-weight: 500;
+      color: #374151;
+      font-weight: 500;
+      margin-bottom: 4px;
     }
 
     input {
       padding: 0.8rem;
       border-radius: 0.5rem;
       border: 1px solid #e5e7eb;
-      background: #f9fafb;   
-      color: #111827;        
+      background: #f9fafb;
+      color: #111827;
       transition: 0.3s;
 
       &:focus {
         outline: none;
         background: #ffffff;
+        border-color: #e1034d;
+        box-shadow: 0 0 0 3px rgba(225, 3, 77, 0.2);
       }
-    }
-
-    &.active input {
-      border-color: #e1034d;
-      box-shadow: 0 0 0 3px rgba(225, 3, 77, 0.2);
-      transform: scale(1.02);
     }
   }
 
@@ -78,6 +105,16 @@ main {
       font-size: 1.1rem;
       color: #374151;
     }
+  }
+
+  /* 📩 OTP SUCCESS MESSAGE */
+  .otp-success {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #065f46;
+    background: #d1fae5;
+    padding: 0.4rem;
+    border-radius: 0.4rem;
   }
 
   .button {
@@ -97,6 +134,11 @@ main {
 
     &:active {
       transform: scale(0.97);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
   }
 
