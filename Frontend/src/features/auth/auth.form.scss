@@ -170,6 +170,19 @@ main {
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
+
+  .resend-btn {
+  margin-top: 8px;
+  background: none;
+  border: none;
+  color: #e1034d;
+  font-weight: bold;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
 }
 
 /* Animations */
