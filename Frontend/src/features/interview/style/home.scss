@@ -371,4 +371,61 @@ $font-stack:     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Robot
             color: $text-primary;
         }
     }
+
+    // Remove button (global)
+.remove-file-btn {
+  margin-top: 8px;
+  color: #ff4d6d;
+  background: rgba(255, 77, 109, 0.1);
+  border: 1px solid rgba(255, 77, 109, 0.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+
+  &:hover {
+    background: rgba(255, 77, 109, 0.2);
+  }
+}
+
+    // Improve file text look
+    .dropzone__title {
+    text-align: center;
+    }
+
+    .dropzone__subtitle {
+    text-align: center;
+    }
+
+    // When file is uploaded
+    .dropzone p {
+    margin: 2px 0;
+    }
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.report-actions {
+  display: flex;
+  gap: 6px;
+
+  button {
+    background: rgba(255,255,255,0.05);
+    border: none;
+    padding: 4px 6px;
+    border-radius: 5px;
+    cursor: pointer;
+    color: $text-muted;
+    font-size: 0.85rem;
+
+    &:hover {
+      background: rgba(255,45,120,0.2);
+      color: $accent;
+    }
+  }
 }

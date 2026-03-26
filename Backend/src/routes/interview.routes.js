@@ -38,5 +38,23 @@ interviewRouter.get("/", authMiddleware, interviewController.getAllInterviewRepo
 interviewRouter.post("/resume/pdf/:interviewReportId", authMiddleware, interviewController.generateResumePdfController)
 
 
+/**
+ * 🔥 DELETE ROUTE (ADD THIS)
+ */
+interviewRouter.delete("/:id", authMiddleware, interviewController.deleteInterviewReport);
+
+// generate more question
+interviewRouter.post(
+  "/:interviewId/more-questions",
+  authMiddleware,
+  interviewController.generateMoreQuestions
+);
+
+// generate behavioural questions more 
+interviewRouter.post(
+  "/:interviewId/more-behavioral",
+  authMiddleware,
+  interviewController.generateMoreBehavioralQuestions
+);
 
 module.exports = interviewRouter

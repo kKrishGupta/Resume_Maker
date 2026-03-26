@@ -1,7 +1,7 @@
 const pdfParse = require("pdf-parse");
 const {
   generateInterviewReport,
-  generateResumePdf
+  generateResumePdf,generateAIQuestions,generateAIBehavioralQuestions
 } = require("../services/ai.service");
 const interviewReportModel = require("../Models/interviewReport.model");
 
@@ -289,9 +289,103 @@ async function generateResumePdfController(req, res) {
   }
 }
 
+
+// @description delete interview report
+async function deleteInterviewReport(req, res) {
+  try {
+    const { id } = req.params;
+
+    // 🔥 secure delete (only owner can delete)
+    const report = await interviewReportModel.findOneAndDelete({
+      _id: id,
+      user: req.user.id
+    });
+
+    if (!report) {
+      return res.status(404).json({
+        message: "Report not found or unauthorized"
+      });
+    }
+
+    res.status(200).json({
+      message: "Report deleted successfully"
+    });
+
+  } catch (err) {
+    console.error("Delete Error:", err);
+    res.status(500).json({
+      message: "Server error"
+    });
+  }
+}
+
+// 🔥 Generate more questions
+async function generateMoreQuestions(req, res) {
+  try {
+    const { interviewId } = req.params;
+
+    const report = await interviewReportModel.findById(interviewId);
+
+    if (!report) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
+    // 🔥 call AI again (reuse your ai.service)
+    const newQuestions = await generateAIQuestions({
+      jobDescription: report.jobDescription,
+      resume: report.resume,
+      previousQuestions: report.technicalQuestions
+    });
+
+    // append new questions
+    report.technicalQuestions.push(...newQuestions);
+
+    await report.save();
+
+    res.json({
+      message: "More questions generated",
+      questions: report.technicalQuestions
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+// 🔥 Generate More Behavioral Questions
+const generateMoreBehavioralQuestions = async (req, res) => {
+  try {
+    const { interviewId } = req.params;
+
+    const report = await interviewReportModel.findById(interviewId);
+
+    if (!report) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
+    const newQuestions = await generateAIBehavioralQuestions({
+      jobDescription: report.jobDescription,
+      resume: report.resume,
+      previousQuestions: report.behavioralQuestions
+    });
+
+    report.behavioralQuestions.push(...newQuestions);
+    await report.save();
+
+    res.json({ questions: report.behavioralQuestions });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error generating behavioral questions" });
+  }
+};
 module.exports = {
   generateInterViewReportController,
   getInterviewReportByIdController,
   getAllInterviewReportsController,
-  generateResumePdfController
+  generateResumePdfController,
+  deleteInterviewReport,
+  generateMoreQuestions,
+  generateMoreBehavioralQuestions
 };

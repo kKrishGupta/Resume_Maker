@@ -133,8 +133,6 @@ ${jobDescription}
 
 }
 
-
-
 async function generatePdfFromHtml(htmlContent) {
   try {
     const options = {
@@ -269,4 +267,103 @@ try {
 
 }
 
-module.exports = { generateInterviewReport, generateResumePdf }
+// 🔥 generate more technical questions
+async function generateAIQuestions({ jobDescription, resume, previousQuestions }) {
+  try {
+    const prompt = `
+You are an expert interviewer.
+
+Generate 5 NEW technical interview questions.
+
+STRICT RULES:
+- Do NOT repeat previous questions
+- Return ONLY JSON
+- No explanation, no text
+
+FORMAT:
+[
+  {
+    "question": "string",
+    "intention": "string",
+    "answer": "string"
+  }
+]
+
+Previous Questions:
+${previousQuestions.map(q => q.question).join("\n")}
+
+Job Description:
+${jobDescription}
+
+Resume:
+${resume}
+`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    let text = response.text;
+
+    // 🔥 CLEAN RESPONSE
+    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+
+    let parsed;
+
+    try {
+      parsed = JSON.parse(text);
+    } catch (err) {
+      console.error("❌ JSON PARSE ERROR:", text);
+      return [];
+    }
+
+    return parsed;
+
+  } catch (err) {
+    console.error("AI question error:", err);
+    return [];
+  }
+}
+
+async function generateAIBehavioralQuestions({ jobDescription, previousQuestions }) {
+  try {
+    const prompt = `
+You are an expert interviewer.
+
+Generate 5 NEW behavioral interview questions.
+
+Avoid repeating:
+${previousQuestions.map(q => q.question).join("\n")}
+
+Return JSON only:
+
+[
+ {
+   "question": "",
+   "intention": "",
+   "answer": ""
+ }
+]
+`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: { responseMimeType: "application/json" }
+    });
+
+    let text = response.text;
+    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+
+    return JSON.parse(text);
+
+  } catch (err) {
+    console.error("Behavioral AI error:", err);
+    return [];
+  }
+}
+module.exports = { generateInterviewReport, generateResumePdf ,generateAIQuestions,generateAIBehavioralQuestions};

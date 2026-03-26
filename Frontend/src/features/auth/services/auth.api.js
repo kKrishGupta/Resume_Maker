@@ -74,12 +74,11 @@ export async function getMe() {
     const response = await api.get('/api/auth/get-me');
     return response.data;
   } catch (err) {
-    // ✅ handle 401 silently
     if (err.response?.status === 401) {
-      return null; // 👈 VERY IMPORTANT
+      return null; // ✅ expected case
     }
 
-    console.error(err);
+    console.error("getMe error:", err.message);
     return null;
   }
 }

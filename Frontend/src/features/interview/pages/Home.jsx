@@ -1,34 +1,78 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import "../style/home.scss"
 import { useInterview } from '../hooks/useInterview.js'
 import { useNavigate } from 'react-router'
-
+import { deleteReport } from '../services/interview.api.js'
 const Home = () => {
-
-    const { loading, generateReport, reports } = useInterview() || {};
+    const [resumeFile, setResumeFile] = useState(null);
+    const { loading, generateReport, reports: initialReports } = useInterview() || {};
     const [ jobDescription, setJobDescription ] = useState("")
     const [ selfDescription, setSelfDescription ] = useState("")
+    const [reports, setReports] = useState([]);
     const resumeInputRef = useRef()
 
     const navigate = useNavigate()
 
-    const handleGenerateReport = async () => {
-        const resumeFile = resumeInputRef.current.files[ 0 ]
-        const data = await generateReport({ jobDescription, selfDescription, resumeFile });
-          if (!data) {
-            alert("Failed to generate report");
-             return;
-          }
-        navigate(`/interview/${data._id}`)
-    }
 
-    if (loading) {
-        return (
-            <main className='loading-screen'>
-                <h1>Loading your interview plan...</h1>
-            </main>
-        )
+    const handleEdit = (report) => {
+  console.log("Edit clicked:", report);
+};
+
+    const handleGenerateReport = async () => {
+    try {
+      if (!resumeFile && !selfDescription) {
+        alert("Please upload resume or add description");
+        return;
+      }
+
+      const data = await generateReport({
+        jobDescription,
+        selfDescription,
+        resumeFile // ✅ FIXED (use state)
+      });
+
+      if (!data) {
+        alert("Failed to generate report");
+        return;
+      }
+
+      navigate(`/interview/${data._id}`);
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
     }
+  }
+
+  const handleDelete = async (id) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete?");
+    if (!confirmDelete) return;
+
+    try {
+      // 🔥 call backend
+      await deleteReport(id);
+
+      // ✅ update UI after success
+      setReports(prev => prev.filter(report => report._id !== id));
+
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete report");
+    }
+  };
+
+   useEffect(() => {
+  if (initialReports) {
+    setReports(initialReports);
+  }
+}, [initialReports]);
+
+if (loading) {
+  return (
+    <main className='loading-screen'>
+      <h1>Loading your interview plan...</h1>
+    </main>
+  )
+}
 
     return (
         <div className='home-page'>
@@ -79,14 +123,77 @@ const Home = () => {
                                 Upload Resume
                                 <span className='badge badge--best'>Best Results</span>
                             </label>
-                            <label className='dropzone' htmlFor='resume'>
-                                <span className='dropzone__icon'>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" /><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" /></svg>
-                                </span>
-                                <p className='dropzone__title'>Click to upload or drag &amp; drop</p>
-                                <p className='dropzone__subtitle'>PDF or DOCX (Max 5MB)</p>
-                                <input ref={resumeInputRef} hidden type='file' id='resume' name='resume' accept='.pdf,.docx' />
-                            </label>
+
+                           <label className='dropzone' htmlFor='resume'>
+
+  <span className='dropzone__icon'>
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="16 16 12 12 8 16" />
+      <line x1="12" y1="12" x2="12" y2="21" />
+      <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+    </svg>
+    
+  </span>
+
+  
+{!resumeFile ? (
+  <>
+    <p className='dropzone__title'>Click to upload or drag & drop</p>
+    <p className='dropzone__subtitle'>PDF or DOCX (Max 5MB)</p>
+  </>
+) : (
+  <>
+    <p style={{ color: "limegreen" }}>
+      ✅ File Uploaded Successfully
+    </p>
+    <p>📄 {resumeFile.name}</p>
+
+    <button
+      type="button"
+      className="remove-file-btn"
+      onClick={(e) => {
+        e.preventDefault(); // VERY IMPORTANT
+        setResumeFile(null);
+
+        if (resumeInputRef.current) {
+          resumeInputRef.current.value = "";
+        }
+      }}
+    >
+      ❌ Remove File
+    </button>
+  </>
+)}
+
+  <input
+    ref={resumeInputRef}
+    hidden
+    type='file'
+    id='resume'
+    name='resume'
+    accept='.pdf,.docx'
+    onChange={(e) => {
+      const file = e.target.files[0];
+      setResumeFile(file);
+    }}
+  />
+
+</label>
+
+{!resumeFile ? (
+                                    <>
+                                        <p className='dropzone__title'>Click to upload</p>
+                                        <p className='dropzone__subtitle'>PDF or DOCX</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p style={{ color: "limegreen" }}>
+                                            ✅ File Uploaded
+                                        </p>
+                                        <p>{resumeFile.name}</p>
+                                    </>
+                                )}
+
                         </div>
 
                         {/* OR Divider */}
@@ -132,11 +239,49 @@ const Home = () => {
                     <h2>My Recent Interview Plans</h2>
                     <ul className='reports-list'>
                         {reports.map(report => (
-                            <li key={report._id} className='report-item' onClick={() => navigate(`/interview/${report._id}`)}>
-                                <h3>{report.title || 'Untitled Position'}</h3>
-                                <p className='report-meta'>Generated on {new Date(report.createdAt).toLocaleDateString()}</p>
-                                <p className={`match-score ${report.matchScore >= 80 ? 'score--high' : report.matchScore >= 60 ? 'score--mid' : 'score--low'}`}>Match Score: {report.matchScore}%</p>
-                            </li>
+                            <li key={report._id} className='report-item'>
+
+  {/* HEADER */}
+  <div className="report-header">
+    <h3 onClick={() => navigate(`/interview/${report._id}`)}>
+      {report.title || 'Untitled Position'}
+    </h3>
+
+    <div className="report-actions">
+      <button
+        onClick={(e) => {
+          e.stopPropagation(); // 🔥 IMPORTANT
+          handleEdit(report);
+        }}
+      >
+        ✏️
+      </button>
+
+      <button
+        onClick={(e) => {
+          e.stopPropagation(); // 🔥 IMPORTANT
+          handleDelete(report._id);
+        }}
+      >
+        🗑
+      </button>
+    </div>
+  </div>
+
+  {/* BODY */}
+  <p className='report-meta'>
+    Generated on {new Date(report.createdAt).toLocaleDateString()}
+  </p>
+
+  <p className={`match-score ${
+    report.matchScore >= 80 ? 'score--high'
+    : report.matchScore >= 60 ? 'score--mid'
+    : 'score--low'
+  }`}>
+    Match Score: {report.matchScore}%
+  </p>
+
+</li>
                         ))}
                     </ul>
                 </section>
@@ -152,4 +297,4 @@ const Home = () => {
     )
 }
 
-export default Home
+export default Home;

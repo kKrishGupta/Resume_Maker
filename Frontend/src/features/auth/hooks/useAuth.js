@@ -16,7 +16,9 @@ export const useAuth = () => {
     const data = await login({ email, password });
 
     if (!data || !data.user) {
-      throw new Error("Invalid credentials");
+      setUser(null);
+      return;
+      // throw new Error("Invalid credentials");
     }
 
     setUser(data.user);
@@ -36,7 +38,7 @@ export const useAuth = () => {
             const data = await register({ username, email, password })
             setUser(data.user)
         } catch (err) {
-
+            
         } finally {
             setLoading(false)
         }
@@ -60,6 +62,7 @@ export const useAuth = () => {
     const data = await verifyLoginOtp({ email, otp });
     setUser(data.user);
   } catch (err) {
+    setUser(null);
     console.error(err);
     throw err; // ✅ IMPORTANT
   } finally {

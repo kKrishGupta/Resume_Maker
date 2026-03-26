@@ -51,3 +51,40 @@ export const generateResumePdf = async ({ interviewReportId }) => {
 
     return response.data
 }
+
+export const deleteReport = async (id) => {
+  try {
+    const res = await api.delete(`/api/interview/${id}`);
+
+    return res.data; // ✅ axios already gives data
+
+  } catch (err) {
+    console.error("Delete error:", err.response?.data || err.message);
+    throw err;
+  }
+};
+
+// 🔥 GENERATE MORE QUESTIONS
+export const generateMoreQuestions = async (interviewId) => {
+  try {
+    const res = await api.post(
+      `/api/interview/${interviewId}/more-questions`
+    );
+
+    return res.data;
+
+  } catch (err) {
+    console.error("Generate more error:", err.response?.data || err.message);
+    throw err;
+  }
+};
+
+export const generateMoreBehavioral = async(interviewId) =>{
+    try{
+        const res = await api.post(`/api/interview/${interviewId}/more-behavioral`);
+        return res.data;
+    }catch (err) {
+    console.error("Generate more error:", err.response?.data || err.message);
+    throw err;
+  }
+};

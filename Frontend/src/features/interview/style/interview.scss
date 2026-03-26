@@ -134,28 +134,32 @@ $severity-low: #3fb950;
 }
 
 .content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid $border-color;
+
+  .header-left {
     display: flex;
-    align-items: baseline;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid $border-color;
+    align-items: center;
+    gap: 12px;
+  }
 
-    h2 {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: $text-primary;
-        margin: 0;
-    }
+  h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
 
-    &__count {
-        font-size: 0.8rem;
-        color: $text-muted;
-        background-color: $bg-panel;
-        padding: 0.15rem 0.6rem;
-        border-radius: 2rem;
-        border: 1px solid $border-color;
-    }
+  &__count {
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba($accent, 0.1);
+    border: 1px solid rgba($accent, 0.2);
+    color: $accent;
+  }
 }
 
 // ── Question Cards ────────────────────────────────────────────────────────────
@@ -166,15 +170,16 @@ $severity-low: #3fb950;
 }
 
 .q-card {
-    background-color: $bg-panel;
-    border: 1px solid $border-color;
-    border-radius: 0.6rem;
-    overflow: hidden;
-    transition: border-color 0.2s;
+    background: linear-gradient(145deg, #1c2230, #161b22);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 10px;
+    transition: all 0.25s ease;
 
     &:hover {
-        border-color:  color.adjust($border-color, $lightness: 8%);
-    }
+    border-color: rgba($accent, 0.4);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    transform: translateY(-2px);
+  }
 
     &__header {
         display: flex;
@@ -459,6 +464,7 @@ $severity-low: #3fb950;
     border-radius: 0.4rem;
     border: 1px solid;
     cursor: default;
+    transition: 0.2s;
 
     &--high {
         color: $severity-high;
@@ -494,3 +500,24 @@ $severity-low: #3fb950;
 }
 }
 
+.generate-more-btn {
+  background: linear-gradient(135deg, #ff2d78, #ff4d6d);
+  border: none;
+  color: white;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.25s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(255, 45, 120, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}

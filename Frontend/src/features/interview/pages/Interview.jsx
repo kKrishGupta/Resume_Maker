@@ -3,7 +3,7 @@ import '../style/interview.scss'
 import { useInterview } from '../hooks/useInterview.js'
 import { useNavigate, useParams } from 'react-router-dom'
 import { logout } from "../../auth/services/auth.api.js"; // adjust path if needed
-
+import { generateMoreQuestions,generateMoreBehavioral } from "../services/interview.api";
 
 const NAV_ITEMS = [
     { id: 'technical', label: 'Technical Questions', icon: (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>) },
@@ -22,6 +22,7 @@ const QuestionCard = ({ item, index }) => {
                 <span className={`q-card__chevron ${open ? 'q-card__chevron--open' : ''}`}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
                 </span>
+
             </div>
             {open && (
                 <div className='q-card__body'>
@@ -38,6 +39,8 @@ const QuestionCard = ({ item, index }) => {
         </div>
     )
 }
+
+
 
 const RoadMapDay = ({ day }) => (
     <div className='roadmap-day'>
@@ -59,14 +62,61 @@ const RoadMapDay = ({ day }) => (
 // ── Main Component ────────────────────────────────────────────────────────────
 const Interview = () => {
     const [ activeNav, setActiveNav ] = useState('technical')
-    const { report, getReportById, loading, getResumePdf } = useInterview()
+    const { report, getReportById, loading, getResumePdf } = useInterview();
+    const [generating, setGenerating] = useState(false);
+    const [questions, setQuestions] = useState([]);
     const { interviewId } = useParams()
+    const [showScrollTop, setShowScrollTop] = useState(false);
+    const [behavioralQuestions, setBehavioralQuestions] = useState([]);
+    const [generatingBehavioral, setGeneratingBehavioral] = useState(false);
     const navigate = useNavigate();
+    const handleGenerateMore = async () => {
+        try {
+            setGenerating(true);
+
+            const data = await generateMoreQuestions(interviewId);
+
+            setQuestions(prev => [...prev, ...data.questions]);
+
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    const handleGenerateBehavioral = async () => {
+  try {
+    setGeneratingBehavioral(true);
+
+    const data = await generateMoreBehavioral(interviewId);
+
+    setBehavioralQuestions(data.questions);
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setGeneratingBehavioral(false);
+  }
+};
+
+    useEffect(() => {
+    if (report?.technicalQuestions) {
+        setQuestions(report.technicalQuestions);
+    }
+    }, [report]);
+
     useEffect(() => {
         if (interviewId) {
             getReportById(interviewId)
         }
-    }, [ interviewId ])
+    }, [ interviewId ]);
+
+    useEffect(() => {
+  if (report?.behavioralQuestions) {
+    setBehavioralQuestions(report.behavioralQuestions);
+  }
+}, [report]);
 
 const handleLogout = async () => {
     try {
@@ -140,13 +190,31 @@ const handleLogout = async () => {
                     {activeNav === 'technical' && (
                         <section>
                             <div className='content-header'>
-                                <h2>Technical Questions</h2>
-                                <span className='content-header__count'>{report.technicalQuestions.length} questions</span>
+                                <div className="header-left">
+                                    <h2>Technical Questions</h2>
+                                    <span className='content-header__count'>
+                                    {questions.length} questions
+                                    </span>
+                                </div>
+
+
+                                 {/* 🔥 ADD BUTTON HERE */}
+                       <button
+                        className="generate-more-btn"
+                        onClick={handleGenerateMore}
+                        disabled={generating}
+                        >
+                        {generating ? "Generating..." : "➕ Generate More"}
+                        </button>
                             </div>
                             <div className='q-list'>
-                                {report.technicalQuestions.map((q, i) => (
-                                    <QuestionCard key={i} item={q} index={i} />
-                                ))}
+                               {questions.map((q, i) => (
+                               <QuestionCard
+                                    key={i}
+                                    item={q}
+                                    index={i}
+                                    />
+                            ))}
                             </div>
                         </section>
                     )}
@@ -156,11 +224,19 @@ const handleLogout = async () => {
                             <div className='content-header'>
                                 <h2>Behavioral Questions</h2>
                                 <span className='content-header__count'>{report.behavioralQuestions.length} questions</span>
+
+                                 <button
+                                    className="generate-more-btn"
+                                    onClick={handleGenerateBehavioral}
+                                    disabled={generatingBehavioral}
+                                >
+                                    {generatingBehavioral ? "Generating..." : "➕ Generate More"}
+                                </button>
                             </div>
-                            <div className='q-list'>
-                                {report.behavioralQuestions.map((q, i) => (
-                                    <QuestionCard key={i} item={q} index={i} />
-                                ))}
+                           <div className='q-list'>
+                            {behavioralQuestions.map((q, i) => (
+                                <QuestionCard key={i} item={q} index={i} />
+                            ))}
                             </div>
                         </section>
                     )}
@@ -213,6 +289,11 @@ const handleLogout = async () => {
 
                 
             </div>
+             {showScrollTop && (
+            <button className="scroll-top-btn" onClick={scrollToTop}>
+                ⬆
+            </button>
+        )}
         </div>
     )
 }

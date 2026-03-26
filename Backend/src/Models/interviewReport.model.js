@@ -79,23 +79,29 @@ const interviewReportSchema = new mongoose.Schema({
         type: Number,
         min: 0,
         max: 100,
+        default: 0 // ✅ added (safe)
     },
     technicalQuestions: [ technicalQuestionSchema ],
     behavioralQuestions: [ behavioralQuestionSchema ],
     skillGaps: [ skillGapSchema ],
     preparationPlan: [ preparationPlanSchema ],
     user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "users"
-    },
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "users", 
+    required: true 
+  },
+
+
     title: {
         type: String,
-        required: [ true, "Job title is required" ]
+        required: [ true, "Job title is required" ],
+        default :"Interview Plan"
     }
 }, {
     timestamps: true
 })
 
+interviewReportSchema.index({ user: 1, createdAt: -1 });
 
 const interviewReportModel = mongoose.model("InterviewReport", interviewReportSchema);
 
