@@ -79,6 +79,7 @@ export const generateMoreQuestions = async (interviewId) => {
   }
 };
 
+// get more beavioural questions
 export const generateMoreBehavioral = async(interviewId) =>{
     try{
         const res = await api.post(`/api/interview/${interviewId}/more-behavioral`);
@@ -87,4 +88,15 @@ export const generateMoreBehavioral = async(interviewId) =>{
     console.error("Generate more error:", err.response?.data || err.message);
     throw err;
   }
+};
+
+// get follow up questions
+
+export const generateFollowUp = async ({ question, answer }) => {
+  const res = await api.post("/api/interview/follow-up", {
+    question,
+    answer
+  });
+
+  return res.data;
 };

@@ -57,4 +57,10 @@ interviewRouter.post(
   interviewController.generateMoreBehavioralQuestions
 );
 
+interviewRouter.post(
+  "/follow-up",
+  authMiddleware,
+  interviewController.generateFollowUp
+);
+
 module.exports = interviewRouter

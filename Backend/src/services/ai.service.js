@@ -366,4 +366,54 @@ Return JSON only:
     return [];
   }
 }
-module.exports = { generateInterviewReport, generateResumePdf ,generateAIQuestions,generateAIBehavioralQuestions};
+
+async function generateFollowUpQuestions({ question, answer }) {
+  try {
+    const prompt = `
+You are a senior technical interviewer.
+
+Main Question:
+"${question}"
+
+Candidate Answer:
+"${answer}"
+
+Generate 3 FOLLOW-UP questions.
+
+Each follow-up must include:
+- question
+- intention (what interviewer checks)
+- answer (ideal answer)
+
+Return JSON:
+
+[
+  {
+    "question": "",
+    "intention": "",
+    "answer": ""
+  }
+]
+`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: { responseMimeType: "application/json" }
+    });
+
+    let text = response.text;
+    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+
+    return JSON.parse(text);
+
+  } catch (err) {
+    console.error("Follow-up error:", err);
+    return [];
+  }
+}
+
+
+
+module.exports = { generateInterviewReport, generateResumePdf ,generateAIQuestions,generateAIBehavioralQuestions,generateFollowUpQuestions
+};

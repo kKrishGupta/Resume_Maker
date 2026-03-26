@@ -3,7 +3,7 @@ import '../style/interview.scss'
 import { useInterview } from '../hooks/useInterview.js'
 import { useNavigate, useParams } from 'react-router-dom'
 import { logout } from "../../auth/services/auth.api.js"; // adjust path if needed
-import { generateMoreQuestions,generateMoreBehavioral } from "../services/interview.api";
+import { generateMoreQuestions,generateMoreBehavioral , generateFollowUp} from "../services/interview.api";
 
 const NAV_ITEMS = [
     { id: 'technical', label: 'Technical Questions', icon: (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>) },
@@ -13,16 +13,46 @@ const NAV_ITEMS = [
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 const QuestionCard = ({ item, index }) => {
-    const [ open, setOpen ] = useState(false)
+    const [ open, setOpen ] = useState(false);
+    const [followUps, setFollowUps] = useState([]);
+    const [loadingFollow, setLoadingFollow] = useState(false);
+    const handleFollowUp = async () => {
+    try {
+        setLoadingFollow(true);
+
+        const data = await generateFollowUp({
+        question: item.question,
+        answer: item.answer
+        });
+
+        setFollowUps(data.followUps);
+
+    } catch (err) {
+        console.error(err);
+    } finally {
+        setLoadingFollow(false);
+    }
+    };
+
     return (
         <div className='q-card'>
             <div className='q-card__header' onClick={() => setOpen(o => !o)}>
                 <span className='q-card__index'>Q{index + 1}</span>
                 <p className='q-card__question'>{item.question}</p>
+                 {/* 🔥 ADD THIS BUTTON */}
+                    <button
+                        className="follow-btn"
+                        onClick={(e) => {
+                        e.stopPropagation(); // VERY IMPORTANT
+                        handleFollowUp();
+                        }}
+                    >
+                        {loadingFollow ? "Thinking..." : "💬 Ask"}
+                    </button>
                 <span className={`q-card__chevron ${open ? 'q-card__chevron--open' : ''}`}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
                 </span>
-
+                
             </div>
             {open && (
                 <div className='q-card__body'>
@@ -34,6 +64,31 @@ const QuestionCard = ({ item, index }) => {
                         <span className='q-card__tag q-card__tag--answer'>Model Answer</span>
                         <p>{item.answer}</p>
                     </div>
+
+                {/* 🔥 FOLLOW-UP SECTION */}
+                    {followUps.length > 0 && (
+                    <div className="followups">
+                        {followUps.map((f, i) => (
+                        <div key={i} className="followup-card">
+
+                            <p className="followup-question">
+                            👉 {f.question}
+                            </p>
+
+                            <div className="followup-section">
+                            <span className="tag intention">Intention</span>
+                            <p>{f.intention}</p>
+                            </div>
+
+                            <div className="followup-section">
+                            <span className="tag answer">Model Answer</span>
+                            <p>{f.answer}</p>
+                            </div>
+
+                        </div>
+                        ))}
+                    </div>
+                    )}
                 </div>
             )}
         </div>

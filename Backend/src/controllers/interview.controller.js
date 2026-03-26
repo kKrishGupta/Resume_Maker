@@ -1,7 +1,7 @@
 const pdfParse = require("pdf-parse");
 const {
   generateInterviewReport,
-  generateResumePdf,generateAIQuestions,generateAIBehavioralQuestions
+  generateResumePdf,generateAIQuestions,generateAIBehavioralQuestions,generateFollowUpQuestions
 } = require("../services/ai.service");
 const interviewReportModel = require("../Models/interviewReport.model");
 
@@ -380,6 +380,22 @@ const generateMoreBehavioralQuestions = async (req, res) => {
     res.status(500).json({ message: "Error generating behavioral questions" });
   }
 };
+
+async function generateFollowUp(req,res){
+    try {
+    const { question, answer } = req.body;
+    const followUps = await generateFollowUpQuestions({
+      question,
+      answer
+    });
+
+    res.json({ followUps });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Follow-up error" });
+  }
+}
 module.exports = {
   generateInterViewReportController,
   getInterviewReportByIdController,
@@ -387,5 +403,6 @@ module.exports = {
   generateResumePdfController,
   deleteInterviewReport,
   generateMoreQuestions,
-  generateMoreBehavioralQuestions
+  generateMoreBehavioralQuestions,
+  generateFollowUp
 };
