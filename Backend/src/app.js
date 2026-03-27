@@ -8,7 +8,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://resume-maker-c6ko.vercel.app"
+  "https://resume-maker-c6ko.vercel.app",
+  "https://resume-maker-khaki-nine.vercel.app" // ✅ ADD THIS
 ];
 
 app.use(cors({
@@ -22,9 +23,9 @@ app.use(cors({
     }
 
     // 🔥 allow ONLY your Vercel preview domains
-    if (
+   if (
       origin.endsWith(".vercel.app") &&
-      origin.includes("resume-maker-c6ko")
+      origin.includes("resume-maker")
     ) {
       return callback(null, true);
     }
