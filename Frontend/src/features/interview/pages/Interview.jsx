@@ -247,15 +247,19 @@ const handleNextQuestion = () => {
 };
 const handleGenerateQuestion = async () => {
   try {
-    if (!customTopic) return;
+    let topicToSend = customTopic;
 
-    setLoadingGen(true);
+if (mockType === "technical") {
+  topicToSend = "technical interview";
+} else if (mockType === "behavioral") {
+  topicToSend = "behavioral interview";
+}
 
-    const data = await generateQuestion({
-      topic: customTopic,
-       type: mockType,
-       difficulty
-    });
+const data = await generateQuestion({
+  topic: topicToSend,
+  type: mockType,
+  difficulty
+});
 
     setGeneratedQuestion(data.question);
 
@@ -267,14 +271,15 @@ const handleGenerateQuestion = async () => {
 };
 
 useEffect(() => {
-  if (mockType !== "custom" || !customTopic) return;
+  if (mockType === "custom" && !customTopic) return;
 
   const timer = setTimeout(() => {
     handleGenerateQuestion();
-  }, 200);
+  }, 300);
 
   return () => clearTimeout(timer);
-}, [customTopic, mockType]);
+
+}, [customTopic, mockType, difficulty]);
 
 // ✅ SAFE ACCESS (no crash)
 const scoreColor =
@@ -470,7 +475,12 @@ if (loading || !report) {
                 <div className="mock-controls">
                     <select
                         value={mockType}
-                        onChange={(e) => setMockType(e.target.value)}
+                        onChange={(e) => {
+                            setMockType(e.target.value);
+
+                            // 🔥 RESET EVERYTHING
+                            setGeneratedQuestion("");
+                            }}
                     >
                         <option value="technical">🧠 Technical</option>
                         <option value="behavioral">💬 Behavioral</option>
@@ -479,7 +489,12 @@ if (loading || !report) {
 
                     <select
                         value={difficulty}
-                        onChange={(e) => setDifficulty(e.target.value)}
+                        onChange={(e) => {
+                                setDifficulty(e.target.value);
+
+                                // 🔥 regenerate for new difficulty
+                                setGeneratedQuestion("");
+                                }}
                         >
                         <option value="easy">🟢 Easy</option>
                         <option value="medium">🟡 Medium</option>
@@ -517,19 +532,18 @@ if (loading || !report) {
 
     <p className="mock-question">
 
-        {mockType === "technical" && questions[currentIndex]?.question}
+  {generatedQuestion
+    ? generatedQuestion
+    : mockType === "technical"
+      ? questions[currentIndex]?.question
+      : mockType === "behavioral"
+        ? behavioralQuestions[currentIndex]?.question
+        : customTopic
+          ? "⚡ Generating question..."
+          : "⚠️ Enter a topic to start"
+  }
 
-        {mockType === "behavioral" && behavioralQuestions[currentIndex]?.question}
-
-        {mockType === "custom" && (
-        generatedQuestion
-            ? generatedQuestion
-            : customTopic
-            ? "⚡ Click Generate to get a question"
-            : "⚠️ Enter a topic to start"
-        )}
-
-    </p>
+</p>
 
       <textarea
         value={mockAnswer}

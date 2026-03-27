@@ -111,7 +111,7 @@ export const evaluateMockAnswer = async ({ question, answer }) => {
   return res.data;
 };
 
-export const generateQuestion = async ({ topic, type }) => {
+export const generateQuestion = async ({ topic, type,difficulty }) => {
   const res = await api.post("/api/interview/mock/generate-question", {
     topic,
     type,
