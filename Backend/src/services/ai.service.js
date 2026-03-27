@@ -107,6 +107,7 @@ STRICT REQUIREMENTS:
 - preparationPlan → between 5 to 7 objects
 - tasks MUST be an array of strings (NOT a single string)
 - Each object must contain ALL required fields
+- weakProjects MUST contain at least 2 items
 
 FORBIDDEN OUTPUTS:
 ❌ ["day", 1, "focus", "..."]

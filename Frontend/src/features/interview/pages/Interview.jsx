@@ -450,11 +450,16 @@ if (loading || !report) {
                         <div className='sidebar-divider' />
 
                         {/* 🔥 WEAK PROJECTS */}
-                        <div className="analysis-section">
-                        <p className="analysis-title">⚠ Weak Projects</p>
-                        {report?.weakProjects?.map((item, i) => (
-                            <p key={i} className="analysis-text">• {item}</p>
-                        ))}
+                       <div className="analysis-section">
+                            <p className="analysis-title">⚠ Weak Projects</p>
+
+                            {report?.weakProjects?.length > 0 ? (
+                                report.weakProjects.map((item, i) => (
+                                <p key={i} className="analysis-text">{item}</p>
+                                ))
+                            ) : (
+                                <p className="analysis-empty">No weak projects detected</p>
+                            )}
                         </div>
 
                         <div className='sidebar-divider' />

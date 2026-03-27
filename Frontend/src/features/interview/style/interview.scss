@@ -808,8 +808,14 @@ $severity-low: #3fb950;
   margin-top: 14px;
   padding-bottom: 10px;
   border-bottom: 1px solid rgba(255,255,255,0.05);
-  max-height: 160px;      // ✅ LIMIT HEIGHT
+  max-height: 150px;      // ✅ LIMIT HEIGHT
   overflow-y: auto;       // ✅ SCROLL INSIDE
+}
+
+.analysis-empty {
+  font-size: 0.75rem;
+  color: #666;
+  font-style: italic;
 }
 
 .analysis-title {
