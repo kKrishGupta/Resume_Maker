@@ -1,15 +1,29 @@
-const { GoogleGenAI } = require("@google/genai")
 const { z } = require("zod")
 const { zodToJsonSchema } = require("zod-to-json-schema")
 const pdf = require("html-pdf-node");
+const { generateAI } = require("./ai.engine");
 
-const ai = new GoogleGenAI({
-    apiKey: process.env.GOOGLE_GENAI_API_KEY
-})
+// ✅ CLEAN JSON PARSER
+function cleanAndParse(text) {
+  try {
+    const clean = text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
 
+    return JSON.parse(clean);
+  } catch (err) {
+    console.error("❌ JSON PARSE ERROR:", text);
+    return null;
+  }
+}
 
 const interviewReportSchema = z.object({
     matchScore: z.number().describe("A score between 0 and 100 indicating how well the candidate's profile matches the job describe"),
+    missingKeywords: z.array(z.string()).describe("Important keywords from job description missing in resume"),
+    weakProjects: z.array(z.string()).describe("Projects that are weak, irrelevant or poorly explained"),
+    improvements: z.array(z.string()).describe("Specific improvements to make resume stronger"),
+    suggestedBulletPoints: z.array(z.string()).describe("Optimized resume bullet points tailored for the job"),
     technicalQuestions: z.array(z.object({
         question: z.string().describe("The technical question can be asked in the interview"),
         intention: z.string().describe("The intention of interviewer behind asking this question"),
@@ -50,7 +64,10 @@ STRICT JSON FORMAT (FOLLOW EXACTLY):
 {
   "title": "string",
   "matchScore": number,
-
+  "missingKeywords": ["string"],
+  "weakProjects": ["string"],
+  "improvements": ["string"],
+  "suggestedBulletPoints": ["string"],
   "technicalQuestions": [
     {
       "question": "string",
@@ -119,18 +136,10 @@ Job Description:
 ${jobDescription}
 `;
 
-    const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: zodToJsonSchema(interviewReportSchema),
-        }
-    })
-
-    return JSON.parse(response.text)
-
-
+  const text = await generateAI(prompt);
+  const parsed = cleanAndParse(text);
+  if (!parsed) throw new Error("AI failed");
+  return parsed;
 }
 
 async function generatePdfFromHtml(htmlContent) {
@@ -227,44 +236,10 @@ Self Description:
 ${selfDescription}
 `;
 
-try {
-
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: zodToJsonSchema(resumePdfSchema),
-      }
-    });
-
-    let text = response.text;
-
-    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
-
-    let jsonContent;
-
-    try {
-      jsonContent = JSON.parse(text);
-    } catch (err) {
-      console.error("❌ JSON PARSE ERROR:", text);
-      throw new Error("Invalid JSON from AI");
-    }
-
-    if (!jsonContent.html) {
-      throw new Error("HTML not generated");
-    }
-
-    const pdfBuffer = await generatePdfFromHtml(jsonContent.html);
-
-    return pdfBuffer;
-
-  } catch (err) {
-    console.error("❌ SERVICE ERROR:", err);
-    throw err;
-  }
-
-
+  const text = await generateAI(prompt);
+  const parsed = cleanAndParse(text);
+  if (!parsed?.html) throw new Error("HTML not generated");
+  return await generatePdfFromHtml(parsed.html);
 }
 
 // 🔥 generate more technical questions
@@ -299,32 +274,10 @@ Resume:
 ${resume}
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json"
-      }
-    });
-
-    let text = response.text;
-
-    // 🔥 CLEAN RESPONSE
-    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
-
-    let parsed;
-
-    try {
-      parsed = JSON.parse(text);
-    } catch (err) {
-      console.error("❌ JSON PARSE ERROR:", text);
-      return [];
-    }
-
-    return parsed;
-
+     const text = await generateAI(prompt);
+    return cleanAndParse(text) || [];
   } catch (err) {
-    console.error("AI question error:", err);
+    console.error(err);
     return [];
   }
 }
@@ -350,19 +303,10 @@ Return JSON only:
 ]
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: { responseMimeType: "application/json" }
-    });
-
-    let text = response.text;
-    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
-
-    return JSON.parse(text);
-
+    const text = await generateAI(prompt);
+    return cleanAndParse(text) || [];
   } catch (err) {
-    console.error("Behavioral AI error:", err);
+    console.error(err);
     return [];
   }
 }
@@ -395,20 +339,10 @@ Return JSON:
   }
 ]
 `;
-
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: { responseMimeType: "application/json" }
-    });
-
-    let text = response.text;
-    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
-
-    return JSON.parse(text);
-
+    const text = await generateAI(prompt);
+    return cleanAndParse(text) || [];
   } catch (err) {
-    console.error("Follow-up error:", err);
+    console.error(err);
     return [];
   }
 }
@@ -444,23 +378,16 @@ Return JSON:
   "improvements": []
 }
 `;
+    const text = await generateAI(prompt);
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: { responseMimeType: "application/json" }
-    });
-
-    let text = response.text;
-    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
-
-    return JSON.parse(text);
+    return cleanAndParse(text);
 
   } catch (err) {
-    console.error("Mock evaluation error:", err);
+    console.error(err);
     return null;
   }
 }
+
 // mock custom question
  async function generateQuestion({ topic, type, difficulty }) {
   try {
@@ -486,26 +413,15 @@ Return JSON:
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: { responseMimeType: "application/json" }
-    });
-
-    let text = response.text;
-    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
-
-    const parsed = JSON.parse(text);
-
+  const text = await generateAI(prompt);
+    const parsed = cleanAndParse(text);
     return {
-      question: parsed.question || `Explain ${topic}`
+      question: parsed?.question || `Explain ${topic}`
     };
-
   } catch (err) {
-    console.error("Generate question error:", err);
-
+    console.error(err);
     return {
-      question: `Explain basics of ${topic}`
+      question: `Explain ${topic}`
     };
   }
 }

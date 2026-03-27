@@ -81,6 +81,11 @@ const interviewReportSchema = new mongoose.Schema({
         max: 100,
         default: 0 // ✅ added (safe)
     },
+    missingKeywords: [String],
+    weakProjects: [String],
+    improvements: [String],
+    suggestedBulletPoints: [String],
+    
     technicalQuestions: [ technicalQuestionSchema ],
     behavioralQuestions: [ behavioralQuestionSchema ],
     skillGaps: [ skillGapSchema ],

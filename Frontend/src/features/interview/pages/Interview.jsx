@@ -135,6 +135,8 @@ const Interview = () => {
     const [generatedQuestion, setGeneratedQuestion] = useState("");
     const [loadingGen, setLoadingGen] = useState(false);
     const [difficulty, setDifficulty] = useState("medium");
+    const [openSection , setOpenSection] = useState("keywords");
+    
     const navigate = useNavigate();
     const handleGenerateMore = async () => {
         try {
@@ -428,8 +430,52 @@ if (loading || !report) {
                         </div>
                         <p className='match-score__sub'>Strong match for this role</p>
                     </div>
+                        {/* 🔥 MISSING KEYWORDS */}
+                        <div className="analysis-section">
+                            <p className="analysis-title"
+                                onClick={() => setOpenSection("keywords")}
+                            >
+                                ❌ Missing Keywords
+                            </p>
 
-                    <div className='sidebar-divider' />
+                            {openSection === "keywords" && (
+                                <div className="analysis-list">
+                                {report?.missingKeywords?.map((item, i) => (
+                                    <span key={i} className="analysis-tag">{item}</span>
+                                ))}
+                                </div>
+                            )}
+                            </div>
+
+                        <div className='sidebar-divider' />
+
+                        {/* 🔥 WEAK PROJECTS */}
+                        <div className="analysis-section">
+                        <p className="analysis-title">⚠ Weak Projects</p>
+                        {report?.weakProjects?.map((item, i) => (
+                            <p key={i} className="analysis-text">• {item}</p>
+                        ))}
+                        </div>
+
+                        <div className='sidebar-divider' />
+
+                        {/* 🔥 IMPROVEMENTS */}
+                        <div className="analysis-section">
+                        <p className="analysis-title">💡 Improvements</p>
+                        {report?.improvements?.map((item, i) => (
+                            <p key={i} className="analysis-text">• {item}</p>
+                        ))}
+                        </div>
+
+                        <div className='sidebar-divider' />
+
+                        {/* 🔥 BULLET POINTS */}
+                        <div className="analysis-section">
+                        <p className="analysis-title">✨ Resume Boost Lines</p>
+                        {report?.suggestedBulletPoints?.map((item, i) => (
+                            <p key={i} className="analysis-text highlight">• {item}</p>
+                        ))}
+                        </div>
 
                     {/* Skill Gaps */}
                     <div className='skill-gaps'>

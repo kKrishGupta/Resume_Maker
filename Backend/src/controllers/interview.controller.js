@@ -140,6 +140,11 @@ async function generateInterViewReportController(req, res) {
         typeof aiData?.matchScore === "number"
           ? aiData.matchScore
           : 50,
+// 🔥 ADD THESE (THIS IS YOUR BUG FIX)
+          missingKeywords: aiData?.missingKeywords || [],
+          weakProjects: aiData?.weakProjects || [],
+          improvements: aiData?.improvements || [],
+          suggestedBulletPoints: aiData?.suggestedBulletPoints || [],
 
       technicalQuestions: parseArray(
         aiData?.technicalQuestions || aiData?.technicalQuestion
