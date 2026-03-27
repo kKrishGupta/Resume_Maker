@@ -1,7 +1,9 @@
 const pdfParse = require("pdf-parse");
 const {
   generateInterviewReport,
-  generateResumePdf,generateAIQuestions,generateAIBehavioralQuestions,generateFollowUpQuestions
+  generateResumePdf,generateAIQuestions,generateAIBehavioralQuestions,generateFollowUpQuestions,
+  evaluateMockAnswer,
+  generateQuestion
 } = require("../services/ai.service");
 const interviewReportModel = require("../Models/interviewReport.model");
 
@@ -395,7 +397,46 @@ async function generateFollowUp(req,res){
     console.error(err);
     res.status(500).json({ message: "Follow-up error" });
   }
+};
+
+async function evaluateMockController(req,res){
+  try {
+    const { question, answer } = req.body;
+
+    const result = await evaluateMockAnswer({ question, answer });
+
+    res.json(result);
+
+  } catch (err) {
+    res.status(500).json({ message: "Mock evaluation failed" });
+  }
 }
+
+// generate question for mock 
+async function generateQuestionController(req, res) {
+  try {
+    const { topic, type, difficulty  } = req.body;
+
+    // basic validation
+    if (!topic && type === "custom") {
+      return res.status(400).json({
+        message: "Topic is required for custom questions"
+      });
+    }
+
+    const result = await generateQuestion({ topic, type,difficulty });
+
+    res.json(result);
+
+  } catch (err) {
+    console.error("Generate question controller error:", err);
+
+    res.status(500).json({
+      message: "Failed to generate question"
+    });
+  }
+}
+
 module.exports = {
   generateInterViewReportController,
   getInterviewReportByIdController,
@@ -404,5 +445,7 @@ module.exports = {
   deleteInterviewReport,
   generateMoreQuestions,
   generateMoreBehavioralQuestions,
-  generateFollowUp
+  generateFollowUp,
+  evaluateMockController,
+  generateQuestionController
 };

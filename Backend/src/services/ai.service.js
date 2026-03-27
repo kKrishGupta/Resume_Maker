@@ -413,7 +413,105 @@ Return JSON:
   }
 }
 
+async function evaluateMockAnswer({ question, answer }) {
+  try {
+    const prompt = `
+You are a senior interviewer.
+
+Question:
+"${question}"
+
+Candidate Answer:
+"${answer}"
+
+Evaluate based on:
+
+- Clarity (0-100)
+- Confidence (0-100)
+- Technical Accuracy (0-100)
+
+Also provide:
+- strengths (array)
+- improvements (array)
+
+Return JSON:
+
+{
+  "clarity": number,
+  "confidence": number,
+  "technical": number,
+  "strengths": [],
+  "improvements": []
+}
+`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: { responseMimeType: "application/json" }
+    });
+
+    let text = response.text;
+    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+
+    return JSON.parse(text);
+
+  } catch (err) {
+    console.error("Mock evaluation error:", err);
+    return null;
+  }
+}
+// mock custom question
+ async function generateQuestion({ topic, type, difficulty }) {
+  try {
+    const prompt = `
+You are a senior interviewer.
+
+Generate ONE interview question.
+
+Type: ${type}
+Topic: ${topic || "general"}
+Difficulty: ${difficulty}
+
+Rules:
+- easy → basic concepts
+- medium → practical + moderate depth
+- hard → advanced + edge cases + system thinking
+- Keep it realistic and interview-level
+
+Return JSON:
+
+{
+  "question": "string"
+}
+`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: { responseMimeType: "application/json" }
+    });
+
+    let text = response.text;
+    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+
+    const parsed = JSON.parse(text);
+
+    return {
+      question: parsed.question || `Explain ${topic}`
+    };
+
+  } catch (err) {
+    console.error("Generate question error:", err);
+
+    return {
+      question: `Explain basics of ${topic}`
+    };
+  }
+}
 
 
-module.exports = { generateInterviewReport, generateResumePdf ,generateAIQuestions,generateAIBehavioralQuestions,generateFollowUpQuestions
+module.exports = { generateInterviewReport, generateResumePdf ,generateAIQuestions,generateAIBehavioralQuestions,generateFollowUpQuestions,
+evaluateMockAnswer,
+generateQuestion
 };

@@ -100,3 +100,23 @@ export const generateFollowUp = async ({ question, answer }) => {
 
   return res.data;
 };
+
+// get evaluation for mock 
+export const evaluateMockAnswer = async ({ question, answer }) => {
+  const res = await api.post("/api/interview/mock/evaluate", {
+    question,
+    answer
+  });
+
+  return res.data;
+};
+
+export const generateQuestion = async ({ topic, type }) => {
+  const res = await api.post("/api/interview/mock/generate-question", {
+    topic,
+    type,
+    difficulty
+  });
+
+  return res.data;
+};

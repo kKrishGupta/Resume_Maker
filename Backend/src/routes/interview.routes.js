@@ -56,11 +56,25 @@ interviewRouter.post(
   authMiddleware,
   interviewController.generateMoreBehavioralQuestions
 );
-
+// follow up questions
 interviewRouter.post(
   "/follow-up",
   authMiddleware,
   interviewController.generateFollowUp
+);
+
+// interview - questions and mock
+interviewRouter.post(
+  "/mock/evaluate",
+  authMiddleware,
+  interviewController.evaluateMockController
+);
+
+// 🔥 for custom test questions
+interviewRouter.post(
+  "/mock/generate-question",
+  authMiddleware,
+  interviewController.generateQuestionController
 );
 
 module.exports = interviewRouter

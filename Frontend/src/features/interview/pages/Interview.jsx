@@ -3,7 +3,7 @@ import '../style/interview.scss'
 import { useInterview } from '../hooks/useInterview.js'
 import { useNavigate, useParams } from 'react-router-dom'
 import { logout } from "../../auth/services/auth.api.js"; // adjust path if needed
-import { generateMoreQuestions,generateMoreBehavioral , generateFollowUp} from "../services/interview.api";
+import { generateMoreQuestions,generateMoreBehavioral , generateFollowUp,evaluateMockAnswer,generateQuestion} from "../services/interview.api";
 
 const NAV_ITEMS = [
     { id: 'technical', label: 'Technical Questions', icon: (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>) },
@@ -124,6 +124,17 @@ const Interview = () => {
     const [showScrollTop, setShowScrollTop] = useState(false);
     const [behavioralQuestions, setBehavioralQuestions] = useState([]);
     const [generatingBehavioral, setGeneratingBehavioral] = useState(false);
+    // 🔥 MOCK INTERVIEW STATE
+    const [mockMode, setMockMode] = useState(false);
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [mockAnswer, setMockAnswer] = useState("");
+    const [mockResult, setMockResult] = useState(null);
+    const [loadingMock, setLoadingMock] = useState(false);
+    const [mockType, setMockType] = useState("technical");
+    const [customTopic, setCustomTopic] = useState("");
+    const [generatedQuestion, setGeneratedQuestion] = useState("");
+    const [loadingGen, setLoadingGen] = useState(false);
+    const [difficulty, setDifficulty] = useState("medium");
     const navigate = useNavigate();
     const handleGenerateMore = async () => {
         try {
@@ -187,18 +198,97 @@ const handleLogout = async () => {
     }
 };
 
-    if (loading || !report) {
-        return (
-            <main className='loading-screen'>
-                <h1>Loading your interview plan...</h1>
-            </main>
-        )
+    
+const handleMockEvaluate = async () => {
+  try {
+    setLoadingMock(true);
+
+    let selectedQuestion;
+
+    if (mockType === "technical") {
+      selectedQuestion = questions[currentIndex]?.question;
+    } else if (mockType === "behavioral") {
+      selectedQuestion = behavioralQuestions[currentIndex]?.question;
+    } else {
+      selectedQuestion = generatedQuestion || customTopic;
     }
 
-    const scoreColor =
-        report.matchScore >= 80 ? 'score--high' :
-            report.matchScore >= 60 ? 'score--mid' : 'score--low'
+    const data = await evaluateMockAnswer({
+      question: selectedQuestion,
+      answer: mockAnswer
+    });
 
+    setMockResult(data);
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoadingMock(false);
+  }
+};
+
+const handleNextQuestion = () => {
+  if (mockType === "custom") {
+    // generate new question instead of index
+    setGeneratedQuestion("");
+    setMockAnswer("");
+    setMockResult(null);
+    return;
+  }
+
+  if (currentIndex < questions.length - 1) {
+    setCurrentIndex(prev => prev + 1);
+    setMockAnswer("");
+    setMockResult(null);
+  } else {
+    alert("🎉 Interview Completed!");
+    setMockMode(false);
+  }
+};
+const handleGenerateQuestion = async () => {
+  try {
+    if (!customTopic) return;
+
+    setLoadingGen(true);
+
+    const data = await generateQuestion({
+      topic: customTopic,
+       type: mockType,
+       difficulty
+    });
+
+    setGeneratedQuestion(data.question);
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoadingGen(false);
+  }
+};
+
+useEffect(() => {
+  if (mockType !== "custom" || !customTopic) return;
+
+  const timer = setTimeout(() => {
+    handleGenerateQuestion();
+  }, 200);
+
+  return () => clearTimeout(timer);
+}, [customTopic, mockType]);
+
+// ✅ SAFE ACCESS (no crash)
+const scoreColor =
+  report?.matchScore >= 80 ? 'score--high' :
+  report?.matchScore >= 60 ? 'score--mid' : 'score--low';
+
+// ✅ THEN CONDITIONAL RETURN
+if (loading || !report) {
+  return (
+    <main className='loading-screen'>
+      <h1>Loading your interview plan...</h1>
+    </main>
+  );
+}
 
     return (
         <div className='interview-page'>
@@ -261,6 +351,14 @@ const handleLogout = async () => {
                         >
                         {generating ? "Generating..." : "➕ Generate More"}
                         </button>
+
+                        {/* 🎤 ADD THIS HERE */}
+                        <button
+                        className="mock-btn"
+                        onClick={() => setMockMode(true)}
+                        >
+                        🎤 Start Mock Interview
+                        </button>
                             </div>
                             <div className='q-list'>
                                {questions.map((q, i) => (
@@ -278,7 +376,7 @@ const handleLogout = async () => {
                         <section>
                             <div className='content-header'>
                                 <h2>Behavioral Questions</h2>
-                                <span className='content-header__count'>{report.behavioralQuestions.length} questions</span>
+                                <span className='content-header__count'>{report.behavioralQuestions.length || 0} questions</span>
 
                                  <button
                                     className="generate-more-btn"
@@ -332,7 +430,7 @@ const handleLogout = async () => {
                     <div className='skill-gaps'>
                         <p className='skill-gaps__label'>Skill Gaps</p>
                         <div className='skill-gaps__list'>
-                            {report.skillGaps.map((gap, i) => (
+                            {report?.skillGaps?.map((gap, i) => (
                                 <span key={i} className={`skill-tag skill-tag--${gap.severity}`}>
                                     {gap.skill}
                                 </span>
@@ -349,7 +447,137 @@ const handleLogout = async () => {
                 ⬆
             </button>
         )}
+
+        {mockMode && (
+  <div className="mock-overlay">
+
+    <div className="mock-container">
+                <div className="mock-header">
+                    <div>
+                        <h2>🎤 Mock Interview</h2>
+                        <p className="mock-subtitle">Answer like a real interview</p>
+                    </div>
+
+                    <button
+                        className="exit-btn"
+                        onClick={() => setMockMode(false)}
+                    >
+                        ✕
+                    </button>  
+                </div>
+
+                {/* 🔥 ADD CONTROLS HERE */}
+                <div className="mock-controls">
+                    <select
+                        value={mockType}
+                        onChange={(e) => setMockType(e.target.value)}
+                    >
+                        <option value="technical">🧠 Technical</option>
+                        <option value="behavioral">💬 Behavioral</option>
+                        <option value="custom">🎯 Custom Topic</option>
+                    </select>
+
+                    <select
+                        value={difficulty}
+                        onChange={(e) => setDifficulty(e.target.value)}
+                        >
+                        <option value="easy">🟢 Easy</option>
+                        <option value="medium">🟡 Medium</option>
+                        <option value="hard">🔴 Hard</option>
+                    </select>
+
+                    {mockType === "custom" && (
+                        <>
+                        <input
+                            type="text"
+                            placeholder="Enter topic (React, DB, etc...)"
+                            value={customTopic}
+                            onChange={(e) => {
+                            setCustomTopic(e.target.value);
+                            setGeneratedQuestion("");
+                            setMockAnswer("");
+                            setMockResult(null);
+                            }}
+                        />
+
+                        {/* ✅ BUTTON INSIDE SAME CONDITION */}
+                        
+                        </>
+                    )}
+
+                    </div>
+
+
+            {/* 💡 HINT */}
+            {mockType === "custom" && !generatedQuestion && customTopic && !loadingGen && (
+            <p className="gen-hint">
+                💡 Try: "DSA", "System Design", "React Hooks"
+            </p>
+            )}
+
+    <p className="mock-question">
+
+        {mockType === "technical" && questions[currentIndex]?.question}
+
+        {mockType === "behavioral" && behavioralQuestions[currentIndex]?.question}
+
+        {mockType === "custom" && (
+        generatedQuestion
+            ? generatedQuestion
+            : customTopic
+            ? "⚡ Click Generate to get a question"
+            : "⚠️ Enter a topic to start"
+        )}
+
+    </p>
+
+      <textarea
+        value={mockAnswer}
+        onChange={(e) => setMockAnswer(e.target.value)}
+        placeholder="Type your answer..."
+      />
+
+      <button
+  className="mock-submit-btn"
+  onClick={handleMockEvaluate}
+  disabled={
+  !mockAnswer ||
+  (mockType === "custom" && !generatedQuestion)
+}
+>
+  {loadingMock ? "Analyzing..." : "🚀 Submit Answer"}
+</button>
+
+      {mockResult && (
+        <div className="mock-result">
+
+          <p>Clarity: {mockResult.clarity}</p>
+          <p>Confidence: {mockResult.confidence}</p>
+          <p>Technical: {mockResult.technical}</p>
+
+          <h4>Strengths</h4>
+          {mockResult.strengths.map((s, i) => (
+            <p key={i}>✅ {s}</p>
+          ))}
+
+          <h4>Improvements</h4>
+          {mockResult.improvements.map((i, idx) => (
+            <p key={idx}>❌ {i}</p>
+          ))}
+
+          <button onClick={handleNextQuestion}>
+            Next Question →
+          </button>
+
         </div>
+      )}
+
+    </div>
+  </div>
+)}
+        </div>
+
+        
     )
 }
 
