@@ -79,9 +79,10 @@ interviewRouter.post(
 
 // 🔥 ROADMAP UPDATE
 interviewRouter.put(
-  "/:id/roadmap/:day",
+  "/:interviewId/roadmap/:day",
   authMiddleware,
   interviewController.updateRoadmap
 );
+
 
 module.exports = interviewRouter

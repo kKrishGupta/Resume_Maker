@@ -36,7 +36,7 @@ const Home = () => {
         return;
       }
 
-      navigate(`/interview/${data._id}`);
+      navigate(`/interview/${data.interviewReport._id}`);
     } catch (err) {
       console.error(err);
       alert("Something went wrong");

@@ -458,23 +458,29 @@ async function generateQuestionController(req, res) {
     });
   }
 }
-
 async function updateRoadmap(req, res) {
   try {
     const { interviewId, day } = req.params;
     let { tasks } = req.body;
 
-    console.log("🔥 backend received:", tasks);
+    // console.log("🔥 PARAMS:", req.params);
+    // console.log("🔥 BODY:", req.body);
 
-    if (!interviewId || !day) {
+    // ✅ VALIDATION
+    if (!interviewId || day === undefined) {
       return res.status(400).json({ message: "Invalid params" });
     }
 
-    // 🔥 FIX: always normalize tasks
-    tasks = (tasks || []).map(t => ({
-      text: t.text || "",
-      done: t.done || false
-    }));
+    // ✅ SAFE NORMALIZATION (STRING + OBJECT BOTH)
+    tasks = (tasks || []).map(t => {
+      if (typeof t === "string") {
+        return { text: t, done: false };
+      }
+      return {
+        text: t?.text || "",
+        done: t?.done || false
+      };
+    });
 
     const report = await interviewReportModel.findById(interviewId);
 
@@ -482,23 +488,44 @@ async function updateRoadmap(req, res) {
       return res.status(404).json({ message: "Report not found" });
     }
 
+    // 🔥 CRITICAL FIX: normalize ENTIRE roadmap before update
+    report.preparationPlan = (report.preparationPlan || []).map(dayItem => ({
+      ...dayItem,
+      tasks: (dayItem.tasks || []).map(t => {
+        if (typeof t === "string") {
+          return { text: t, done: false };
+        }
+        return {
+          text: t?.text || "",
+          done: t?.done || false
+        };
+      })
+    }));
+
+    // ✅ FIND DAY SAFELY
     const dayPlan = report.preparationPlan.find(
-      d => d.day === Number(day)
+      d => Number(d.day) === Number(day)
     );
 
     if (!dayPlan) {
-      return res.status(404).json({ message: "Day not found" });
+      return res.status(404).json({
+        message: "Day not found",
+        availableDays: report.preparationPlan.map(d => d.day)
+      });
     }
 
+    // ✅ UPDATE
     dayPlan.tasks = tasks;
-
     await report.save();
-
-    res.json({ success: true });
+    return res.json({ success: true });
 
   } catch (err) {
-    console.error("❌ ERROR:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ FINAL ERROR:", err);
+
+    return res.status(500).json({
+      message: "Server error",
+      error: err.message
+    });
   }
 }
 

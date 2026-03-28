@@ -123,7 +123,7 @@ export const generateQuestion = async ({ topic, type,difficulty }) => {
 
 // 🔥 UPDATE ROADMAP DAY
 export const updateRoadmap = async (interviewId, day, tasks) => {
-  if (!interviewId || !day || !tasks?.length) {
+  if (!interviewId || day === undefined) {
     console.error("❌ Invalid request:", { interviewId, day, tasks });
     return;
   }
