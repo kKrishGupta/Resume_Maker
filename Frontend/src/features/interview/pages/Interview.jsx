@@ -3,7 +3,7 @@ import '../style/interview.scss'
 import { useInterview } from '../hooks/useInterview.js'
 import { useNavigate, useParams } from 'react-router-dom'
 import { logout } from "../../auth/services/auth.api.js"; // adjust path if needed
-import { generateMoreQuestions,generateMoreBehavioral , generateFollowUp,evaluateMockAnswer,generateQuestion} from "../services/interview.api";
+import { generateMoreQuestions,generateMoreBehavioral , generateFollowUp,evaluateMockAnswer,generateQuestion,updateRoadmap} from "../services/interview.api";
 
 const NAV_ITEMS = [
     { id: 'technical', label: 'Technical Questions', icon: (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>) },
@@ -97,22 +97,108 @@ const QuestionCard = ({ item, index }) => {
 
 
 
-const RoadMapDay = ({ day }) => (
+const RoadMapDay = ({ day, onUpdateDay }) => {
+  const [tasks, setTasks] = useState(
+    day.tasks || []
+  );
+  const [newTask, setNewTask] = useState("");
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editText, setEditText] = useState("");
+
+  // 🔥 ADD TASK
+  const handleAddTask = () => {
+    if (!newTask.trim()) return;
+
+    const updated = [...tasks, { text: newTask, done: false }];
+    setTasks(updated);
+    setNewTask("");
+
+    onUpdateDay(day.day, updated);
+  };
+
+  // 🔥 DELETE TASK
+  const handleDelete = (index) => {
+    const updated = tasks.filter((_, i) => i !== index);
+    setTasks(updated);
+    onUpdateDay(day.day, updated);
+  };
+
+  // 🔥 TOGGLE COMPLETE
+  const handleToggle = (index) => {
+    const updated = [...tasks];
+    updated[index].done = !updated[index].done;
+
+    setTasks(updated);
+    onUpdateDay(day.day, updated);
+  };
+
+  // 🔥 EDIT TASK
+  const handleEditSave = (index) => {
+    const updated = [...tasks];
+    updated[index].text = editText;
+
+    setTasks(updated);
+    setEditingIndex(null);
+    onUpdateDay(day.day, updated);
+  };
+
+  return (
     <div className='roadmap-day'>
-        <div className='roadmap-day__header'>
-            <span className='roadmap-day__badge'>Day {day.day}</span>
-            <h3 className='roadmap-day__focus'>{day.focus}</h3>
-        </div>
-        <ul className='roadmap-day__tasks'>
-            {day.tasks.map((task, i) => (
-                <li key={i}>
-                    <span className='roadmap-day__bullet' />
-                    {task}
-                </li>
-            ))}
-        </ul>
+      <div className='roadmap-day__header'>
+        <span className='roadmap-day__badge'>Day {day.day}</span>
+        <h3 className='roadmap-day__focus'>{day.focus}</h3>
+      </div>
+
+      <ul className='roadmap-day__tasks'>
+        {tasks.map((task, i) => (
+          <li key={i} className={task.done ? "done" : ""}>
+
+            {/* ✔ TOGGLE */}
+            <input
+              type="checkbox"
+              checked={task.done}
+              onChange={() => handleToggle(i)}
+            />
+
+            {/* ✏ EDIT */}
+            {editingIndex === i ? (
+              <>
+                <input
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                />
+                <button onClick={() => handleEditSave(i)}>💾</button>
+              </>
+            ) : (
+              <>
+                <span>{task.text}</span>
+
+                <button onClick={() => {
+                  setEditingIndex(i);
+                  setEditText(task.text);
+                }}>✏</button>
+              </>
+            )}
+
+            {/* 🗑 DELETE */}
+            <button onClick={() => handleDelete(i)}>🗑</button>
+
+          </li>
+        ))}
+      </ul>
+
+      {/* ➕ ADD TASK */}
+      <div className="add-task">
+        <input
+          value={newTask}
+          onChange={(e) => setNewTask(e.target.value)}
+          placeholder="Add new task..."
+        />
+        <button onClick={handleAddTask}>➕</button>
+      </div>
     </div>
-)
+  );
+};
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const Interview = () => {
@@ -166,7 +252,19 @@ const Interview = () => {
   } finally {
     setGeneratingBehavioral(false);
   }
-};
+    };
+
+    const handleUpdateDay = async (dayNumber, updatedTasks) => {
+  try {
+    // console.log("Saving to backend:", dayNumber, updatedTasks);
+
+    // 🔥 CALL API (we will connect backend next)
+    await updateRoadmap(interviewId, dayNumber, updatedTasks);
+
+  } catch (err) {
+    console.error("Update failed:", err);
+  }
+}
 
     useEffect(() => {
     if (report?.technicalQuestions) {
@@ -409,7 +507,7 @@ if (loading || !report) {
                             </div>
                             <div className='roadmap-list'>
                                 {report.preparationPlan.map((day) => (
-                                    <RoadMapDay key={day.day} day={day} />
+                                    <RoadMapDay key={day.day} day={day} onUpdateDay={handleUpdateDay}/>
                                 ))}
                             </div>
                         </section>

@@ -120,3 +120,15 @@ export const generateQuestion = async ({ topic, type,difficulty }) => {
 
   return res.data;
 };
+
+// 🔥 UPDATE ROADMAP DAY
+export const updateRoadmap = async (interviewId, day, tasks) => {
+  if (!interviewId || !day || !tasks?.length) {
+    console.error("❌ Invalid request:", { interviewId, day, tasks });
+    return;
+  }
+
+  return api.put(`/api/interview/${interviewId}/roadmap/${day}`, {
+    tasks
+  });
+};

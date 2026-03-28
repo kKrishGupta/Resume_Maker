@@ -92,6 +92,23 @@ function parseArray(arr) {
   return result;
 }
 
+function normalizePreparationPlan(plan) {
+  if (!Array.isArray(plan)) return [];
+
+  return plan.map(day => ({
+    ...day,
+    tasks: (day.tasks || []).map(task => {
+      if (typeof task === "string") {
+        return { text: task, done: false };
+      }
+
+      return {
+        text: task.text || "",
+        done: task.done || false
+      };
+    })
+  }));
+}
 /**
  * @description Generate interview report
  */
@@ -158,8 +175,8 @@ async function generateInterViewReportController(req, res) {
         aiData?.skillGaps
       ),
 
-      preparationPlan: parseArray(
-        aiData?.preparationPlan
+      preparationPlan: normalizePreparationPlan(
+        parseArray(aiData?.preparationPlan)
       )
     };
 
@@ -442,6 +459,49 @@ async function generateQuestionController(req, res) {
   }
 }
 
+async function updateRoadmap(req, res) {
+  try {
+    const { interviewId, day } = req.params;
+    let { tasks } = req.body;
+
+    console.log("🔥 backend received:", tasks);
+
+    if (!interviewId || !day) {
+      return res.status(400).json({ message: "Invalid params" });
+    }
+
+    // 🔥 FIX: always normalize tasks
+    tasks = (tasks || []).map(t => ({
+      text: t.text || "",
+      done: t.done || false
+    }));
+
+    const report = await interviewReportModel.findById(interviewId);
+
+    if (!report) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
+    const dayPlan = report.preparationPlan.find(
+      d => d.day === Number(day)
+    );
+
+    if (!dayPlan) {
+      return res.status(404).json({ message: "Day not found" });
+    }
+
+    dayPlan.tasks = tasks;
+
+    await report.save();
+
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error("❌ ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
 module.exports = {
   generateInterViewReportController,
   getInterviewReportByIdController,
@@ -452,5 +512,6 @@ module.exports = {
   generateMoreBehavioralQuestions,
   generateFollowUp,
   evaluateMockController,
-  generateQuestionController
+  generateQuestionController,
+  updateRoadmap
 };

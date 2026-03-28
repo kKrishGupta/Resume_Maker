@@ -359,6 +359,52 @@ $severity-low: #3fb950;
     }
 }
 
+.roadmap-day__tasks li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.roadmap-day__tasks li.done span {
+  text-decoration: line-through;
+  color: #888;
+}
+
+.roadmap-day__tasks button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #ccc;
+}
+
+.roadmap-day__tasks button:hover {
+  color: #ff4d6d;
+}
+
+.add-task {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+}
+
+.add-task input {
+  flex: 1;
+  padding: 4px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  background: #111;
+  color: #fff;
+}
+
+.add-task button {
+  background: #ff4d6d;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 // ── Right Sidebar ─────────────────────────────────────────────────────────────
 .interview-sidebar {
     width: 240px;
