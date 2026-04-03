@@ -1,0 +1,288 @@
+/* ===============================
+   GLOBAL UI
+================================= */
+
+.resume-ui {
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, rgba(0, 255, 255, 0.08), transparent),
+              radial-gradient(circle at bottom right, rgba(255, 0, 128, 0.08), transparent),
+              linear-gradient(180deg, #0b1018, #0d1320);
+  color: #eaf0ff;
+  font-family: "Inter", sans-serif;
+}
+
+.resume-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  height: calc(100vh - 70px);
+}
+
+/* ===============================
+   TOPBAR
+================================= */
+
+.resume-topbar {
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(10, 15, 25, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.resume-topbar h2 {
+  color: #00f5ff;
+}
+
+.resume-topbar button {
+  background: linear-gradient(90deg, #00f5ff, #ff2d7d);
+  border: none;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* ===============================
+   SIDEBAR
+================================= */
+
+.resume-sidebar {
+  padding: 20px;
+  border-right: 1px solid rgba(255,255,255,0.06);
+  background: linear-gradient(180deg, #0f1624, #0c1220);
+}
+
+.resume-sidebar__profile {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.resume-sidebar__profile img {
+  width: 40px;
+  border-radius: 50%;
+}
+
+.resume-sidebar button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: #aab3c5;
+  text-align: left;
+  cursor: pointer;
+}
+
+.resume-sidebar button:hover {
+  background: rgba(255,255,255,0.05);
+  color: white;
+}
+
+/* ===============================
+   BUILDER GRID
+================================= */
+
+.resume-main.builder-split {
+  display: grid;
+  grid-template-columns: 320px 1fr 340px;
+  gap: 24px;
+  padding: 24px;
+}
+
+/* ===============================
+   EDITOR (LEFT PANEL)
+================================= */
+
+.resume-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+}
+
+.editor-section {
+  background: rgba(255,255,255,0.04);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(10px);
+}
+
+.editor-section h2 {
+  font-size: 12px;
+  color: #00f5ff;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+
+.editor-section input,
+.editor-section textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.3);
+  color: white;
+  margin-bottom: 8px;
+}
+
+.editor-section input:focus,
+.editor-section textarea:focus {
+  border-color: #00f5ff;
+  outline: none;
+}
+
+.exp-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.exp-block:hover {
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+}
+
+/* ===============================
+   PREVIEW (CENTER HERO)
+================================= */
+
+.builder-preview {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.resume-preview-live {
+  position: relative;
+  background: white;
+  color: #111;
+  padding: 40px;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 650px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  transition: 0.3s;
+}
+
+.resume-preview-live:hover {
+  transform: scale(1.02);
+}
+
+/* HEADER */
+
+.preview-header h1 {
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.preview-header p {
+  color: #666;
+}
+
+.preview-contact {
+  display: flex;
+  gap: 12px;
+  font-size: 14px;
+  color: #444;
+}
+
+/* SECTION */
+
+.preview-section {
+  margin-top: 20px;
+}
+
+.preview-section h2 {
+  font-size: 16px;
+  border-bottom: 2px solid #111;
+  padding-bottom: 4px;
+}
+
+/* JOB */
+
+.preview-job {
+  margin-top: 12px;
+}
+
+.preview-job-top {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.company {
+  font-size: 14px;
+  color: #555;
+}
+
+.preview-job ul {
+  padding-left: 18px;
+}
+
+/* ATS BADGE */
+
+.ats-badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: linear-gradient(135deg, #00f5ff, #7b61ff);
+  color: black;
+  padding: 10px;
+  border-radius: 50%;
+  font-weight: bold;
+}
+
+/* ===============================
+   AI PANEL (RIGHT)
+================================= */
+
+.ai-optimizer {
+  padding: 20px;
+  border-left: 1px solid rgba(255,255,255,0.06);
+}
+
+.ai-optimizer h2 {
+  margin-bottom: 10px;
+}
+
+.ai-block {
+  margin-top: 20px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chips span {
+  background: rgba(255,255,255,0.08);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.suggestion {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+}
+
+/* ===============================
+   SCROLLBAR
+================================= */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 10px;
+}

@@ -84,5 +84,9 @@ interviewRouter.put(
   interviewController.updateRoadmap
 );
 
-
+interviewRouter.post(
+  "/live",
+  authMiddleware,
+  interviewController.liveInterviewController
+);
 module.exports = interviewRouter

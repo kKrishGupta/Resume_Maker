@@ -132,3 +132,19 @@ export const updateRoadmap = async (interviewId, day, tasks) => {
     tasks
   });
 };
+
+export const liveInterview = async ({ question, answer, history }) => {
+  try {
+    const res = await api.post("/api/interview/live", {
+      question,
+      answer,
+      history
+    });
+
+    return res.data;
+
+  } catch (err) {
+    console.error("Live error:", err.response?.data || err.message);
+    throw err;
+  }
+};

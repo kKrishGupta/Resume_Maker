@@ -3,7 +3,8 @@ const {
   generateInterviewReport,
   generateResumePdf,generateAIQuestions,generateAIBehavioralQuestions,generateFollowUpQuestions,
   evaluateMockAnswer,
-  generateQuestion
+  generateQuestion,
+  evaluateLiveInterview
 } = require("../services/ai.service");
 const interviewReportModel = require("../Models/interviewReport.model");
 
@@ -529,6 +530,58 @@ async function updateRoadmap(req, res) {
   }
 }
 
+async function liveInterviewController(req, res) {
+  try {
+    const { answer, question } = req.body;
+
+    if (!answer) {
+      return res.status(400).json({ message: "Answer required" });
+    }
+
+    const result = await evaluateMockAnswer({
+      question,
+      answer
+    });
+
+    return res.json({
+      feedback: result,
+      nextAction: "continue"
+    });
+
+  } catch (err) {
+    console.error("❌ LIVE ERROR:", err);
+    res.status(500).json({ message: "Live interview failed" });
+  }
+}
+
+async function liveInterviewController(req, res) {
+  try {
+    const { question, answer, history } = req.body;
+
+    if (!answer) {
+      return res.status(400).json({ message: "Answer required" });
+    }
+
+    const result = await evaluateLiveInterview({
+      question,
+      answer,
+      history
+    });
+
+    return res.json({
+      feedback: result,
+      nextAction: "next"
+    });
+
+  } catch (err) {
+    console.error("❌ LIVE ERROR:", err);
+
+    res.status(500).json({
+      message: "Live interview failed"
+    });
+  }
+}
+
 module.exports = {
   generateInterViewReportController,
   getInterviewReportByIdController,
@@ -540,5 +593,6 @@ module.exports = {
   generateFollowUp,
   evaluateMockController,
   generateQuestionController,
-  updateRoadmap
+  updateRoadmap,
+  liveInterviewController
 };

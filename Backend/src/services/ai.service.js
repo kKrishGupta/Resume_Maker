@@ -6,6 +6,8 @@ const { generateAI } = require("./ai.engine");
 // ✅ CLEAN JSON PARSER
 function cleanAndParse(text) {
   try {
+    if (!text || typeof text !== "string") return null;
+
     const clean = text
       .replace(/```json/g, "")
       .replace(/```/g, "")
@@ -16,6 +18,36 @@ function cleanAndParse(text) {
     console.error("❌ JSON PARSE ERROR:", text);
     return null;
   }
+}
+
+function safeParseJSON(text) {
+  try {
+    if (!text || typeof text !== "string") return null;
+
+    const clean = text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    return JSON.parse(clean);
+
+  } catch (err) {
+    console.error("❌ JSON PARSE ERROR:", text);
+    return null;
+  }
+}
+
+function extractHTML(text) {
+  if (!text) return null;
+
+  const clean = text
+    .replace(/```html/g, "")
+    .replace(/```/g, "")
+    .trim();
+
+  const match = clean.match(/<div[\s\S]*<\/div>/);
+
+  return match ? match[0] : null;
 }
 
 const interviewReportSchema = z.object({
@@ -138,13 +170,17 @@ ${jobDescription}
 `;
 
   const text = await generateAI(prompt);
-  const parsed = cleanAndParse(text);
+  const parsed = safeParseJSON(text);
   if (!parsed) throw new Error("AI failed");
   return parsed;
 }
 
 async function generatePdfFromHtml(htmlContent) {
   try {
+    if (!htmlContent) {
+      throw new Error("Empty HTML");
+    }
+
     const options = {
       format: "A4",
       printBackground: true,
@@ -156,9 +192,7 @@ async function generatePdfFromHtml(htmlContent) {
       }
     };
 
-    const file = {
-      content: htmlContent
-    };
+    const file = { content: htmlContent };
 
     const pdfBuffer = await pdf.generatePdf(file, options);
 
@@ -170,64 +204,42 @@ async function generatePdfFromHtml(htmlContent) {
   }
 }
 
+// 🔥 generate more technical questions
+
 async function generateResumePdf({ resume, selfDescription, jobDescription }) {
+  try {
+    const prompt = `
+You are a professional resume designer.
 
-    const resumePdfSchema = z.object({
-        html: z.string().describe("The HTML content of the resume which can be converted to PDF using any library like puppeteer")
-    })
+Create a PREMIUM ATS-optimized resume.
 
-const prompt = `
-You are an expert resume writer.
+STRICT RULES:
+- Return ONLY HTML
+- DO NOT use markdown
+- DO NOT return JSON
+- Use clean professional layout
+- Use inline CSS only
+- Use proper spacing and alignment
+- Make it visually appealing but ATS friendly
 
-CRITICAL RULES (VERY IMPORTANT):
-- Return ONLY valid JSON
-- Output must contain only one field: "html"
-- Resume MUST fit EXACTLY ONE A4 page (no overflow, no second page)
-- The page should look FULL and properly utilized (not too empty, not too crowded)
+STRUCTURE:
+1. Header (Name + Contact)
+2. Professional Summary
+3. Skills (clean grouped)
+4. Experience (bullet points with impact)
+5. Projects (with tech stack)
+6. Education
+7. Achievements
 
-LAYOUT RULES:
-- Use full A4 space effectively
-- Maintain clean spacing and alignment
-- Avoid excessive white space
-- Avoid overly dense content
+STYLE:
+- Use font-family: Arial
+- Use section headings with border-bottom
+- Use bullet points
+- Highlight numbers (500+, 350+)
+- Proper spacing (margin-top: 15px)
+- Keep width for A4
 
-CONTENT GUIDELINES:
-- Keep content concise but meaningful
-- Do NOT overly shorten content
-- Do NOT remove important achievements
-- Maintain strong impact
-
-SECTION RULES:
-- Summary: 2–3 lines (clear and strong)
-- Skills: well-structured (1–2 lines, grouped if needed)
-- Projects: 2 projects (each with 3–4 bullet points)
-- Experience: 2–3 bullet points
-- Achievements: 2–3 bullet points
-- Education: concise
-
-STYLE RULES:
-- Bullet points should be short but descriptive
-- Avoid long paragraphs
-- Maintain readability (not too compressed)
-- Professional and ATS-friendly format
-
-HTML REQUIREMENTS:
-- Wrap everything inside: <div class="page">
-- Design must fit inside A4 (210mm × 297mm)
-- No overflow outside the page
-- No page breaks
-
-VISUAL BALANCE:
-- The resume should look visually balanced
-- Fill the page properly (no large empty gaps)
-- Maintain consistent spacing between sections
-
-OUTPUT FORMAT:
-{
-  "html": "<complete HTML document>"
-}
-
-Candidate Resume:
+Resume Data:
 ${resume}
 
 Job Description:
@@ -235,15 +247,39 @@ ${jobDescription}
 
 Self Description:
 ${selfDescription}
-`;
 
-  const text = await generateAI(prompt);
-  const parsed = cleanAndParse(text);
-  if (!parsed?.html) throw new Error("HTML not generated");
-  return await generatePdfFromHtml(parsed.html);
+IMPORTANT:
+Start directly with <div> and end with </div>
+`;
+    const text = await generateAI(prompt);
+
+    const html = extractHTML(text);
+
+    if (!html) {
+      console.error("❌ RAW AI OUTPUT:", text);
+
+      return await generatePdfFromHtml(`
+        <div style="font-family: Arial; padding: 20px;">
+          <h1>Resume</h1>
+          <p>Failed to generate AI resume. Try again.</p>
+        </div>
+      `);
+    }
+
+    return await generatePdfFromHtml(html);
+
+  } catch (err) {
+    console.error("❌ RESUME ERROR:", err);
+
+    return await generatePdfFromHtml(`
+      <div style="font-family: Arial; padding: 20px;">
+        <h1>Error</h1>
+        <p>Resume generation failed.</p>
+      </div>
+    `);
+  }
 }
 
-// 🔥 generate more technical questions
 async function generateAIQuestions({ jobDescription, resume, previousQuestions }) {
   try {
     const prompt = `
@@ -415,7 +451,7 @@ Return JSON:
 `;
 
   const text = await generateAI(prompt);
-    const parsed = cleanAndParse(text);
+    const parsed = safeParseJSON(text);
     return {
       question: parsed?.question || `Explain ${topic}`
     };
@@ -427,8 +463,65 @@ Return JSON:
   }
 }
 
+async function askAI(prompt, fallback = null) {
+  try {
+    const text = await generateAI(prompt);
+    return text;
+  } catch (err) {
+    console.error("❌ AI FAILED:", err.message);
+    return fallback;
+  }
+}
+
+async function evaluateLiveInterview({ question, answer, history = [] }) {
+  try {
+    const context = history
+      .map(h => `Q: ${h.question}\nA: ${h.answer}`)
+      .join("\n");
+
+    const prompt = `
+You are a strict interviewer.
+
+${context}
+
+Q: ${question}
+A: ${answer}
+
+Return JSON:
+
+{
+  "clarity": number,
+  "confidence": number,
+  "technical": number,
+  "strengths": [],
+  "improvements": []
+}
+`;
+
+    const text = await askAI(prompt);
+    const parsed = safeParseJSON(text);
+
+    return {
+      clarity: parsed?.clarity ?? 60,
+      confidence: parsed?.confidence ?? 60,
+      technical: parsed?.technical ?? 60,
+      strengths: parsed?.strengths ?? ["Basic understanding"],
+      improvements: parsed?.improvements ?? ["Improve explanation"]
+    };
+
+  } catch {
+    return {
+      clarity: 60,
+      confidence: 60,
+      technical: 60,
+      strengths: ["Fallback"],
+      improvements: ["Try again"]
+    };
+  }
+}
 
 module.exports = { generateInterviewReport, generateResumePdf ,generateAIQuestions,generateAIBehavioralQuestions,generateFollowUpQuestions,
 evaluateMockAnswer,
-generateQuestion
+generateQuestion,
+evaluateLiveInterview
 };

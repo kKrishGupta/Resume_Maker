@@ -35,8 +35,12 @@ const Home = () => {
         alert("Failed to generate report");
         return;
       }
+    if (!data || !data._id) {
+      alert("❌ Failed to generate report. Try again.");
+      return;
+    }
 
-      navigate(`/interview/${data.interviewReport._id}`);
+navigate(`/interview/${data._id}`);
     } catch (err) {
       console.error(err);
       alert("Something went wrong");

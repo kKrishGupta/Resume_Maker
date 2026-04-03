@@ -10,31 +10,47 @@ const providers = [];
 if (process.env.GOOGLE_GENAI_API_KEY) providers.push("gemini");
 if (process.env.GROQ_API_KEY) providers.push("groq");
 
+// 🔥 provider health state
+let providerState = {
+  gemini: { blockedUntil: 0 },
+  groq: { blockedUntil: 0 }
+};
 
-// 🔥 COOLDOWN SYSTEM (NOT DEAD)
-let cooldown = {}; // { gemini: timestamp }
+// 🔥 helper
+function isAvailable(name) {
+  return Date.now() >= (providerState[name]?.blockedUntil || 0);
+}
 
+// 🔥 detect quota error safely
+function isQuotaError(err) {
+  const msg = typeof err === "string"
+    ? err
+    : JSON.stringify(err);
 
-// ===============================
-// 🔥 MAIN ENGINE
-// ===============================
+  return (
+    msg.includes("429") ||
+    msg.includes("quota") ||
+    msg.includes("RESOURCE_EXHAUSTED")
+  );
+}
+
 async function generateAI(prompt) {
-  const total = providers.length;
-
-  if (total === 0) {
+  if (providers.length === 0) {
     throw new Error("No AI providers configured");
   }
 
-  let attempts = 0;
+  const total = providers.length;
+  let tried = 0;
 
-  while (attempts < total) {
+  while (tried < total) {
     const providerName = providers[currentIndex % total];
     const provider = providerMap[providerName];
 
-    // 🔥 CHECK COOLDOWN
-    if (cooldown[providerName] && Date.now() < cooldown[providerName]) {
-      currentIndex++;
-      attempts++;
+    currentIndex++;
+
+    // 🔥 skip if blocked
+    if (!isAvailable(providerName)) {
+      tried++;
       continue;
     }
 
@@ -43,31 +59,37 @@ async function generateAI(prompt) {
 
       const result = await provider(prompt);
 
-      if (result) {
-        // 🔥 MOVE TO NEXT PROVIDER (LOAD BALANCE)
-        currentIndex = (currentIndex + 1) % total;
-
-        // console.log(`✅ Success: ${providerName}`);
+      if (result && typeof result === "string") {
         return result;
       }
 
     } catch (err) {
-      console.log(`❌ ${providerName} failed:`, err.message);
+      const errorMsg = err.response?.data || err.message;
 
-      // 🔥 ADD COOLDOWN (1 MINUTE)
-      cooldown[providerName] = Date.now() + 60 * 1000;
+      console.log(`❌ ${providerName} failed:`, errorMsg);
 
-      currentIndex++;
-      attempts++;
+      // 🔥 QUOTA → block longer
+      if (isQuotaError(errorMsg)) {
+        console.log(`⛔ ${providerName} blocked (quota)`);
+
+        providerState[providerName].blockedUntil =
+          Date.now() + 5 * 60 * 1000; // 5 min
+      } else {
+        // 🔥 temporary error → short block
+        providerState[providerName].blockedUntil =
+          Date.now() + 60 * 1000; // 1 min
+      }
+
+      tried++;
     }
   }
 
-  // 🔥 FINAL SAFETY (NEVER CRASH FRONTEND)
-  console.log("⚠️ All providers failed → fallback");
+  // 🔥 ALL BLOCKED → WAIT FOR FIRST RECOVERY
+  console.log("⚠️ All providers blocked, retrying after delay...");
 
-  return JSON.stringify({
-    question: "Explain core concepts related to this topic."
-  });
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  return generateAI(prompt); // 🔁 retry automatically
 }
 
 module.exports = { generateAI };

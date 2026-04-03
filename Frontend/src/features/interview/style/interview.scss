@@ -809,6 +809,110 @@ $severity-low: #3fb950;
   }
 }
 
+.premium {
+  background: linear-gradient(145deg, #0f172a, #020617);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+
+.premium-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  background: #555;
+  border-radius: 50%;
+}
+
+.dot.live {
+  background: #ff2d78;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1 }
+  100% { transform: scale(1.8); opacity: 0 }
+}
+
+.question-card {
+  background: rgba(255,255,255,0.04);
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.answer-box textarea {
+  background: #0f172a;
+  border-radius: 10px;
+  border: 1px solid #333;
+}
+
+.action-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.mic-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #111;
+  border: 1px solid #333;
+  font-size: 1.4rem;
+}
+
+.mic-btn.active {
+  background: #ff2d78;
+  box-shadow: 0 0 20px rgba(255,45,120,0.6);
+}
+
+.submit-btn {
+  flex: 1;
+  background: linear-gradient(135deg, #ff2d78, #ff4d6d);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.result-panel {
+  margin-top: 15px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+}
+
+.score-grid {
+  display: flex;
+  gap: 10px;
+}
+
+.score-card {
+  flex: 1;
+  text-align: center;
+  background: #111;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.next-btn {
+  margin-top: 10px;
+  width: 100%;
+  padding: 10px;
+  background: #222;
+  border-radius: 8px;
+}
+
 /* ❌ EXIT BUTTON (MODERN) */
 .exit-btn {
   background: rgba(255, 255, 255, 0.08);
@@ -832,6 +936,46 @@ $severity-low: #3fb950;
   font-size: 0.75rem;
   color: #888;
   margin-top: 6px;
+}
+
+.session-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255,255,255,0.04);
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.timer {
+  font-weight: 700;
+  color: #ff2d78;
+}
+
+.camera-feed {
+  width: 160px;
+  height: 120px;
+  border-radius: 10px;
+  object-fit: cover;
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  border: 2px solid rgba(255,255,255,0.1);
+}
+
+.camera-feed.floating {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  width: 180px;
+  height: 130px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: black;
+  border: 2px solid rgba(255,255,255,0.1);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  z-index: 10;
 }
 /* KEYFRAMES */
 @keyframes fadeIn {
