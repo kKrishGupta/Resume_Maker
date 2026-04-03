@@ -1,7 +1,6 @@
 const Resume = require("../Models/resume.model");
 const { generateResumePdf, safeParseJSON } = require("./ai.service");
 const { generateAI } = require("./ai.engine");
-
 // 🔥 CREATE / UPDATE
 async function saveResume(userId, data) {
   let resume = await Resume.findOne({ user: userId });
@@ -12,7 +11,6 @@ async function saveResume(userId, data) {
   } else {
     resume = await Resume.create({ user: userId, ...data });
   }
-
   return resume;
 }
 

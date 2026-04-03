@@ -523,5 +523,6 @@ Return JSON:
 module.exports = { generateInterviewReport, generateResumePdf ,generateAIQuestions,generateAIBehavioralQuestions,generateFollowUpQuestions,
 evaluateMockAnswer,
 generateQuestion,
-evaluateLiveInterview
+evaluateLiveInterview,
+safeParseJSON
 };
