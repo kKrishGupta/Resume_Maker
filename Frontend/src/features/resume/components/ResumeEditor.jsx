@@ -51,7 +51,6 @@ export default function ResumeEditor({
   resume,
   setResume,
   onAIImprove,
-  onSwitchToCodeMode,
   onOpenAssistant,
 }) {
   const [skillDraft, setSkillDraft] = useState("");
@@ -187,15 +186,6 @@ export default function ResumeEditor({
         <div>
           <p className="resume-smart-editor__eyebrow">Smart Input Form</p>
           <h2>Recruiter-ready content blocks</h2>
-        </div>
-
-        <div className="resume-smart-editor__modes">
-          <button className="is-active" type="button">
-            Form Mode
-          </button>
-          <button type="button" onClick={onSwitchToCodeMode}>
-            Switch to Code Mode
-          </button>
         </div>
       </header>
 

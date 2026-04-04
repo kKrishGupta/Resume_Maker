@@ -121,226 +121,6 @@ function buildLatexExport(resume) {
   return lines.join("\n");
 }
 
-function buildDslLines(resume) {
-  const lines = [];
-  const push = (parts, error = false) => lines.push({ parts, error });
-
-  push([{ type: "comment", text: "% ResumeForge ATS DSL v2.4" }]);
-  push([{ type: "comment", text: "% Live-synced from the smart editor" }]);
-  push([{ type: "blank", text: "" }]);
-  push(
-    [
-      { type: "keyword", text: "\\name" },
-      { type: "brace", text: "{" },
-      { type: "string", text: resume.name || "Missing name" },
-      { type: "brace", text: "}" },
-    ],
-    !resume.name
-  );
-  push(
-    [
-      { type: "keyword", text: "\\role" },
-      { type: "brace", text: "{" },
-      { type: "string", text: resume.role || "Missing role" },
-      { type: "brace", text: "}" },
-    ],
-    !resume.role
-  );
-  push(
-    [
-      { type: "keyword", text: "\\contact" },
-      { type: "brace", text: "{" },
-      {
-        type: "string",
-        text: [
-          resume.phone,
-          resume.email,
-          trimLink(resume.github),
-          trimLink(resume.linkedin),
-          trimLink(resume.leetcode),
-          trimLink(resume.portfolio),
-        ]
-          .filter(Boolean)
-          .join(" | "),
-      },
-      { type: "brace", text: "}" },
-    ],
-    !resume.email || !resume.phone
-  );
-  push(
-    [
-      { type: "keyword", text: "\\summary" },
-      { type: "brace", text: "{" },
-      { type: "string", text: resume.summary || "Add a recruiter-facing summary" },
-      { type: "brace", text: "}" },
-    ],
-    !resume.summary
-  );
-  push([{ type: "blank", text: "" }]);
-  push([
-    { type: "keyword", text: "\\experience" },
-    { type: "brace", text: " {" },
-  ]);
-
-  (resume.experience || []).forEach((item) => {
-    push(
-      [
-        { type: "indent", text: "  " },
-        { type: "macro", text: "@role" },
-        { type: "brace", text: "{" },
-        { type: "string", text: item.title || "Missing title" },
-        { type: "brace", text: "}" },
-      ],
-      !item.title
-    );
-    push(
-      [
-        { type: "indent", text: "  " },
-        { type: "macro", text: "@company" },
-        { type: "brace", text: "{" },
-        { type: "string", text: item.company || "Missing company" },
-        { type: "brace", text: "}" },
-      ],
-      !item.company
-    );
-    push(
-      [
-        { type: "indent", text: "  " },
-        { type: "macro", text: "@dates" },
-        { type: "brace", text: "{" },
-        {
-          type: "string",
-          text: `${item.startDate || "?"} -- ${item.endDate || "?"}`,
-        },
-        { type: "brace", text: "}" },
-      ],
-      !item.startDate || !item.endDate
-    );
-    (item.points || []).forEach((point) => {
-      push(
-        [
-          { type: "indent", text: "  " },
-          { type: "bullet", text: "- " },
-          { type: "string", text: point || "Missing bullet" },
-        ],
-        !point
-      );
-    });
-    push([{ type: "blank", text: "" }]);
-  });
-
-  push([{ type: "brace", text: "}" }]);
-  push([{ type: "blank", text: "" }]);
-  push([
-    { type: "keyword", text: "\\projects" },
-    { type: "brace", text: " {" },
-  ]);
-
-  (resume.projects || []).forEach((item) => {
-    push(
-      [
-        { type: "indent", text: "  " },
-        { type: "macro", text: "@project" },
-        { type: "brace", text: "{" },
-        { type: "string", text: item.name || "Missing project name" },
-        { type: "brace", text: "}" },
-      ],
-      !item.name
-    );
-    push(
-      [
-        { type: "indent", text: "  " },
-        { type: "macro", text: "@links" },
-        { type: "brace", text: "{" },
-        {
-          type: "string",
-          text: [trimLink(item.liveUrl), trimLink(item.githubUrl)]
-            .filter(Boolean)
-            .join(" | "),
-        },
-        { type: "brace", text: "}" },
-      ],
-      !item.liveUrl || !item.githubUrl
-    );
-    (item.points || []).forEach((point) => {
-      push(
-        [
-          { type: "indent", text: "  " },
-          { type: "bullet", text: "- " },
-          { type: "string", text: point || "Missing project detail" },
-        ],
-        !point
-      );
-    });
-    push([{ type: "blank", text: "" }]);
-  });
-
-  push([{ type: "brace", text: "}" }]);
-  push([{ type: "blank", text: "" }]);
-  push([
-    { type: "keyword", text: "\\skills" },
-    { type: "brace", text: "{" },
-    { type: "string", text: (resume.skills || []).join(", ") || "Add skills" },
-    { type: "brace", text: "}" },
-  ]);
-  push([
-    { type: "keyword", text: "\\education" },
-    { type: "brace", text: " {" },
-  ]);
-
-  (resume.education || []).forEach((item) => {
-    push(
-      [
-        { type: "indent", text: "  " },
-        { type: "macro", text: "@school" },
-        { type: "brace", text: "{" },
-        { type: "string", text: item.school || "Missing school" },
-        { type: "brace", text: "}" },
-      ],
-      !item.school
-    );
-    push(
-      [
-        { type: "indent", text: "  " },
-        { type: "macro", text: "@degree" },
-        { type: "brace", text: "{" },
-        { type: "string", text: item.degree || "Missing degree" },
-        { type: "brace", text: "}" },
-      ],
-      !item.degree
-    );
-  });
-
-  push([{ type: "brace", text: "}" }]);
-  return lines;
-}
-
-function buildJsonLines(resume) {
-  return JSON.stringify(resume, null, 2).split("\n").map((line) => {
-    const trimmed = line.trim();
-
-    if (trimmed.startsWith('"') && line.includes(":")) {
-      const index = line.indexOf(":");
-      const before = line.slice(0, index);
-      const after = line.slice(index + 1);
-
-      return {
-        error: false,
-        parts: [
-          { type: "json", text: before },
-          { type: "brace", text: ":" },
-          { type: "string", text: after },
-        ],
-      };
-    }
-
-    return {
-      error: false,
-      parts: [{ type: trimmed === "" ? "blank" : "json", text: line }],
-    };
-  });
-}
-
 function AppIcon({ name }) {
   const icons = {
     compile: (
@@ -436,102 +216,171 @@ function CircularScore({ score }) {
   );
 }
 
-function ResumeCodeEditor({
-  resume,
+function ResumeAIPanel({
   analytics,
-  codeView,
-  onCodeViewChange,
-  onCompile,
-  isCompiling,
-  isSpotlight,
+  atsScore,
+  activeTemplate,
+  onAIOptimize,
+  onDownloadJson,
+  onDownloadLatex,
+  onOpenAssistant,
+  onShareLink,
+  onTemplateChange,
+  scoreRef,
+  actionsRef,
+  templatesRef,
 }) {
-  const lines = codeView === "json" ? buildJsonLines(resume) : buildDslLines(resume);
-  const errorCount = lines.filter((line) => line.error).length;
-
   return (
-    <section
-      className={`resume-code-editor ${isSpotlight ? "is-spotlight" : ""} ${
-        isCompiling ? "is-compiling" : ""
-      }`}
-    >
-      <header className="resume-code-editor__header">
-        <div>
-          <p className="resume-code-editor__eyebrow">Advanced Editor</p>
-          <h2>Resume DSL / JSON</h2>
+    <div className="resume-ai-panel">
+      <section
+        className="resume-ai-panel__section resume-ai-panel__section--score"
+        ref={scoreRef}
+      >
+        <div className="resume-ai-panel__section-head">
+          <div>
+            <p className="resume-ai-panel__eyebrow">ATS Score</p>
+            <h3>Optimization overview</h3>
+          </div>
+          <span className="resume-ai-panel__badge">{analytics?.percentile || "Top tier"}</span>
         </div>
 
-        <div className="resume-code-editor__controls">
-          <div className="resume-code-editor__tabs">
-            <button
-              className={codeView === "dsl" ? "is-active" : ""}
-              type="button"
-              onClick={() => onCodeViewChange("dsl")}
-            >
-              Resume DSL
-            </button>
-            <button
-              className={codeView === "json" ? "is-active" : ""}
-              type="button"
-              onClick={() => onCodeViewChange("json")}
-            >
-              JSON Resume
-            </button>
-          </div>
-
-          <button className="resume-code-editor__compile" type="button" onClick={onCompile}>
-            <AppIcon name="compile" />
-            {isCompiling ? "Compiling..." : "Recompile"}
+        <div className="resume-ai-score-card">
+          <CircularScore score={atsScore} />
+          <strong>Strong recruiter match</strong>
+          <p>
+            Your resume already surfaces strong backend and full-stack signals.
+            Tightening keywords will improve shortlist performance.
+          </p>
+          <button type="button" onClick={onAIOptimize}>
+            Improve with AI
           </button>
         </div>
-      </header>
+      </section>
 
-      <div className="resume-code-editor__statusbar">
-        <span>{errorCount ? `${errorCount} issues highlighted` : "No syntax warnings"}</span>
-        <span>Autosuggestions enabled</span>
-        <span>Live preview hot reload</span>
-      </div>
-
-      <div className="resume-code-editor__viewport">
-        {lines.map((line, index) => (
-          <div
-            className={`resume-code-editor__line ${line.error ? "is-error" : ""}`}
-            key={`${codeView}-${index}`}
-          >
-            <span className="resume-code-editor__number">{index + 1}</span>
-            <span className="resume-code-editor__content">
-              {line.parts.map((part, partIndex) => (
-                <span
-                  className={`resume-code-editor__token resume-code-editor__token--${part.type}`}
-                  key={`${part.text}-${partIndex}`}
-                >
-                  {part.text}
-                </span>
-              ))}
-            </span>
+      <section className="resume-ai-panel__section" ref={actionsRef}>
+        <div className="resume-ai-panel__section-head">
+          <div>
+            <p className="resume-ai-panel__eyebrow">AI Tools</p>
+            <h3>Resume actions</h3>
           </div>
-        ))}
-      </div>
+        </div>
 
-      <footer className="resume-code-editor__footer">
-        <div>
-          <p>AI suggestions</p>
-          <div className="resume-code-editor__chips">
-            {(analytics.keywords || []).slice(0, 4).map((keyword) => (
-              <span key={keyword}>{keyword}</span>
+        <div className="resume-ai-panel__actions">
+          <button type="button" onClick={onAIOptimize}>
+            AI Optimize Resume
+          </button>
+          <button type="button" onClick={onAIOptimize}>
+            Rewrite Bullet Points
+          </button>
+          <button type="button" onClick={onAIOptimize}>
+            Generate Summary
+          </button>
+          <button type="button" onClick={onAIOptimize}>
+            Suggest Skills
+          </button>
+          <button type="button" onClick={onOpenAssistant}>
+            Open Chat Assistant
+          </button>
+        </div>
+      </section>
+
+      <section className="resume-ai-panel__section">
+        <div className="resume-ai-panel__section-head">
+          <div>
+            <p className="resume-ai-panel__eyebrow">Signals</p>
+            <h3>ATS feedback</h3>
+          </div>
+        </div>
+
+        <div className="resume-ai-panel__block">
+          <h4>Matched Keywords</h4>
+          <div className="resume-ai-panel__chips">
+            {(analytics?.keywords || []).map((item) => (
+              <span key={item}>{item}</span>
             ))}
           </div>
         </div>
 
-        <div>
-          <p>Missing signals</p>
+        <div className="resume-ai-panel__block">
+          <h4>Missing Keywords</h4>
+          <div className="resume-ai-panel__chips resume-ai-panel__chips--warning">
+            {(analytics?.missingKeywords || []).map((item) => (
+              <span key={item}>{item}</span>
+            ))}
+          </div>
+        </div>
+
+        <div className="resume-ai-panel__block">
+          <h4>Formatting Issues</h4>
           <ul>
-            {(analytics.missingKeywords || []).slice(0, 3).map((keyword) => (
-              <li key={keyword}>{keyword}</li>
+            {(analytics?.formattingIssues || []).map((item) => (
+              <li key={item}>{item}</li>
             ))}
           </ul>
         </div>
-      </footer>
-    </section>
+
+        <div className="resume-ai-panel__block">
+          <h4>Suggestions</h4>
+          <ul>
+            {(analytics?.suggestions || []).map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="resume-ai-panel__section">
+        <div className="resume-ai-panel__section-head">
+          <div>
+            <p className="resume-ai-panel__eyebrow">Export</p>
+            <h3>Additional outputs</h3>
+          </div>
+        </div>
+
+        <div className="resume-ai-panel__exports">
+          <button type="button" onClick={onDownloadJson}>
+            <AppIcon name="download" />
+            Download JSON
+          </button>
+          <button type="button" onClick={onDownloadLatex}>
+            <AppIcon name="download" />
+            Download LaTeX
+          </button>
+          <button type="button" onClick={onShareLink}>
+            <AppIcon name="share" />
+            Share via Link
+          </button>
+        </div>
+      </section>
+
+      <section className="resume-ai-panel__section" ref={templatesRef}>
+        <div className="resume-ai-panel__section-head">
+          <div>
+            <p className="resume-ai-panel__eyebrow">Templates</p>
+            <h3>Switch visual style</h3>
+          </div>
+        </div>
+
+        <div className="resume-ai-panel__templates">
+          {templateOptions.map((template) => (
+            <button
+              className={`resume-ai-panel__template ${
+                activeTemplate === template.key ? "is-active" : ""
+              }`}
+              key={template.key}
+              type="button"
+              onClick={() => onTemplateChange(template.key)}
+            >
+              <span
+                className={`resume-ai-panel__template-preview resume-ai-panel__template-preview--${template.key}`}
+              />
+              <strong>{template.title}</strong>
+              <small>{template.copy}</small>
+            </button>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -539,13 +388,9 @@ export default function ResumeBuilder() {
   const { id } = useParams();
   const { resume, analytics, handleAIImprove, setResume } = useResume(id);
   const [theme, setTheme] = useState("light");
-  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
-  const [atsDetailsOpen, setAtsDetailsOpen] = useState(false);
   const [previewZoom, setPreviewZoom] = useState("fit");
-  const [codeView, setCodeView] = useState("dsl");
   const [isCompiling, setIsCompiling] = useState(false);
-  const [codeSpotlight, setCodeSpotlight] = useState(false);
   const [saveLabel, setSaveLabel] = useState("Live sync ready");
   const [toast, setToast] = useState({
     visible: true,
@@ -554,6 +399,9 @@ export default function ResumeBuilder() {
   });
   const toastTimerRef = useRef(null);
   const resumeChangeRef = useRef(false);
+  const aiScoreRef = useRef(null);
+  const aiActionsRef = useRef(null);
+  const aiTemplatesRef = useRef(null);
 
   const atsScore = Math.max(0, Math.min(100, Math.round(Number(analytics?.score || 0))));
 
@@ -600,14 +448,15 @@ export default function ResumeBuilder() {
     return () => window.clearTimeout(timer);
   }, [resume]);
 
-  const pulseCodePanel = () => {
-    setCodeSpotlight(true);
-    window.setTimeout(() => setCodeSpotlight(false), 1400);
+  const scrollToSection = (ref) => {
+    ref.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   };
 
   const handleCompile = () => {
     setIsCompiling(true);
-    pulseCodePanel();
     setPreviewZoom("fit");
 
     window.setTimeout(() => {
@@ -669,8 +518,10 @@ export default function ResumeBuilder() {
       ...prev,
       template: templateKey,
     }));
-    setTemplatesOpen(false);
-    showToast(`${templateKey[0].toUpperCase()}${templateKey.slice(1)} template applied.`, "success");
+    showToast(
+      `${templateKey[0].toUpperCase()}${templateKey.slice(1)} template applied.`,
+      "success"
+    );
   };
 
   const previewScale = previewZoom === "100" ? 1 : 0.9;
@@ -686,28 +537,34 @@ export default function ResumeBuilder() {
               <div className="resume-brand__mark">RF</div>
               <div>
                 <strong>ResumeForge</strong>
-                <span>Overleaf-grade resume workspace</span>
+                <span>Premium resume builder workspace</span>
               </div>
             </div>
 
             <div className="resume-workbench__nav-actions">
               <button type="button" onClick={handleCompile}>
                 <AppIcon name="compile" />
-                Compile / Generate Resume
+                {isCompiling ? "Compiling..." : "Compile / Generate Resume"}
               </button>
-              <button type="button" onClick={handleDownload}>
+              {/* <button type="button" onClick={handleDownload}>
                 <AppIcon name="download" />
                 Download PDF
-              </button>
-              <button type="button" onClick={() => setAtsDetailsOpen((prev) => !prev)}>
+              </button> */}
+              <button type="button" onClick={() => scrollToSection(aiScoreRef)}>
                 <AppIcon name="score" />
                 ATS Score
               </button>
-              <button type="button" onClick={handleAIOptimize}>
+              <button
+                type="button"
+                onClick={() => {
+                  scrollToSection(aiActionsRef);
+                  handleAIOptimize();
+                }}
+              >
                 <AppIcon name="ai" />
                 AI Optimize
               </button>
-              <button type="button" onClick={() => setTemplatesOpen(true)}>
+              <button type="button" onClick={() => scrollToSection(aiTemplatesRef)}>
                 <AppIcon name="template" />
                 Templates
               </button>
@@ -733,188 +590,99 @@ export default function ResumeBuilder() {
             </div>
           </header>
 
-          <div className="resume-workbench__body">
-            <aside className="resume-workbench__panel resume-workbench__panel--code">
-              <ResumeCodeEditor
-                analytics={analytics}
-                codeView={codeView}
-                isCompiling={isCompiling}
-                isSpotlight={codeSpotlight}
-                onCodeViewChange={setCodeView}
-                onCompile={handleCompile}
-                resume={resume}
-              />
+          <div className="resume-workbench__content">
+            <aside className="resume-workbench__panel resume-workbench__panel--form">
+              <div className="resume-panel-shell">
+                <div className="resume-panel-shell__header">
+                  <div>
+                    <p className="resume-panel-shell__eyebrow">Editor</p>
+                    <h2>Smart Resume Editor</h2>
+                  </div>
+                </div>
+
+                <ResumeEditor
+                  onAIImprove={handleAIOptimize}
+                  onOpenAssistant={() => setAssistantOpen(true)}
+                  resume={resume}
+                  setResume={setResume}
+                />
+              </div>
             </aside>
 
-            <main className="resume-workbench__panel resume-workbench__panel--form">
-              <ResumeEditor
-                onAIImprove={handleAIOptimize}
-                onOpenAssistant={() => setAssistantOpen(true)}
-                onSwitchToCodeMode={() => {
-                  setCodeView("dsl");
-                  pulseCodePanel();
-                  showToast("Code editor focused. Smart form remains live-linked.", "info");
-                }}
-                resume={resume}
-                setResume={setResume}
-              />
-            </main>
-
             <section className="resume-workbench__panel resume-workbench__panel--preview">
-              <div className="resume-preview-stage__toolbar">
-                <div>
-                  <p className="resume-preview-stage__eyebrow">Live Resume Preview</p>
-                  <h2>ATS-friendly A4 output</h2>
-                </div>
-
-                <div className="resume-preview-stage__toolbar-actions">
-                  <div className="resume-preview-stage__zoom">
-                    <button
-                      className={previewZoom === "100" ? "is-active" : ""}
-                      type="button"
-                      onClick={() => setPreviewZoom("100")}
-                    >
-                      100%
-                    </button>
-                    <button
-                      className={previewZoom === "fit" ? "is-active" : ""}
-                      type="button"
-                      onClick={() => setPreviewZoom("fit")}
-                    >
-                      Fit
-                    </button>
+              <div className="resume-panel-shell resume-panel-shell--preview">
+                <div className="resume-preview-stage__toolbar">
+                  <div>
+                    <p className="resume-preview-stage__eyebrow">Live Resume Preview</p>
+                    <h2>Fixed A4 canvas</h2>
                   </div>
 
-                  <span className="resume-preview-stage__page">Page 1 / 1</span>
-                </div>
-              </div>
-
-              <div className="resume-preview-stage">
-                <div className="resume-preview-stage__sheet-shell">
-                  <div
-                    className="resume-preview-stage__sheet-scale"
-                    style={{ transform: `scale(${previewScale})` }}
-                  >
-                    <ResumePreviewLive resume={resume} />
-                  </div>
-                </div>
-
-                <aside className="resume-ats-card">
-                  <div className="resume-ats-card__header">
-                    <span>Live ATS Score</span>
-                    <strong>Great Match</strong>
-                  </div>
-
-                  <CircularScore score={atsScore} />
-
-                  <div className="resume-ats-card__meta">
-                    <span>Resume Compatibility</span>
-                    <div className="resume-ats-card__bar">
-                      <span style={{ width: `${atsScore}%` }} />
-                    </div>
-                  </div>
-
-                  <button type="button" onClick={handleAIOptimize}>
-                    Improve with AI
-                  </button>
-                </aside>
-
-                {atsDetailsOpen && (
-                  <aside className="resume-ats-drawer">
-                    <div className="resume-ats-drawer__head">
-                      <div>
-                        <p>ATS Feedback</p>
-                        <h3>Optimization signals</h3>
-                      </div>
-                      <button type="button" onClick={() => setAtsDetailsOpen(false)}>
-                        Close
+                  <div className="resume-preview-stage__toolbar-actions">
+                    <div className="resume-preview-stage__zoom">
+                      <button
+                        className={previewZoom === "100" ? "is-active" : ""}
+                        type="button"
+                        onClick={() => setPreviewZoom("100")}
+                      >
+                        100%
+                      </button>
+                      <button
+                        className={previewZoom === "fit" ? "is-active" : ""}
+                        type="button"
+                        onClick={() => setPreviewZoom("fit")}
+                      >
+                        Fit
                       </button>
                     </div>
 
-                    <CircularScore score={atsScore} />
+                    <span className="resume-preview-stage__page">A4 Preview</span>
+                  </div>
+                </div>
 
-                    <div className="resume-ats-drawer__block">
-                      <h4>Missing Keywords</h4>
-                      <div className="resume-ats-drawer__chips">
-                        {(analytics.missingKeywords || []).map((item) => (
-                          <span key={item}>{item}</span>
-                        ))}
-                      </div>
+                <div className="resume-preview-stage__viewport">
+                  <div className="resume-preview-stage__canvas">
+                    <div
+                      className="resume-preview-stage__sheet-scale"
+                      style={{ transform: `scale(${previewScale})` }}
+                    >
+                      <ResumePreviewLive resume={resume} />
                     </div>
-
-                    <div className="resume-ats-drawer__block">
-                      <h4>Formatting Issues</h4>
-                      <ul>
-                        {(analytics.formattingIssues || []).map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="resume-ats-drawer__block">
-                      <h4>Suggestions</h4>
-                      <ul>
-                        {(analytics.suggestions || []).map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <button type="button" onClick={handleAIOptimize}>
-                      Improve with AI
-                    </button>
-                  </aside>
-                )}
-              </div>
-
-              <div className="resume-preview-stage__exports">
-                <button type="button" onClick={handleDownloadJson}>
-                  <AppIcon name="download" />
-                  Download JSON
-                </button>
-                <button type="button" onClick={handleDownloadLatex}>
-                  <AppIcon name="download" />
-                  Download LaTeX
-                </button>
-                <button type="button" onClick={handleShareLink}>
-                  <AppIcon name="share" />
-                  Share via Link
-                </button>
+                  </div>
+                </div>
               </div>
             </section>
+
+            <aside className="resume-workbench__panel resume-workbench__panel--ai">
+              <div className="resume-panel-shell">
+                <div className="resume-panel-shell__header">
+                  <div>
+                    <p className="resume-panel-shell__eyebrow">AI Panel</p>
+                    <h2>Insights & actions</h2>
+                  </div>
+
+                  <button type="button" onClick={() => setAssistantOpen(true)}>
+                    Open Chat
+                  </button>
+                </div>
+
+                <ResumeAIPanel
+                  activeTemplate={resume.template}
+                  analytics={analytics}
+                  atsScore={atsScore}
+                  onAIOptimize={handleAIOptimize}
+                  onDownloadJson={handleDownloadJson}
+                  onDownloadLatex={handleDownloadLatex}
+                  onOpenAssistant={() => setAssistantOpen(true)}
+                  onShareLink={handleShareLink}
+                  onTemplateChange={handleTemplateChange}
+                  actionsRef={aiActionsRef}
+                  scoreRef={aiScoreRef}
+                  templatesRef={aiTemplatesRef}
+                />
+              </div>
+            </aside>
           </div>
         </div>
-
-        {templatesOpen && (
-          <aside className="resume-template-drawer">
-            <div className="resume-template-drawer__head">
-              <div>
-                <p>Templates</p>
-                <h3>Choose a resume direction</h3>
-              </div>
-              <button type="button" onClick={() => setTemplatesOpen(false)}>
-                Close
-              </button>
-            </div>
-
-            <div className="resume-template-drawer__grid">
-              {templateOptions.map((template) => (
-                <button
-                  className={`resume-template-card ${
-                    resume.template === template.key ? "is-active" : ""
-                  }`}
-                  key={template.key}
-                  type="button"
-                  onClick={() => handleTemplateChange(template.key)}
-                >
-                  <span className={`resume-template-card__preview resume-template-card__preview--${template.key}`} />
-                  <strong>{template.title}</strong>
-                  <small>{template.copy}</small>
-                </button>
-              ))}
-            </div>
-          </aside>
-        )}
 
         {assistantOpen && (
           <aside className="resume-assistant">
@@ -954,7 +722,7 @@ export default function ResumeBuilder() {
 
             <label className="resume-assistant__input">
               <AppIcon name="message" />
-              <input placeholder="Ask for stronger ATS phrasing or recruiter feedback..." />
+              <input placeholder="Ask for recruiter-ready phrasing or ATS feedback..." />
             </label>
           </aside>
         )}
