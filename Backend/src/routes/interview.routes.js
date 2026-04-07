@@ -89,4 +89,10 @@ interviewRouter.post(
   authMiddleware,
   interviewController.liveInterviewController
 );
+
+interviewRouter.post(
+  "/end",
+  authMiddleware,
+  interviewController.endInterview
+);
 module.exports = interviewRouter

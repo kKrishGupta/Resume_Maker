@@ -4,9 +4,12 @@ const {
   generateResumePdf,generateAIQuestions,generateAIBehavioralQuestions,generateFollowUpQuestions,
   evaluateMockAnswer,
   generateQuestion,
-  evaluateLiveInterview
+  evaluateLiveInterview,
+  analyzeEmotion,
+  safeParseJSON
 } = require("../services/ai.service");
 const interviewReportModel = require("../Models/interviewReport.model");
+const InterviewSession = require("../Models/interviewSession.model");
 
 /**
  * 🔧 Extract job title from job description
@@ -349,7 +352,10 @@ async function generateMoreQuestions(req, res) {
   try {
     const { interviewId } = req.params;
 
-    const report = await interviewReportModel.findById(interviewId);
+    const report = await interviewReportModel.findOne({
+      _id: interviewId,
+      user: req.user.id
+    });
 
     if (!report) {
       return res.status(404).json({ message: "Report not found" });
@@ -383,7 +389,10 @@ const generateMoreBehavioralQuestions = async (req, res) => {
   try {
     const { interviewId } = req.params;
 
-    const report = await interviewReportModel.findById(interviewId);
+    const report = await interviewReportModel.findOne({
+      _id: interviewId,
+      user: req.user.id
+    });
 
     if (!report) {
       return res.status(404).json({ message: "Report not found" });
@@ -409,6 +418,11 @@ const generateMoreBehavioralQuestions = async (req, res) => {
 async function generateFollowUp(req,res){
     try {
     const { question, answer } = req.body;
+    if (!question || !answer) {
+      return res.status(400).json({
+        message: "Question and answer required"
+      });
+    }
     const followUps = await generateFollowUpQuestions({
       question,
       answer
@@ -425,7 +439,11 @@ async function generateFollowUp(req,res){
 async function evaluateMockController(req,res){
   try {
     const { question, answer } = req.body;
-
+      if (!question || !answer) {
+        return res.status(400).json({
+          message: "Invalid input"
+        });
+      }
     const result = await evaluateMockAnswer({ question, answer });
 
     res.json(result);
@@ -438,7 +456,7 @@ async function evaluateMockController(req,res){
 // generate question for mock 
 async function generateQuestionController(req, res) {
   try {
-    const { topic, type, difficulty  } = req.body;
+    const { topic, type, difficulty,resume } = req.body;
 
     // basic validation
     if (!topic && type === "custom") {
@@ -447,7 +465,7 @@ async function generateQuestionController(req, res) {
       });
     }
 
-    const result = await generateQuestion({ topic, type,difficulty });
+    const result = await generateQuestion({ topic, type,difficulty ,resume});
 
     res.json(result);
 
@@ -532,56 +550,219 @@ async function updateRoadmap(req, res) {
 
 async function liveInterviewController(req, res) {
   try {
-    const { answer, question } = req.body;
+    const { question, answer, history = [], sessionId } = req.body;
 
+    // 🔒 Validation
     if (!answer) {
       return res.status(400).json({ message: "Answer required" });
     }
 
-    const result = await evaluateMockAnswer({
-      question,
-      answer
-    });
-
-    return res.json({
-      feedback: result,
-      nextAction: "continue"
-    });
-
-  } catch (err) {
-    console.error("❌ LIVE ERROR:", err);
-    res.status(500).json({ message: "Live interview failed" });
-  }
-}
-
-async function liveInterviewController(req, res) {
-  try {
-    const { question, answer, history } = req.body;
-
-    if (!answer) {
-      return res.status(400).json({ message: "Answer required" });
+    if (!question) {
+      return res.status(400).json({ message: "Question required" });
     }
 
-    const result = await evaluateLiveInterview({
+    let session;
+
+    // 🧠 Find existing session
+    if (sessionId) {
+      session = await InterviewSession.findOne({
+        _id: sessionId,
+        user: req.user.id
+      });
+    }
+
+    // 🆕 Create new session if not found
+    if (!session) {
+      session = await InterviewSession.create({
+        user: req.user.id,
+        mode: "ai",
+        history: [],
+        score: 0
+      });
+    }
+
+    // 🔥 AI Processing
+    const feedback = await evaluateLiveInterview({
       question,
       answer,
       history
     });
 
+    const emotion = await analyzeEmotion(answer);
+
+    const followUps = await generateFollowUpQuestions({
+      question,
+      answer
+    });
+
+    // 🔥 Calculate score for THIS answer
+    const score =
+      (feedback.clarity + feedback.confidence + feedback.technical) / 3;
+
+    // 💾 Save to history (WITH score)
+    session.history.push({
+      question,
+      answer,
+      feedback,
+      emotion,
+      score,
+      createdAt: new Date()
+    });
+
+    // ✅ LIMIT HISTORY (last 50 only)
+    if (session.history.length > 50) {
+      session.history = session.history.slice(-50);
+    }
+
+    // ✅ Calculate overall session score (AVERAGE)
+    const totalScore = session.history.reduce((sum, item) => {
+      return sum + (item.score || 0);
+    }, 0);
+
+    session.score = totalScore / session.history.length;
+
+    // 💾 Save session
+    await session.save();
+
+    // 📤 Response
     return res.json({
-      feedback: result,
+      sessionId: session._id,
+      feedback,
+      emotion,
+      followUps,
+      score: session.score, // ✅ send overall score
       nextAction: "next"
     });
 
   } catch (err) {
     console.error("❌ LIVE ERROR:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       message: "Live interview failed"
     });
   }
 }
 
+async function endInterview(req, res) {
+  try {
+    const { sessionId } = req.body;
+
+    // 🔒 Validate input
+    if (!sessionId) {
+      return res.status(400).json({
+        message: "Session ID is required"
+      });
+    }
+
+    // 🔒 Secure fetch (user-based)
+    const session = await InterviewSession.findOne({
+      _id: sessionId,
+      user: req.user.id
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        message: "Session not found"
+      });
+    }
+
+    const total = session.history.length;
+
+    // ❌ Handle empty interview
+    if (total === 0) {
+      return res.json({
+        totalQuestions: 0,
+        avgScore: 0,
+        recommendation: "No interview data available",
+        strengths: [],
+        weaknesses: []
+      });
+    }
+
+    // 🔥 Calculate metrics
+    let totalScore = 0;
+    let claritySum = 0;
+    let confidenceSum = 0;
+    let technicalSum = 0;
+
+    const strengths = [];
+    const improvements = [];
+
+    session.history.forEach(item => {
+      const feedback = item.feedback || {};
+
+      const score =
+        (feedback.clarity + feedback.confidence + feedback.technical) / 3 || 0;
+
+      totalScore += score;
+
+      claritySum += feedback.clarity || 0;
+      confidenceSum += feedback.confidence || 0;
+      technicalSum += feedback.technical || 0;
+
+      // collect strengths & weaknesses
+      if (Array.isArray(feedback.strengths)) {
+        strengths.push(...feedback.strengths);
+      }
+
+      if (Array.isArray(feedback.improvements)) {
+        improvements.push(...feedback.improvements);
+      }
+    });
+
+    const avgScore = totalScore / total;
+
+    // 🔥 Deduplicate insights
+    const uniqueStrengths = [...new Set(strengths)].slice(0, 5);
+    const uniqueWeaknesses = [...new Set(improvements)].slice(0, 5);
+
+    // 🔥 Category performance
+    const avgClarity = claritySum / total;
+    const avgConfidence = confidenceSum / total;
+    const avgTechnical = technicalSum / total;
+
+    // 🔥 Recommendation logic (smarter)
+    let recommendation = "";
+
+    if (avgScore >= 80) {
+      recommendation = "Ready for FAANG-level interviews 🚀";
+    } else if (avgScore >= 65) {
+      recommendation = "Strong candidate, needs polishing";
+    } else if (avgScore >= 50) {
+      recommendation = "Good foundation but needs improvement";
+    } else {
+      recommendation = "Needs strong preparation";
+    }
+
+    // 🔥 Store final score in session (optional but powerful)
+    session.score = avgScore;
+    await session.save();
+
+    // 📤 Final response
+    return res.json({
+      totalQuestions: total,
+      avgScore: Math.round(avgScore),
+
+      performance: {
+        clarity: Math.round(avgClarity),
+        confidence: Math.round(avgConfidence),
+        technical: Math.round(avgTechnical)
+      },
+
+      strengths: uniqueStrengths,
+      weaknesses: uniqueWeaknesses,
+
+      recommendation
+    });
+
+  } catch (err) {
+    console.error("❌ END INTERVIEW ERROR:", err);
+
+    return res.status(500).json({
+      message: "End interview failed"
+    });
+  }
+}
 module.exports = {
   generateInterViewReportController,
   getInterviewReportByIdController,
@@ -594,5 +775,6 @@ module.exports = {
   evaluateMockController,
   generateQuestionController,
   updateRoadmap,
-  liveInterviewController
+  liveInterviewController,
+  endInterview
 };

@@ -631,7 +631,7 @@ if (loading || !report) {
                         {/* 🎤 ADD THIS HERE */}
                         <button
                         className="mock-btn"
-                        onClick={() => setMockMode(true)}
+                        onClick={() => navigate(`/mock/${interviewId}`)}
                         >
                         🎤 Start Mock Interview
                         </button>

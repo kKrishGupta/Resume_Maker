@@ -1,5 +1,4 @@
 const { z } = require("zod")
-const { zodToJsonSchema } = require("zod-to-json-schema")
 const pdf = require("html-pdf-node");
 const { generateAI } = require("./ai.engine");
 
@@ -175,110 +174,110 @@ ${jobDescription}
   return parsed;
 }
 
-// async function generatePdfFromHtml(htmlContent) {
-//   try {
-//     if (!htmlContent) {
-//       throw new Error("Empty HTML");
-//     }
+async function generatePdfFromHtml(htmlContent) {
+  try {
+    if (!htmlContent) {
+      throw new Error("Empty HTML");
+    }
 
-//     const options = {
-//       format: "A4",
-//       printBackground: true,
-//       margin: {
-//         top: "10mm",
-//         bottom: "10mm",
-//         left: "10mm",
-//         right: "10mm"
-//       }
-//     };
+    const options = {
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "10mm",
+        bottom: "10mm",
+        left: "10mm",
+        right: "10mm"
+      }
+    };
 
-//     const file = { content: htmlContent };
+    const file = { content: htmlContent };
 
-//     const pdfBuffer = await pdf.generatePdf(file, options);
+    const pdfBuffer = await pdf.generatePdf(file, options);
 
-//     return pdfBuffer;
+    return pdfBuffer;
 
-//   } catch (error) {
-//     console.error("❌ PDF GENERATION ERROR:", error);
-//     throw new Error("PDF generation failed");
-//   }
-// }
+  } catch (error) {
+    console.error("❌ PDF GENERATION ERROR:", error);
+    throw new Error("PDF generation failed");
+  }
+}
 
 // 🔥 generate more technical questions
 
-// async function generateResumePdf({ resume, selfDescription, jobDescription }) {
-//   try {
-//     const prompt = `
-// You are a professional resume designer.
+async function generateResumePdf({ resume, selfDescription, jobDescription }) {
+  try {
+    const prompt = `
+You are a professional resume designer.
 
-// Create a PREMIUM ATS-optimized resume.
+Create a PREMIUM ATS-optimized resume.
 
-// STRICT RULES:
-// - Return ONLY HTML
-// - DO NOT use markdown
-// - DO NOT return JSON
-// - Use clean professional layout
-// - Use inline CSS only
-// - Use proper spacing and alignment
-// - Make it visually appealing but ATS friendly
+STRICT RULES:
+- Return ONLY HTML
+- DO NOT use markdown
+- DO NOT return JSON
+- Use clean professional layout
+- Use inline CSS only
+- Use proper spacing and alignment
+- Make it visually appealing but ATS friendly
 
-// STRUCTURE:
-// 1. Header (Name + Contact)
-// 2. Professional Summary
-// 3. Skills (clean grouped)
-// 4. Experience (bullet points with impact)
-// 5. Projects (with tech stack)
-// 6. Education
-// 7. Achievements
+STRUCTURE:
+1. Header (Name + Contact)
+2. Professional Summary
+3. Skills (clean grouped)
+4. Experience (bullet points with impact)
+5. Projects (with tech stack)
+6. Education
+7. Achievements
 
-// STYLE:
-// - Use font-family: Arial
-// - Use section headings with border-bottom
-// - Use bullet points
-// - Highlight numbers (500+, 350+)
-// - Proper spacing (margin-top: 15px)
-// - Keep width for A4
+STYLE:
+- Use font-family: Arial
+- Use section headings with border-bottom
+- Use bullet points
+- Highlight numbers (500+, 350+)
+- Proper spacing (margin-top: 15px)
+- Keep width for A4
 
-// Resume Data:
-// ${resume}
+Resume Data:
+${resume}
 
-// Job Description:
-// ${jobDescription}
+Job Description:
+${jobDescription}
 
-// Self Description:
-// ${selfDescription}
+Self Description:
+${selfDescription}
 
-// IMPORTANT:
-// Start directly with <div> and end with </div>
-// `;
-//     const text = await generateAI(prompt);
+IMPORTANT:
+Start directly with <div> and end with </div>
+`;
+    const text = await generateAI(prompt);
 
-//     const html = extractHTML(text);
+    const html = extractHTML(text);
 
-//     if (!html) {
-//       console.error("❌ RAW AI OUTPUT:", text);
+    if (!html) {
+      console.error("❌ RAW AI OUTPUT:", text);
 
-//       return await generatePdfFromHtml(`
-//         <div style="font-family: Arial; padding: 20px;">
-//           <h1>Resume</h1>
-//           <p>Failed to generate AI resume. Try again.</p>
-//         </div>
-//       `);
-//     }
+      return await generatePdfFromHtml(`
+        <div style="font-family: Arial; padding: 20px;">
+          <h1>Resume</h1>
+          <p>Failed to generate AI resume. Try again.</p>
+        </div>
+      `);
+    }
 
-//     return await generatePdfFromHtml(html);
+    return await generatePdfFromHtml(html);
 
-//   } catch (err) {
-//     console.error("❌ RESUME ERROR:", err);
+  } catch (err) {
+    console.error("❌ RESUME ERROR:", err);
 
-//     return await generatePdfFromHtml(`
-//       <div style="font-family: Arial; padding: 20px;">
-//         <h1>Error</h1>
-//         <p>Resume generation failed.</p>
-//       </div>
-//     `);
-//   }
-// }
+    return await generatePdfFromHtml(`
+      <div style="font-family: Arial; padding: 20px;">
+        <h1>Error</h1>
+        <p>Resume generation failed.</p>
+      </div>
+    `);
+  }
+}
 
 async function generateAIQuestions({ jobDescription, resume, previousQuestions }) {
   try {
@@ -308,7 +307,7 @@ Job Description:
 ${jobDescription}
 
 Resume:
-${resume}
+${resume || "N/A"}
 `;
 
      const text = await generateAI(prompt);
@@ -360,6 +359,12 @@ Candidate Answer:
 "${answer}"
 
 Generate 3 FOLLOW-UP questions.
+
+Rules:
+- Focus on weak points in the answer
+- Ask edge cases and trade-offs
+- Increase difficulty gradually
+- Avoid generic questions
 
 Each follow-up must include:
 - question
@@ -475,17 +480,25 @@ async function askAI(prompt, fallback = null) {
 
 async function evaluateLiveInterview({ question, answer, history = [] }) {
   try {
+  
     const context = history
       .map(h => `Q: ${h.question}\nA: ${h.answer}`)
       .join("\n");
 
-    const prompt = `
-You are a strict interviewer.
+   const prompt = `
+You are a STRICT FAANG-level interviewer.
 
 ${context}
 
 Q: ${question}
 A: ${answer}
+
+Evaluate VERY critically.
+
+Rules:
+- Penalize vague answers
+- Reward structured answers
+- Be slightly harsh (real interview feel)
 
 Return JSON:
 
@@ -499,7 +512,7 @@ Return JSON:
 `;
 
     const text = await askAI(prompt);
-    const parsed = safeParseJSON(text);
+    const parsed = safeParseJSON(text) || {};
 
     return {
       clarity: parsed?.clarity ?? 60,
@@ -520,9 +533,43 @@ Return JSON:
   }
 }
 
+async function analyzeEmotion(answer) {
+  try {
+    const prompt = `
+Analyze candidate tone.
+
+Answer:
+"${answer}"
+
+Return JSON:
+{
+  "confidenceLevel": "low | medium | high",
+  "stressLevel": "low | medium | high"
+}
+`;
+
+    const text = await generateAI(prompt);
+    const parsed = safeParseJSON(text);
+
+    return {
+      confidenceLevel: parsed?.confidenceLevel || "medium",
+      stressLevel: parsed?.stressLevel || "medium"
+    };
+
+  } catch (err) {
+    console.error("❌ Emotion Analysis Error:", err);
+
+    return {
+      confidenceLevel: "medium",
+      stressLevel: "medium"
+    };
+  }
+}
+
 module.exports = { generateInterviewReport ,generateAIQuestions,generateAIBehavioralQuestions,generateFollowUpQuestions,
 evaluateMockAnswer,
 generateQuestion,
 evaluateLiveInterview,
+analyzeEmotion,
 safeParseJSON
 };
