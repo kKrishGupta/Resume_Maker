@@ -4,7 +4,6 @@ import { useMock } from "../hooks/useMock";
 import { endInterview } from "../service/mock.api";
 import "../style/mock.scss";
 
-
 const SESSION_ITEMS = [
   { id: "real", label: "AI Interview" },
   { id: "practice", label: "Practice Interview" }
@@ -130,23 +129,30 @@ const Mock = () => {
   const advanceTimeoutRef = useRef(null);
   const cameraStreamRef = useRef(null);
   const videoRef = useRef(null);
-
+  const isMicActiveRef = useRef(false);
+  const endedRef = useRef(false);
   const answeredQuestions = useMemo(
     () => new Set(feedbackHistory.map((item) => item.index)),
     [ feedbackHistory ]
   );
 
-  const handleEndInterview = async () => {
+const handleEndInterview = async () => {
   try {
-    if (!sessionId) return;
+    recognitionRef.current?.stop();
+    stopCamera();
+    window.speechSynthesis.cancel();
+    setSessionStarted(false);
+
+    if (!sessionId) {
+      alert("Interview ended.");
+      return;
+    }
 
     const result = await endInterview({ sessionId });
 
-    console.log("FINAL RESULT:", result);
-    alert(`Final Score: ${result.avgScore}`);
-
+    alert(`Score: ${result.avgScore}`);
   } catch (err) {
-    console.error("End Interview Error:", err);
+    console.error(err);
   }
 };
 
@@ -170,6 +176,36 @@ const Mock = () => {
 
     return Math.round(total / feedbackHistory.length);
   }, [ feedbackHistory ]);
+
+  const enterFullScreen = async () => {
+  try {
+    const el = document.documentElement;
+    if (el.requestFullscreen) await el.requestFullscreen();
+  } catch (err) {
+    alert("Fullscreen required to continue interview.");
+  }
+};
+
+const exitFullScreen = () => {
+  if (document.exitFullscreen) document.exitFullscreen();
+};
+
+useEffect(() => {
+  if (!sessionStarted) return;
+
+  const timer = setInterval(() => {
+    setTimeLeft(prev => {
+      if (prev <= 1 && !endedRef.current) {
+        endedRef.current = true;
+        handleEndInterview();
+        return 0;
+      }
+      return prev - 1;
+    });
+  }, 1000);
+
+  return () => clearInterval(timer);
+}, [sessionStarted]);
 
   const transcriptPlaceholder = isListening
     ? "Listening for your answer..."
@@ -318,103 +354,113 @@ const Mock = () => {
     setCurrentIndex((prev) => prev + 1);
   };
 
-  const handleSubmitAnswer = async () => {
-    if (!currentQuestion || !answerText.trim()) return;
+ const handleSubmitAnswer = async () => {
+  if (!currentQuestion || !answerText.trim()) return;
 
-    setIsSubmitting(true);
+  setIsSubmitting(true);
 
-    try {
-      const payload = {
+  try {
+    const payload = {
+      question: currentQuestion.question,
+      answer: answerText.trim()
+    };
+
+    const response =
+      sessionMode === "practice"
+        ? await evaluateAnswer(payload)
+        : await submitLiveAnswer({
+            ...payload,
+            history: conversation,
+            sessionId,
+            mode: sessionMode === "real" ? "real" : "practice"
+          });
+
+    // 🔥 SAVE SESSION
+    if (response?.sessionId) {
+      setSessionId(response.sessionId);
+    }
+
+    // 🔥 SAVE CONVERSATION
+    setConversation(prev => [
+      ...prev,
+      {
         question: currentQuestion.question,
         answer: answerText.trim()
-      };
-
-     const response =
-  sessionMode === "practice"
-    ? await evaluateAnswer(payload)
-    : await submitLiveAnswer({
-        ...payload,
-        history: conversation,
-        sessionId, // 🔥 ADD
-        mode: sessionMode
-      });
-
-      // 🔥 SAVE SESSION
-        if (response?.sessionId) {
-          setSessionId(response.sessionId);
-        }
-
-        // 🔥 SAVE CONVERSATION
-        setConversation(prev => [
-          ...prev,
-          {
-            question: currentQuestion.question,
-            answer: answerText.trim()
-          }
-        ]);
-
-        if (response?.followUps?.length && questionQueue.length < 20) {
-          const follow = response.followUps[0];
-
-          setQuestionQueue(prev => [
-            ...prev,
-            {
-              id: `follow-${Date.now()}`,
-              question: follow.question,
-              intention: follow.intention,
-              answer: follow.answer,
-              type: "followup",
-              source: "ai"
-            }
-          ]);
-        }
-      const feedback = response?.feedback || {};
-
-      if (!feedback) return;
-
-      pushFeedback({
-        index: currentIndex,
-        question: currentQuestion.question,
-        answer: answerText.trim(),
-        feedback
-      });
-
-      setLatestFeedback(feedback);
-
-      if (sessionMode === "real"){
-        speakText(
-          feedback?.strengths?.[0]
-            ? `Good answer. ${feedback.strengths[0]}`
-            : "Answer received."
-        );
       }
+    ]);
 
-      window.clearTimeout(advanceTimeoutRef.current);
-      advanceTimeoutRef.current = window.setTimeout(() => {
-        moveToNextQuestion();
-      }, 1400);
-    } finally {
-      setIsSubmitting(false);
+    // 🔥 HANDLE FOLLOW-UPS
+    if (response?.followUps?.length && questionQueue.length < 20) {
+      const follow = response.followUps[0];
+
+      setQuestionQueue(prev => [
+        ...prev,
+        {
+          id: `follow-${Date.now()}`,
+          question: follow.question,
+          intention: follow.intention,
+          answer: follow.answer,
+          type: "followup",
+          source: "ai"
+        }
+      ]);
     }
-  };
 
-  const handleMicToggle = () => {
-    if (!recognitionRef.current) {
-      setIsTextMode(true);
-      return;
+    const feedback = response?.feedback || {};
+    if (!feedback) return;
+
+    pushFeedback({
+      index: currentIndex,
+      question: currentQuestion.question,
+      answer: answerText.trim(),
+      feedback
+    });
+
+    setLatestFeedback(feedback);
+
+    // ✅ FIXED SPEECH FLOW (NO OVERLAP)
+    if (sessionMode === "real") {
+      // 1️⃣ Speak feedback first
+      speakText(
+        feedback?.strengths?.[0]
+          ? `Good answer. ${feedback.strengths[0]}`
+          : "Answer received."
+      );
     }
 
-    if (isListening) {
+    window.clearTimeout(advanceTimeoutRef.current);
+    advanceTimeoutRef.current = window.setTimeout(() => {
+      moveToNextQuestion();
+    }, 1400);
+
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+ const handleMicToggle = () => {
+  if (!recognitionRef.current) {
+    setIsTextMode(true);
+    return;
+  }
+
+  if (isListening) {
+    try {
       recognitionRef.current.stop();
-      setIsListening(false);
-      return;
-    }
+    } catch (err) {}
+    setIsListening(false);
+    return;
+  }
 
+  try {
     recognitionRef.current.start();
     setIsListening(true);
-  };
+  } catch (err) {
+    console.warn("Mic start error:", err);
+  }
+};
 
-  const handleTryAgain = () => {
+const handleTryAgain = () => {
     setAnswerText("");
     setLatestFeedback(null);
 
@@ -427,39 +473,24 @@ const Mock = () => {
     setTimeLeft(sessionDuration * 60);
   }, [ sessionDuration ]);
 
-  useEffect(() => {
-    syncQuestionQueue();
-  }, [
-    report,
-    interviewId,
-    questionTypes.behavioral,
-    questionTypes.technical,
-    questionTypes.systemDesign,
-    selectedDifficulty
-  ]);
+useEffect(() => {
+  if (!sessionStarted || questionQueue.length === 0) {
+  syncQuestionQueue();
+}
+}, [
+  report,
+  interviewId,
+  questionTypes.behavioral,
+  questionTypes.technical,
+  questionTypes.systemDesign,
+  selectedDifficulty
+]);
 
   useEffect(() => {
     if (!sessionStarted || !currentQuestion?.question) return;
     speakText(currentQuestion.question);
   }, [ currentQuestion?.id, sessionStarted, selectedVoice ]);
 
-  useEffect(() => {
-    if (!sessionStarted || timeLeft <= 0) return;
-
-    const timer = window.setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          setSessionStarted(false);
-          handleEndInterview(); // 🔥 CALL END INTERVIEW
-          return 0;
-        }
-
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-  }, [ sessionStarted, timeLeft ]);
 
   useEffect(() => {
     const SpeechRecognition =
@@ -491,6 +522,36 @@ const Mock = () => {
       recognitionRef.current = null;
     };
   }, []);
+
+useEffect(() => {
+  if (!sessionStarted || !recognitionRef.current) return;
+
+  if (!isMicActiveRef.current) {
+    try {
+      recognitionRef.current.start();
+      setIsListening(true);
+      isMicActiveRef.current = true;
+    } catch (err) {
+      isMicActiveRef.current = false; // 🔥 reset
+      console.warn("Mic start blocked:", err);
+    }
+  }
+}, [currentIndex, sessionStarted]);
+
+useEffect(() => {
+  if (!recognitionRef.current) return;
+
+  recognitionRef.current.onend = () => {
+    setIsListening(false);
+    isMicActiveRef.current = false; // 🔥 RESET
+  };
+
+  recognitionRef.current.onerror = () => {
+    setIsListening(false);
+    isMicActiveRef.current = false; // 🔥 RESET
+  };
+}, []);
+
 
   useEffect(() => {
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -546,7 +607,10 @@ const Mock = () => {
 
         setCameraReady(true);
       } catch (error) {
-        setCameraReady(false);
+       alert("Camera access denied. Interview will end.");
+      if (sessionStarted) {
+  handleEndInterview();
+}
       }
     };
 
@@ -566,6 +630,55 @@ const Mock = () => {
     []
   );
 
+  useEffect(() => {
+  const handleFullscreenChange = () => {
+    if (!document.fullscreenElement && sessionStarted) {
+      alert("You cannot exit fullscreen during interview!");
+      enterFullScreen();
+    }
+  };
+
+  document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+  return () =>
+    document.removeEventListener("fullscreenchange", handleFullscreenChange);
+}, [sessionStarted]);
+
+  useEffect(() => {
+  const handleVisibility = () => {
+    if (document.hidden && sessionStarted) {
+      alert("⚠️ Tab switching detected!");
+      handleEndInterview();
+    }
+  };
+
+  document.addEventListener("visibilitychange", handleVisibility);
+
+  return () =>
+    document.removeEventListener("visibilitychange", handleVisibility);
+}, [sessionStarted]);
+
+useEffect(() => {
+  const disableKeys = (e) => {
+    if (
+      e.key === "Escape" ||
+      e.ctrlKey ||
+      e.metaKey
+    ) {
+      e.preventDefault();
+    }
+  };
+
+  const disableRightClick = (e) => e.preventDefault();
+
+  window.addEventListener("keydown", disableKeys);
+  window.addEventListener("contextmenu", disableRightClick);
+
+  return () => {
+    window.removeEventListener("keydown", disableKeys);
+    window.removeEventListener("contextmenu", disableRightClick);
+  };
+}, []);
   return (
     <div className="mock-page">
       <div className="mock-shell">
@@ -742,11 +855,14 @@ const Mock = () => {
                 type="button"
                 className="mock-primary-btn"
                 onClick={() => {
+                  enterFullScreen();
                   resetFeedback();
                   setLatestFeedback(null);
                   setCurrentIndex(0);
                   setAnswerText("");
                   setSessionStarted(true);
+                  setSessionId(null);
+                  setConversation([]);
                   setTimeLeft(sessionDuration * 60);
                 }}
                 disabled={!questionQueue.length || isGeneratingQuestion}
@@ -837,7 +953,7 @@ const Mock = () => {
 
                   <div className="mock-question__voice-status">
                     <strong>{isListening ? "Recording answer" : "Voice mode ready"}</strong>
-                    <span>{sessionMode === "ai" ? "Live AI interview" : "Practice evaluation"}</span>
+                    <span>{sessionMode === "real" ? "Live AI interview" : "Practice evaluation"}</span>
                   </div>
                 </div>
 

@@ -3,7 +3,7 @@ import '../style/interview.scss'
 import { useInterview } from '../hooks/useInterview.js'
 import { useNavigate, useParams } from 'react-router-dom'
 import { logout } from "../../auth/services/auth.api.js"; // adjust path if needed
-import { generateMoreQuestions,generateMoreBehavioral , generateFollowUp,evaluateMockAnswer,generateQuestion,updateRoadmap,liveInterview} from "../services/interview.api";
+import { generateMoreQuestions,generateMoreBehavioral , generateFollowUp,generateQuestion,updateRoadmap} from "../services/interview.api";
 
 const NAV_ITEMS = [
     { id: 'technical', label: 'Technical Questions', icon: (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>) },
