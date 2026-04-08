@@ -101,16 +101,6 @@ export const generateFollowUp = async ({ question, answer }) => {
   return res.data;
 };
 
-// get evaluation for mock 
-export const evaluateMockAnswer = async ({ question, answer }) => {
-  const res = await api.post("/api/interview/mock/evaluate", {
-    question,
-    answer
-  });
-
-  return res.data;
-};
-
 export const generateQuestion = async ({ topic, type,difficulty }) => {
   const res = await api.post("/api/interview/mock/generate-question", {
     topic,
@@ -133,18 +123,3 @@ export const updateRoadmap = async (interviewId, day, tasks) => {
   });
 };
 
-export const liveInterview = async ({ question, answer, history }) => {
-  try {
-    const res = await api.post("/api/interview/live", {
-      question,
-      answer,
-      history
-    });
-
-    return res.data;
-
-  } catch (err) {
-    console.error("Live error:", err.response?.data || err.message);
-    throw err;
-  }
-};
