@@ -239,7 +239,14 @@ const Interview = () => {
 
             const data = await generateMoreQuestions(interviewId);
 
-            setQuestions(prev => [...prev, ...data.questions]);
+            setQuestions(prev => {
+              const merged = [...prev, ...data.questions];
+
+              return merged.filter(
+                (q, i, arr) =>
+                  i === arr.findIndex(x => x.question === q.question)
+              );
+            });
 
         } catch (err) {
             console.error(err);
@@ -261,7 +268,9 @@ const Interview = () => {
 
     console.log("API RESPONSE:", data);
 
-    setBehavioralQuestions(prev => [...prev, ...data.questions]);
+    const newQs = data?.questions || [];
+
+    setBehavioralQuestions(prev => [...prev, ...newQs]);
 
   } catch (err) {
     console.error(err);
@@ -645,11 +654,11 @@ if (loading || !report) {
                             </div>
                             <div className='q-list'>
                                {questions.map((q, i) => (
-                               <QuestionCard
-                                    key={i}
-                                    item={q}
-                                    index={i}
-                                    />
+                              <QuestionCard 
+                                  key={q.question + i} 
+                                  item={q} 
+                                  index={i} 
+                                />
                             ))}
                             </div>
                         </section>
@@ -659,7 +668,9 @@ if (loading || !report) {
                         <section>
                             <div className='content-header'>
                                 <h2>Behavioral Questions</h2>
-                                <span className='content-header__count'>{report.behavioralQuestions.length || 0} questions</span>
+                                <span className='content-header__count'>
+                                  {behavioralQuestions.length} questions
+                                </span>
 
                                  <button
                                     className="generate-more-btn"
@@ -669,11 +680,19 @@ if (loading || !report) {
                                     {generatingBehavioral ? "Generating..." : "➕ Generate More"}
                                 </button>
                             </div>
-                           <div className='q-list'>
-                            {behavioralQuestions.map((q, i) => (
-                                <QuestionCard key={i} item={q} index={i} />
-                            ))}
-                            </div>
+                          <div className='q-list'>
+                                {behavioralQuestions.length === 0 ? (
+                                  <p>No behavioral questions yet</p>
+                                ) : (
+                                  behavioralQuestions.map((q, i) => (
+                                    <QuestionCard
+                                      key={q.question + i}
+                                      item={q}
+                                      index={i}
+                                    />
+                                  ))
+                                )}
+                              </div>
                         </section>
                     )}
 
