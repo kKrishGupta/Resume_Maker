@@ -12,7 +12,16 @@ function cleanAndParse(text) {
       .replace(/```/g, "")
       .trim();
 
-    return JSON.parse(clean);
+    // 🔥 FIX: sirf JSON array nikaal
+    const match = clean.match(/\[\s*{[\s\S]*}\s*\]/);
+
+    if (!match) {
+      console.error("❌ No JSON found:", text);
+      return null;
+    }
+
+    return JSON.parse(match[0]);
+
   } catch (err) {
     console.error("❌ JSON PARSE ERROR:", text);
     return null;
@@ -28,7 +37,11 @@ function safeParseJSON(text) {
       .replace(/```/g, "")
       .trim();
 
-    return JSON.parse(clean);
+    const match = clean.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+
+    if (!match) return null;
+
+    return JSON.parse(match[0]);
 
   } catch (err) {
     console.error("❌ JSON PARSE ERROR:", text);

@@ -369,7 +369,11 @@ async function generateMoreQuestions(req, res) {
     });
 
     // append new questions
-    report.technicalQuestions.push(...newQuestions);
+    const validQuestions = (newQuestions || []).filter(
+  q => q.question && q.intention && q.answer
+    );
+
+    report.technicalQuestions.push(...validQuestions);
 
     await report.save();
 
@@ -404,7 +408,11 @@ const generateMoreBehavioralQuestions = async (req, res) => {
       previousQuestions: report.behavioralQuestions
     });
 
-    report.behavioralQuestions.push(...newQuestions);
+    const validQuestions = (newQuestions || []).filter(
+      q => q.question && q.intention && q.answer
+    );
+
+report.behavioralQuestions.push(...validQuestions);
     await report.save();
 
     res.json({ questions: report.behavioralQuestions });
