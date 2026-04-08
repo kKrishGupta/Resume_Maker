@@ -248,20 +248,27 @@ const Interview = () => {
         }
     };
 
-    const handleGenerateBehavioral = async () => {
+   const handleGenerateBehavioral = async () => {
   try {
+    if (!interviewId) {
+      console.error("❌ interviewId missing");
+      return;
+    }
+
     setGeneratingBehavioral(true);
 
     const data = await generateMoreBehavioral(interviewId);
 
-    setBehavioralQuestions(data.questions);
+    console.log("API RESPONSE:", data);
+
+    setBehavioralQuestions(prev => [...prev, ...data.questions]);
 
   } catch (err) {
     console.error(err);
   } finally {
     setGeneratingBehavioral(false);
   }
-    };
+};
 
     const handleUpdateDay = async (dayNumber, updatedTasks) => {
   try {
