@@ -4,7 +4,7 @@ const {
   generateResumePdf,generateAIQuestions,generateAIBehavioralQuestions,generateFollowUpQuestions,
   evaluateMockAnswer,
   generateQuestion,
-  evaluateLiveInterview,
+  evaluateFullInterview,
   analyzeEmotion,
   safeParseJSON
 } = require("../services/ai.service");
@@ -558,20 +558,15 @@ async function updateRoadmap(req, res) {
 
 async function liveInterviewController(req, res) {
   try {
-    const { question, answer, history = [], sessionId } = req.body;
+    const { question, answer, history = [], sessionId, mode } = req.body;
 
-    // 🔒 Validation
-    if (!answer) {
-      return res.status(400).json({ message: "Answer required" });
-    }
-
-    if (!question) {
-      return res.status(400).json({ message: "Question required" });
+    if (!question || !answer) {
+      return res.status(400).json({ message: "Question & Answer required" });
     }
 
     let session;
 
-    // 🧠 Find existing session
+    // find session
     if (sessionId) {
       session = await InterviewSession.findOne({
         _id: sessionId,
@@ -579,75 +574,50 @@ async function liveInterviewController(req, res) {
       });
     }
 
-    // 🆕 Create new session if not found
+    // create new session
     if (!session) {
       session = await InterviewSession.create({
         user: req.user.id,
-        mode: "ai",
-        history: [],
-        score: 0
+        mode: mode || "real",
+        history: []
       });
     }
 
-    // 🔥 AI Processing
-    const feedback = await evaluateLiveInterview({
+    // 🔥 SINGLE AI CALL (NO LAG)
+    const { feedback, emotion, followUps } = await evaluateFullInterview({
       question,
       answer,
-      history
+      history,
+      mode
     });
 
-    const emotion = await analyzeEmotion(answer);
-
-    const followUps = await generateFollowUpQuestions({
-      question,
-      answer
-    });
-
-    // 🔥 Calculate score for THIS answer
     const score =
       (feedback.clarity + feedback.confidence + feedback.technical) / 3;
 
-    // 💾 Save to history (WITH score)
     session.history.push({
       question,
       answer,
       feedback,
       emotion,
-      score,
-      createdAt: new Date()
+      score
     });
 
-    // ✅ LIMIT HISTORY (last 50 only)
-    if (session.history.length > 50) {
-      session.history = session.history.slice(-50);
-    }
+    // limit history
+    session.history = session.history.slice(-50);
 
-    // ✅ Calculate overall session score (AVERAGE)
-    const totalScore = session.history.reduce((sum, item) => {
-      return sum + (item.score || 0);
-    }, 0);
-
-    session.score = totalScore / session.history.length;
-
-    // 💾 Save session
     await session.save();
 
-    // 📤 Response
     return res.json({
       sessionId: session._id,
       feedback,
       emotion,
       followUps,
-      score: session.score, // ✅ send overall score
-      nextAction: "next"
+      score
     });
 
   } catch (err) {
-    console.error("❌ LIVE ERROR:", err);
-
-    return res.status(500).json({
-      message: "Live interview failed"
-    });
+    console.error("LIVE ERROR:", err);
+    res.status(500).json({ message: "Live interview failed" });
   }
 }
 

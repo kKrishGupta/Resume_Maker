@@ -1,14 +1,24 @@
 import api from "../../../utils/api";
 
 // 🎤 LIVE INTERVIEW
-export const liveInterview = async (data) => {
-  const res = await api.post("/interview/live", data);
+export const liveInterview = async ({ question, answer, history, sessionId, mode }) => {
+  const res = await api.post("/api/interview/live", {
+    question,
+    answer,
+    history,
+    sessionId,
+    mode
+  });
+
   return res.data;
 };
 
 // 🏁 END INTERVIEW
-export const endInterview = async (data) => {
-  const res = await api.post("/interview/end", data);
+export const endInterview = async ({ sessionId, feedback }) => {
+  const res = await api.post("/api/interview/end", {
+    sessionId,
+    feedback
+  });
   return res.data;
 };
 

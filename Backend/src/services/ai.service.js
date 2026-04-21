@@ -579,10 +579,97 @@ Return JSON:
   }
 }
 
+async function evaluateFullInterview({ question, answer, history = [], mode }) {
+  try {
+    const context = history
+      .map(h => `Q: ${h.question}\nA: ${h.answer}`)
+      .join("\n");
+
+    const strict = mode === "real"
+      ? "Be VERY strict like FAANG interviewer."
+      : "Be slightly supportive like a coach.";
+
+    const prompt = `
+You are an expert AI interviewer.
+
+${strict}
+
+${context}
+
+Current Question:
+${question}
+
+Candidate Answer:
+${answer}
+
+Analyze EVERYTHING in ONE GO.
+
+Return JSON:
+
+{
+  "feedback": {
+    "clarity": number,
+    "confidence": number,
+    "technical": number,
+    "strengths": [],
+    "improvements": []
+  },
+  "emotion": {
+    "confidenceLevel": "low | medium | high",
+    "stressLevel": "low | medium | high"
+  },
+  "followUps": [
+    {
+      "question": "",
+      "intention": "",
+      "answer": ""
+    }
+  ]
+}
+`;
+
+    const text = await generateAI(prompt);
+    const parsed = safeParseJSON(text) || {};
+
+    return {
+      feedback: parsed.feedback || {
+        clarity: 60,
+        confidence: 60,
+        technical: 60,
+        strengths: ["Basic attempt"],
+        improvements: ["Improve explanation"]
+      },
+      emotion: parsed.emotion || {
+        confidenceLevel: "medium",
+        stressLevel: "medium"
+      },
+      followUps: parsed.followUps || []
+    };
+
+  } catch (err) {
+    console.error("AI FULL ERROR:", err);
+
+    return {
+      feedback: {
+        clarity: 60,
+        confidence: 60,
+        technical: 60,
+        strengths: ["Fallback"],
+        improvements: ["Try again"]
+      },
+      emotion: {
+        confidenceLevel: "medium",
+        stressLevel: "medium"
+      },
+      followUps: []
+    };
+  }
+}
 module.exports = { generateInterviewReport ,generateAIQuestions,generateAIBehavioralQuestions,generateFollowUpQuestions,
 evaluateMockAnswer,
 generateQuestion,
 evaluateLiveInterview,
 analyzeEmotion,
-safeParseJSON
+safeParseJSON,
+evaluateFullInterview,generateResumePdf
 };

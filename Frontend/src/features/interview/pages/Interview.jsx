@@ -3,7 +3,7 @@ import '../style/interview.scss'
 import { useInterview } from '../hooks/useInterview.js'
 import { useNavigate, useParams } from 'react-router-dom'
 import { logout } from "../../auth/services/auth.api.js"; // adjust path if needed
-import { generateMoreQuestions,generateMoreBehavioral , generateFollowUp,generateQuestion,updateRoadmap} from "../services/interview.api";
+import { generateMoreQuestions,generateMoreBehavioral , generateFollowUp,evaluateMockAnswer,generateQuestion,updateRoadmap,liveInterview} from "../services/interview.api";
 
 const NAV_ITEMS = [
     { id: 'technical', label: 'Technical Questions', icon: (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>) },
@@ -16,6 +16,7 @@ const QuestionCard = ({ item, index }) => {
     const [ open, setOpen ] = useState(false);
     const [followUps, setFollowUps] = useState([]);
     const [loadingFollow, setLoadingFollow] = useState(false);
+    if (loadingFollow) return;
     const handleFollowUp = async () => {
     try {
         setLoadingFollow(true);
@@ -25,7 +26,7 @@ const QuestionCard = ({ item, index }) => {
         answer: item.answer
         });
 
-        setFollowUps(data.followUps);
+        setFollowUps(data.followUps || []);
 
     } catch (err) {
         console.error(err);
@@ -210,19 +211,36 @@ const Interview = () => {
     const [showScrollTop, setShowScrollTop] = useState(false);
     const [behavioralQuestions, setBehavioralQuestions] = useState([]);
     const [generatingBehavioral, setGeneratingBehavioral] = useState(false);
-    const [openSection, setOpenSection] = useState(null);
+    // 🔥 MOCK INTERVIEW STATE
+    const [mockMode, setMockMode] = useState(false);
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [mockAnswer, setMockAnswer] = useState("");
+    const [mockResult, setMockResult] = useState(null);
+    const [loadingMock, setLoadingMock] = useState(false);
+    const [mockType, setMockType] = useState("technical");
+    const [customTopic, setCustomTopic] = useState("");
+    const [generatedQuestion, setGeneratedQuestion] = useState("");
+    const [loadingGen, setLoadingGen] = useState(false);
+    const [difficulty, setDifficulty] = useState("medium");
+    const [openSection , setOpenSection] = useState("keywords");
+    const [isListening, setIsListening] = useState(false);
+    const [conversation, setConversation] = useState([]);
+    const recognitionRef = useRef(null);
+    const [sessionTime, setSessionTime] = useState(15); // minutes
+    const [timeLeft, setTimeLeft] = useState(0);
+    const [isRunning, setIsRunning] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [mode, setMode] = useState("practice"); // practice | real
+    const [cameraStream, setCameraStream] = useState(null);
+    const videoRef = useRef(null);
     const navigate = useNavigate();
-  const handleGenerateMore = async () => {
+    const handleGenerateMore = async () => {
         try {
             setGenerating(true);
             const data = await generateMoreQuestions(interviewId);
-            setQuestions(prev => {
-              const merged = [...prev, ...data.questions];
-              return merged.filter(
-                (q, i, arr) =>
-                  i === arr.findIndex(x => x.question === q.question)
-              );
-            });
+
+            setQuestions(prev => [...prev, ...data.questions]);
+
         } catch (err) {
             console.error(err);
         } finally {
@@ -242,9 +260,9 @@ const Interview = () => {
     }
     setGeneratingBehavioral(true);
     const data = await generateMoreBehavioral(interviewId);
-    console.log("API RESPONSE:", data);
-    const newQs = data?.questions || [];
-    setBehavioralQuestions(prev => [...prev, ...newQs]);
+
+    setBehavioralQuestions(data.questions);
+
   } catch (err) {
     console.error(err);
   } finally {
@@ -264,11 +282,67 @@ const Interview = () => {
   }
 }
 
-  useEffect(() => {
-  if (report?.technicalQuestions && questions.length === 0) {
-    setQuestions(report.technicalQuestions);
+const speak = (text) => {
+  const utterance = new SpeechSynthesisUtterance(text);
+  speechSynthesis.speak(utterance);
+};
+
+    useEffect(() => {
+    if (report?.technicalQuestions) {
+        setQuestions(report.technicalQuestions);
+    }
+    }, [report]);
+
+    useEffect(() => {
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    alert("Speech Recognition not supported");
+    return;
   }
-  }, [report]);
+
+  const recognition = new SpeechRecognition();
+ recognition.continuous = true;
+
+recognition.onerror = (event) => {
+  if (event.error === "no-speech") {
+    console.log("🎤 No speech detected, retrying...");
+
+    // 🔥 auto restart for better UX
+    if (isListening) {
+      recognition.start();
+    }
+
+  } else if (event.error === "not-allowed") {
+    alert("Microphone permission denied");
+  } else {
+    console.error("Speech error:", event.error);
+  }
+};
+  recognition.lang = "en-US";
+
+recognition.onresult = async (event) => {
+  let transcript = "";
+  for (let i = event.resultIndex; i < event.results.length; i++) {
+    transcript += event.results[i][0].transcript;
+  }
+  setMockAnswer(transcript);
+  await handleMockEvaluate(transcript);
+};
+
+  recognition.onend = () => {
+    setIsListening(false);
+  };
+
+  recognitionRef.current = recognition;
+}, []);
+
+useEffect(() => {
+  return () => {
+    stopCamera();
+  };
+}, []);
 
     useEffect(() => {
         if (interviewId) {
@@ -277,10 +351,71 @@ const Interview = () => {
     }, [ interviewId ]);
 
     useEffect(() => {
+  if (report?.technicalQuestions) {
+    setQuestions(report.technicalQuestions);
+  }
+}, [report]);
+
+    useEffect(() => {
   if (report?.behavioralQuestions) {
     setBehavioralQuestions(report.behavioralQuestions);
   }
 }, [report]);
+
+useEffect(() => {
+  let timer;
+
+  if (isRunning && timeLeft > 0) {
+    timer = setInterval(() => {
+      setTimeLeft(prev => prev - 1);
+    }, 1000);
+  }
+
+  if (timeLeft === 0 && isRunning) {
+    alert("⏱ Interview Time Over!");
+    setMockMode(false);
+    setIsRunning(false);
+  }
+
+  return () => clearInterval(timer);
+}, [isRunning, timeLeft]);
+
+const startSession = () => {
+  setTimeLeft(sessionTime * 60);
+  setIsRunning(true);
+};
+
+const startCamera = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+
+    setCameraStream(stream);
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+    }
+
+  } catch (err) {
+    console.error("Camera error:", err);
+  }
+};
+
+const stopCamera = () => {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    setCameraStream(null);
+  }
+};
+
+const toggleFullscreen = () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+    setIsFullscreen(true);
+  } else {
+    document.exitFullscreen();
+    setIsFullscreen(false);
+  }
+};
 
 const handleLogout = async () => {
     try {
@@ -295,8 +430,142 @@ const handleLogout = async () => {
         console.error("Logout failed:", err);
     }
 };
-    
-// // ✅ SAFE ACCESS (no crash)
+
+const handleMockEvaluate = async (voiceInput = null) => {
+  try {
+    setLoadingMock(true);
+
+    let selectedQuestion;
+
+    if (mockType === "technical") {
+      selectedQuestion = questions[currentIndex]?.question;
+    } else if (mockType === "behavioral") {
+      selectedQuestion = behavioralQuestions[currentIndex]?.question;
+    } else {
+      selectedQuestion = generatedQuestion || customTopic;
+    }
+
+   let data;
+
+if (mode === "practice") {
+  // 🔥 softer AI (training mode)
+  data = await liveInterview({
+    question: selectedQuestion,
+    answer:typeof voiceInput === "string"? voiceInput: mockAnswer,
+    history: conversation,
+    mode: "practice"
+  });
+} else {
+  // 🔥 strict real interview
+  data = await liveInterview({
+    question: selectedQuestion,
+    answer: voiceInput || mockAnswer,
+    history: conversation,
+    mode: "real"
+  });
+}
+
+    setMockResult(data.feedback);
+
+    // 🔥 STOP OLD VOICE
+    speechSynthesis.cancel();
+
+    // 🔥 AI SPEAK
+    const msg = data?.feedback?.strengths?.length
+      ? "Good. " + data.feedback.strengths[0]
+      : "Your answer needs improvement.";
+
+    speak(msg);
+
+    // 🔥 AUTO NEXT QUESTION (REAL FLOW)
+    setTimeout(() => {
+      handleNextQuestion();
+    }, 2500);
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoadingMock(false);
+  }
+};
+
+const handleNextQuestion = () => {
+  if (mockType === "custom") {
+    // generate new question instead of index
+    setGeneratedQuestion("");
+    setMockAnswer("");
+    setMockResult(null);
+    return;
+  }
+
+  if (currentIndex < questions.length - 1) {
+    setCurrentIndex(prev => prev + 1);
+    setMockAnswer("");
+    setMockResult(null);
+  } else {
+    alert("🎉 Interview Completed!");
+    setMockMode(false);
+  }
+};
+const handleGenerateQuestion = async () => {
+  try {
+    let topicToSend = customTopic;
+
+if (mockType === "technical") {
+  topicToSend = "technical interview";
+} else if (mockType === "behavioral") {
+  topicToSend = "behavioral interview";
+}
+
+const data = await generateQuestion({
+  topic: topicToSend,
+  type: mockType,
+  difficulty
+});
+
+    setGeneratedQuestion(data.question);
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoadingGen(false);
+  }
+};
+
+useEffect(() => {
+  if (mockMode) {
+    startCamera();
+  }
+}, [mockMode]);
+
+useEffect(() => {
+  let question;
+
+  if (mockType === "technical") {
+    question = questions[currentIndex]?.question;
+  } else if (mockType === "behavioral") {
+    question = behavioralQuestions[currentIndex]?.question;
+  } else {
+    question = generatedQuestion;
+  }
+
+  if (question) {
+    speak(question); // 🔥 AI asks question
+  }
+}, [currentIndex, generatedQuestion]);
+
+useEffect(() => {
+  if (mockType === "custom" && !customTopic) return;
+
+  const timer = setTimeout(() => {
+    handleGenerateQuestion();
+  }, 300);
+
+  return () => clearTimeout(timer);
+
+}, [customTopic, mockType, difficulty]);
+
+// ✅ SAFE ACCESS (no crash)
 const scoreColor =
   report?.matchScore >= 80 ? 'score--high' :
   report?.matchScore >= 60 ? 'score--mid' : 'score--low';
@@ -372,18 +641,18 @@ if (loading || !report) {
                         {/* 🎤 ADD THIS HERE */}
                         <button
                         className="mock-btn"
-                        onClick={() => navigate(`/mock/${interviewId}`)}
+                        onClick={() => setMockMode(true)}
                         >
                         🎤 Start Mock Interview
                         </button>
                             </div>
                             <div className='q-list'>
                                {questions.map((q, i) => (
-                              <QuestionCard 
-                                  key={q.question + i} 
-                                  item={q} 
-                                  index={i} 
-                                />
+                               <QuestionCard
+                                    key={i}
+                                    item={q}
+                                    index={i}
+                                    />
                             ))}
                             </div>
                         </section>
@@ -405,19 +674,11 @@ if (loading || !report) {
                                     {generatingBehavioral ? "Generating..." : "➕ Generate More"}
                                 </button>
                             </div>
-                          <div className='q-list'>
-                                {behavioralQuestions.length === 0 ? (
-                                  <p>No behavioral questions yet</p>
-                                ) : (
-                                  behavioralQuestions.map((q, i) => (
-                                    <QuestionCard
-                                      key={q.question + i}
-                                      item={q}
-                                      index={i}
-                                    />
-                                  ))
-                                )}
-                              </div>
+                           <div className='q-list'>
+                            {behavioralQuestions.map((q, i) => (
+                                <QuestionCard key={i} item={q} index={i} />
+                            ))}
+                            </div>
                         </section>
                     )}
 
@@ -425,10 +686,10 @@ if (loading || !report) {
                         <section>
                             <div className='content-header'>
                                 <h2>Preparation Road Map</h2>
-                                <span className='content-header__count'>{report.preparationPlan.length}-day plan</span>
+                                <span className='content-header__count'>{report?.preparationPlan?.length || 0}-day plan</span>
                             </div>
                             <div className='roadmap-list'>
-                                {report.preparationPlan.map((day) => (
+                                {report?.preparationPlan?.map((day) => (
                                     <RoadMapDay key={day.day} day={day} onUpdateDay={handleUpdateDay}/>
                                 ))}
                             </div>
@@ -521,6 +782,223 @@ if (loading || !report) {
                 ⬆
             </button>
         )}
+
+        {mockMode && (
+  <div className="mock-overlay">
+
+    <div className="mock-container premium">
+
+  {/* HEADER */}
+  <div className="mock-header premium-header">
+    <div>
+      <h2>🎤 AI Interview</h2>
+      <p className="mock-subtitle">Real-time voice interview</p>
+    </div>
+
+    <div className="status-indicator">
+      <span className={`dot ${isListening ? "live" : ""}`}></span>
+      {isListening ? "Listening..." : "Idle"}
+    </div>
+
+    <button className="exit-btn" onClick={() => {stopCamera() , setMockMode(false)}}>
+      ✕
+    </button>
+  </div>
+
+          {/* 🔥 SESSION BAR */}
+<div className="session-bar">
+
+  {/* ⏱ TIMER */}
+  <div className="timer">
+    ⏱ {Math.floor(timeLeft / 60)}:
+    {String(timeLeft % 60).padStart(2, "0")}
+  </div>
+
+  {/* 🎯 MODE */}
+  <select value={mode} onChange={(e) => setMode(e.target.value)}>
+    <option value="practice">🧪 Practice</option>
+    <option value="real">🔥 Real</option>
+  </select>
+
+  {/* ⏳ TIME */}
+  <select
+    value={sessionTime}
+    onChange={(e) => setSessionTime(Number(e.target.value))}
+    disabled={isRunning}
+  >
+    <option value={15}>15 min</option>
+    <option value={20}>20 min</option>
+    <option value={30}>30 min</option>
+  </select>
+
+  {/* ▶ START */}
+  <button onClick={startSession} disabled={isRunning}>
+    ▶ Start
+  </button>
+
+  {/* 🎥 CAMERA */}
+  <button onClick={startCamera}>🎥</button>
+
+  {/* 🖥 FULLSCREEN */}
+  <button onClick={toggleFullscreen}>
+    {isFullscreen ? "🡼" : "⛶"}
+  </button>
+
+</div>
+
+  {/* CONTROLS */}
+  <div className="mock-controls premium-controls">
+    <select
+      value={mockType}
+      onChange={(e) => {
+        setMockType(e.target.value);
+        setGeneratedQuestion("");
+      }}
+    >
+      <option value="technical">🧠 Technical</option>
+      <option value="behavioral">💬 Behavioral</option>
+      <option value="custom">🎯 Custom</option>
+    </select>
+
+    <select
+      value={difficulty}
+      onChange={(e) => {
+        setDifficulty(e.target.value);
+        setGeneratedQuestion("");
+      }}
+    >
+      <option value="easy">🟢 Easy</option>
+      <option value="medium">🟡 Medium</option>
+      <option value="hard">🔴 Hard</option>
+    </select>
+
+    {mockType === "custom" && (
+      <input
+        type="text"
+        placeholder="Enter topic..."
+        value={customTopic}
+        onChange={(e) => {
+          setCustomTopic(e.target.value);
+          setGeneratedQuestion("");
+          setMockAnswer("");
+          setMockResult(null);
+        }}
+      />
+    )}
+  </div>
+
+  {/* QUESTION */}
+  <div className="question-card">
+    <span className="question-label">Question</span>
+    <p className="mock-question">
+      {generatedQuestion
+        ? generatedQuestion
+        : mockType === "technical"
+        ? questions[currentIndex]?.question
+        : mockType === "behavioral"
+        ? behavioralQuestions[currentIndex]?.question
+        : customTopic
+        ? "⚡ Generating..."
+        : "⚠️ Enter a topic"}
+    </p>
+  </div>
+
+  {/* ANSWER BOX */}
+  <div className="answer-box">
+    <textarea
+      value={mockAnswer}
+      onChange={(e) => setMockAnswer(e.target.value)}
+      placeholder="Speak or type your answer..."
+    />
+  </div>
+
+  {/* ACTION BUTTONS */}
+  <div className="action-row">
+
+    {/* 🎤 MIC */}
+    <button
+      className={`mic-btn ${isListening ? "active" : ""}`}
+      onClick={() => {
+        if (!recognitionRef.current) return;
+
+        if (isListening) {
+          recognitionRef.current.stop();
+          setIsListening(false);
+        } else {
+          recognitionRef.current.start();
+          setIsListening(true);
+        }
+      }}
+    >
+      {isListening ? "🛑" : "🎤"}
+    </button>
+
+    {/* 🚀 SUBMIT */}
+    <button
+      className="submit-btn"
+      onClick={() => handleMockEvaluate()}
+      disabled={
+        isListening || // 🔥 prevent double submit
+        !mockAnswer ||
+        (mockType === "custom" && !generatedQuestion)
+      }
+    >
+      {loadingMock ? "Analyzing..." : "🚀 Submit"}
+    </button>
+  </div>
+
+  {/* 🎥 ADD HERE */}
+  <video
+    ref={videoRef}
+    autoPlay
+    muted
+    playsInline
+    className="camera-feed floating"
+  />
+
+  {/* RESULT */}
+  {mockResult && (
+    <div className="result-panel">
+
+      {/* SCORE */}
+      <div className="score-grid">
+        <div className="score-card">
+          <span>Clarity</span>
+          <h3>{mockResult.clarity}</h3>
+        </div>
+        <div className="score-card">
+          <span>Confidence</span>
+          <h3>{mockResult.confidence}</h3>
+        </div>
+        <div className="score-card">
+          <span>Technical</span>
+          <h3>{mockResult.technical}</h3>
+        </div>
+      </div>
+
+      {/* FEEDBACK */}
+      <div className="feedback-section">
+        <h4>✅ Strengths</h4>
+        {mockResult.strengths.map((s, i) => (
+          <p key={i}>{s}</p>
+        ))}
+
+        <h4>❌ Improvements</h4>
+        {mockResult.improvements.map((i, idx) => (
+          <p key={idx}>{i}</p>
+        ))}
+      </div>
+
+      <button className="next-btn" onClick={handleNextQuestion}>
+        Next Question →
+      </button>
+    </div>
+  )}
+</div>
+  </div>
+)}
+{/* 🎥 CAMERA VIEW */}
+
         </div>
     )
 }
