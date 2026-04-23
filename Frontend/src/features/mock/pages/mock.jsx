@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate,useParams } from "react-router-dom";
 import { useMock } from "../hooks/useMock";
 import { endInterview } from "../service/mock.api";
 import "../style/mock.scss";
 import { useContext } from "react";
 import { SessionContext } from "../../interview/session.context";
-
+import { useMonitoring } from "../hooks/useMonitoring";
+import { sendMonitorEvent } from "../service/monitor.api";
+import CameraView from "../components/CameraView";
 const SESSION_ITEMS = [
   { id: "real", label: "AI Interview" },
   { id: "practice", label: "Practice Interview" }
@@ -97,9 +99,9 @@ const Mock = () => {
     evaluateAnswer,
     submitLiveAnswer,
     pushFeedback,
-    resetFeedback,
-    interviewId
+    resetFeedback
   } = useMock();
+  const { interviewId } = useParams();
   const endedRef = useRef(false);
   const isMicActiveRef = useRef(false);
   const [sessionMode, setSessionMode] = useState("real");
@@ -131,38 +133,53 @@ const Mock = () => {
   const advanceTimeoutRef = useRef(null);
   const cameraStreamRef = useRef(null);
   const videoRef = useRef(null);
-const {
-  sessionId,
-  setSessionId,
-  trustScore,
-  setTrustScore,
-  status,
-  setStatus
-} = useContext(SessionContext);
+  const fullscreenWarningRef = useRef(false);
+  const {
+    sessionId,
+    setSessionId,
+    trustScore,
+    setTrustScore,
+    status,
+    setStatus
+  } = useContext(SessionContext);
+  const violationCooldownRef = useRef(false);
+  useMonitoring(videoRef, sessionStarted ? sessionId : null);
   const answeredQuestions = useMemo(
     () => new Set(feedbackHistory.map((item) => item.index)),
     [ feedbackHistory ]
   );
 
-const handleEndInterview = async () => {
-  try {
-    recognitionRef.current?.stop();
-    stopCamera();
-    window.speechSynthesis.cancel();
-    setSessionStarted(false);
+  const handleEndInterview = async () => {
+    try {
+      // 🔴 STOP EVERYTHING CLEANLY
+      recognitionRef.current?.stop();
+      stopCamera();
+      window.speechSynthesis.cancel();
+      setSessionStarted(false);
 
-    if (!sessionId) {
-      alert("Interview ended.");
-      return;
+      if (!sessionId) {
+        alert("Interview ended.");
+        navigate(`/interview/${interviewId}`); // 🔥 ADD THIS
+        return;
+      }
+
+      const result = await endInterview({ sessionId });
+
+      // 🔥 SHOW RESULT
+      alert(`Score: ${result.avgScore}`);
+
+      // 🔥 RESET SESSION (VERY IMPORTANT)
+      setSessionId(null);
+      setTrustScore(100);
+      setStatus("idle");
+
+      // 🔥 NAVIGATE BACK TO REPORT PAGE
+      navigate(`/interview/${interviewId}`);
+
+    } catch (err) {
+      console.error(err);
     }
-
-    const result = await endInterview({ sessionId });
-
-    alert(`Score: ${result.avgScore}`);
-  } catch (err) {
-    console.error(err);
-  }
-};
+  };
 
   const currentQuestion = questionQueue[currentIndex];
   const currentPrompt = currentQuestion?.question || "Preparing your next mock interview question...";
@@ -363,6 +380,15 @@ useEffect(() => {
   };
 
 const handleSubmitAnswer = async () => {
+  // 🔒 HARD BLOCK (FIRST LINE)
+  if (status === "terminated") {
+    alert("Session already terminated");
+    return;
+  }
+
+  // 🔒 PREVENT MULTIPLE CALLS
+  if (isSubmitting) return;
+
   if (!currentQuestion || !answerText.trim()) return;
 
   setIsSubmitting(true);
@@ -383,21 +409,30 @@ const handleSubmitAnswer = async () => {
             mode: sessionMode
           });
 
+    // 🔥 DOUBLE CHECK AFTER API
+    if (status === "terminated") return;
+
+    // 🔥 SESSION ID
     if (response?.sessionId && !sessionId) {
       setSessionId(response.sessionId);
     }
 
+    // 🔥 TRUST SCORE
     if (response?.trustScore !== undefined) {
       setTrustScore(response.trustScore);
     }
 
+    // 🚨 TERMINATION HANDLING
     if (response?.status === "terminated") {
       setStatus("terminated");
+
       alert("❌ Interview terminated due to violations");
+
       navigate(`/interview/${interviewId}`);
-      return;
+      return; // 🔥 HARD STOP
     }
 
+    // 🔥 SAFE CONTINUE ONLY IF ACTIVE
     setConversation(prev => [
       ...prev,
       {
@@ -406,23 +441,27 @@ const handleSubmitAnswer = async () => {
       }
     ]);
 
+    // 🔥 FOLLOW UPS (SAFE)
     if (response?.followUps?.length && questionQueue.length < 20) {
       const follow = response.followUps[0];
 
-      setQuestionQueue(prev => [
-        ...prev,
-        {
-          id: `follow-${Date.now()}`,
-          question: follow.question,
-          intention: follow.intention,
-          answer: follow.answer,
-          type: "followup",
-          source: "ai"
-        }
-      ]);
+      if (follow?.question) {
+        setQuestionQueue(prev => [
+          ...prev,
+          {
+            id: `follow-${Date.now()}`,
+            question: follow.question,
+            intention: follow.intention,
+            answer: follow.answer,
+            type: "followup",
+            source: "ai"
+          }
+        ]);
+      }
     }
 
-    const feedback = response?.feedback || {};
+    const feedback = response?.feedback;
+
     if (!feedback) return;
 
     pushFeedback({
@@ -434,6 +473,7 @@ const handleSubmitAnswer = async () => {
 
     setLatestFeedback(feedback);
 
+    // 🔊 SPEECH (SAFE)
     if (sessionMode === "real") {
       speakText(
         feedback?.strengths?.[0]
@@ -442,11 +482,20 @@ const handleSubmitAnswer = async () => {
       );
     }
 
+    // ⏭️ NEXT QUESTION (SAFE DELAY)
     window.clearTimeout(advanceTimeoutRef.current);
-    advanceTimeoutRef.current = window.setTimeout(() => {
-      moveToNextQuestion();
-    }, 1400);
 
+    advanceTimeoutRef.current = window.setTimeout(() => {
+    setStatus((currentStatus) => {
+      if (currentStatus !== "terminated") {
+        moveToNextQuestion();
+      }
+      return currentStatus;
+    });
+  }, 1400);
+
+  } catch (err) {
+    console.error("Submit error:", err);
   } finally {
     setIsSubmitting(false);
   }
@@ -488,7 +537,7 @@ const handleTryAgain = () => {
   }, [ sessionDuration ]);
 
 useEffect(() => {
-  if (!sessionStarted || questionQueue.length === 0) {
+  if (!sessionStarted && questionQueue.length === 0 && report) {
   syncQuestionQueue();
 }
 }, [
@@ -505,6 +554,21 @@ useEffect(() => {
     speakText(currentQuestion.question);
   }, [ currentQuestion?.id, sessionStarted, selectedVoice ]);
 
+  useEffect(() => {
+  const handleTabSwitch = () => {
+    if (document.hidden && sessionId && sessionStarted) {
+      sendMonitorEvent({ sessionId, type: "tab_switch" });
+
+      // 🔥 OPTIONAL: local penalty UI
+      // setTrustScore(prev => Math.max(prev - 10, 0));
+    }
+  };
+
+  document.addEventListener("visibilitychange", handleTabSwitch);
+
+  return () =>
+    document.removeEventListener("visibilitychange", handleTabSwitch);
+}, [sessionId,sessionStarted]);
 
   useEffect(() => {
     const SpeechRecognition =
@@ -596,45 +660,53 @@ useEffect(() => {
     };
   }, [ selectedVoice ]);
 
+ 
   useEffect(() => {
-    let cancelled = false;
+  let cancelled = false;
 
-    if (!sessionStarted || !navigator.mediaDevices?.getUserMedia) {
-      stopCamera();
-      return undefined;
-    }
+  if (!sessionStarted || !navigator.mediaDevices?.getUserMedia) {
+    stopCamera();
+    return;
+  }
 
-    const startCamera = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  const startCamera = async () => {
+    try {
+       if (cameraStreamRef.current) return;
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
 
-        if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-
-        cameraStreamRef.current = stream;
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-
-        setCameraReady(true);
-      } catch (error) {
-       alert("Camera access denied. Interview will end.");
-      if (sessionStarted) {
-  handleEndInterview();
-}
+      if (cancelled) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
       }
-    };
 
-    startCamera();
+      cameraStreamRef.current = stream;
 
-    return () => {
-      cancelled = true;
-      stopCamera();
-    };
-  }, [ sessionStarted ]);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+
+      setCameraReady(true);
+
+    } catch (error) {
+      alert("Camera not available. Continuing without camera.");
+      setCameraReady(false);
+
+      if (sessionId) {
+        sendMonitorEvent({
+          sessionId,
+          type: "camera_blocked"
+        });
+      }
+    }
+  };
+
+  startCamera();
+
+  return () => {
+    cancelled = true;
+    stopCamera();
+  };
+}, [sessionStarted, sessionId]);
 
   useEffect(
     () => () => {
@@ -647,69 +719,116 @@ useEffect(() => {
   useEffect(() => {
   const handleFullscreenChange = () => {
     if (!document.fullscreenElement && sessionStarted) {
-      alert("You cannot exit fullscreen during interview!");
-      enterFullScreen();
-    }
+  if (!fullscreenWarningRef.current) {
+    fullscreenWarningRef.current = true;
+
+    alert("You cannot exit fullscreen during interview!");
+
+    setTimeout(() => {
+      fullscreenWarningRef.current = false;
+    }, 3000);
+  }
+
+  enterFullScreen();
+}
   };
 
   document.addEventListener("fullscreenchange", handleFullscreenChange);
 
   return () =>
     document.removeEventListener("fullscreenchange", handleFullscreenChange);
-}, [sessionStarted]);
+}, [sessionStarted,sessionId]);
+const triggerViolation = async (type, message) => {
+  if (violationCooldownRef.current) return;
 
-  useEffect(() => {
-  const handleVisibility = () => {
-    if (document.hidden && sessionStarted) {
-      alert("⚠️ Tab switching detected!");
-      handleEndInterview();
-    }
-  };
+  violationCooldownRef.current = true;
 
-  document.addEventListener("visibilitychange", handleVisibility);
+  alert(message);
 
-  return () =>
-    document.removeEventListener("visibilitychange", handleVisibility);
-}, [sessionStarted]);
+  const res = await sendMonitorEvent({ sessionId, type });
+
+  if (res?.status === "terminated") {
+    alert("❌ Interview terminated due to violations");
+    navigate(`/interview/${interviewId}`);
+  }
+
+  setTimeout(() => {
+    violationCooldownRef.current = false;
+  }, 2000);
+};
 
 useEffect(() => {
-  const disableKeys = (e) => {
-    if (
-      e.key === "Escape" ||
-      e.ctrlKey ||
-      e.metaKey
-    ) {
+  const handleKeyDown = (e) => {
+    if (!sessionStarted || !sessionId) return;
+
+    const isCopy = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c";
+    const isPaste = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "v";
+
+    if (isCopy || isPaste) {
       e.preventDefault();
+
+      // 🔥 UPDATED
+      triggerViolation(
+        isCopy ? "copy_attempt" : "paste_attempt",
+        "⚠️ Copy/Paste is not allowed!"
+      );
     }
   };
 
-  const disableRightClick = (e) => e.preventDefault();
+  const handlePaste = (e) => {
+    if (!sessionStarted || !sessionId) return;
 
-  window.addEventListener("keydown", disableKeys);
-  window.addEventListener("contextmenu", disableRightClick);
+    e.preventDefault();
+
+    // 🔥 UPDATED
+    triggerViolation("paste_attempt", "⚠️ Pasting is blocked!");
+  };
+
+  const handleCopy = (e) => {
+    if (!sessionStarted || !sessionId) return;
+
+    e.preventDefault();
+
+    // 🔥 UPDATED
+    triggerViolation("copy_attempt", "⚠️ Copying is blocked!");
+  };
+
+  const handleContextMenu = (e) => {
+    if (!sessionStarted || !sessionId) return;
+
+    e.preventDefault();
+
+    // 🔥 UPDATED
+    triggerViolation("right_click", "⚠️ Right click disabled!");
+  };
+
+  window.addEventListener("keydown", handleKeyDown);
+  window.addEventListener("paste", handlePaste);
+  window.addEventListener("copy", handleCopy);
+  window.addEventListener("contextmenu", handleContextMenu);
 
   return () => {
-    window.removeEventListener("keydown", disableKeys);
-    window.removeEventListener("contextmenu", disableRightClick);
+    window.removeEventListener("keydown", handleKeyDown);
+    window.removeEventListener("paste", handlePaste);
+    window.removeEventListener("copy", handleCopy);
+    window.removeEventListener("contextmenu", handleContextMenu);
   };
-}, []);
+}, [sessionStarted, sessionId]);
+
   return (
     <div className="mock-page">
         {/* 🔥 TRUST SCORE UI */}
-    <div
-      style={{
-        position: "fixed",
-        top: "10px",
-        right: "20px",
-        background: "#111",
-        padding: "10px 15px",
-        borderRadius: "10px",
-        color:
-          trustScore > 70 ? "limegreen" :
-          trustScore > 50 ? "orange" : "red",
-        zIndex: 9999
-      }}
-    >
+   <div style={{
+      position: "fixed",
+      top: "10px",
+      right: "20px",
+      background: "#111",
+      padding: "10px 15px",
+      borderRadius: "10px",
+      color:
+        trustScore > 70 ? "limegreen" :
+        trustScore > 50 ? "orange" : "red"
+    }}>
       Trust: {trustScore}
     </div>
 
@@ -899,7 +1018,6 @@ useEffect(() => {
                   setStatus("active");
 
                   setSessionStarted(true);
-                  setSessionId(null);
                   setConversation([]);
                   setTimeLeft(sessionDuration * 60);
                 }}
@@ -995,7 +1113,7 @@ useEffect(() => {
                   </div>
                 </div>
 
-                <div className="mock-camera">
+                {/* <div className="mock-camera">
                   {cameraReady ? (
                     <video ref={videoRef} autoPlay muted playsInline />
                   ) : (
@@ -1004,7 +1122,7 @@ useEffect(() => {
                       <span>Camera Preview</span>
                     </div>
                   )}
-                </div>
+                </div> */}
               </section>
 
               <section className="mock-composer">
@@ -1166,6 +1284,25 @@ useEffect(() => {
               </footer>
             </section>
           </aside>
+
+          {sessionStarted && (
+          cameraReady ? (
+            <CameraView videoRef={videoRef} />
+          ) : (
+            <div style={{
+              position: "fixed",
+              bottom: "10px",
+              right: "10px",
+              background: "#222",
+              color: "#fff",
+              padding: "10px",
+              borderRadius: "8px"
+            }}>
+              Camera not available
+            </div>
+          )
+        )}
+
         </div>
       </div>
     </div>
