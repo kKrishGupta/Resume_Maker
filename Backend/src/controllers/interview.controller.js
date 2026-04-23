@@ -574,12 +574,28 @@ async function liveInterviewController(req, res) {
       });
     }
 
-    // create new session
+    // 🆕 Create session if not exists
     if (!session) {
       session = await InterviewSession.create({
         user: req.user.id,
         mode: mode || "real",
-        history: []
+        history: [],
+        trustScore: 100,
+        warnings: 0,
+        status: "active"
+      });
+    }
+
+    // after finding or creating session
+
+
+
+    // 🚨 CRITICAL: BLOCK IF TERMINATED
+    if (session.status === "terminated") {
+      return res.status(403).json({
+        message: "Interview terminated",
+        trustScore: session.trustScore,
+        reason: session.terminatedReason
       });
     }
 
@@ -594,12 +610,14 @@ async function liveInterviewController(req, res) {
     const score =
       (feedback.clarity + feedback.confidence + feedback.technical) / 3;
 
+// 📊 Save history
     session.history.push({
       question,
       answer,
       feedback,
       emotion,
-      score
+      score,
+      createdAt: new Date()
     });
 
     // limit history
@@ -607,12 +625,15 @@ async function liveInterviewController(req, res) {
 
     await session.save();
 
+   // 📤 RESPONSE (IMPORTANT UPDATE)
     return res.json({
       sessionId: session._id,
       feedback,
       emotion,
       followUps,
-      score
+      score,
+      trustScore: session.trustScore,   // 🔥 ADDED
+      status: session.status            // 🔥 ADDED
     });
 
   } catch (err) {
@@ -625,14 +646,15 @@ async function endInterview(req, res) {
   try {
     const { sessionId } = req.body;
 
-    // 🔒 Validate input
+    // 🔹 Validate input
     if (!sessionId) {
       return res.status(400).json({
+        success: false,
         message: "Session ID is required"
       });
     }
 
-    // 🔒 Secure fetch (user-based)
+    // 🔹 Fetch session
     const session = await InterviewSession.findOne({
       _id: sessionId,
       user: req.user.id
@@ -640,107 +662,140 @@ async function endInterview(req, res) {
 
     if (!session) {
       return res.status(404).json({
+        success: false,
         message: "Session not found"
       });
     }
 
-    const total = session.history.length;
+    const total = session.history?.length || 0;
 
-    // ❌ Handle empty interview
+    // 🔹 Handle empty session
     if (total === 0) {
       return res.json({
+        success: true,
         totalQuestions: 0,
         avgScore: 0,
-        recommendation: "No interview data available",
+        performance: {
+          clarity: 0,
+          confidence: 0,
+          technical: 0
+        },
         strengths: [],
-        weaknesses: []
+        weaknesses: [],
+        trustScore: session.trustScore,
+        status: session.status,
+        recommendation: "No interview data available"
       });
     }
 
-    // 🔥 Calculate metrics
+    // 🔹 Initialize accumulators
     let totalScore = 0;
     let claritySum = 0;
     let confidenceSum = 0;
     let technicalSum = 0;
 
-    const strengths = [];
-    const improvements = [];
+    const strengths = new Set();
+    const improvements = new Set();
 
+    // 🔹 Process history safely
     session.history.forEach(item => {
       const feedback = item.feedback || {};
 
-      const score =
-        (feedback.clarity + feedback.confidence + feedback.technical) / 3 || 0;
+      const clarity = feedback.clarity || 0;
+      const confidence = feedback.confidence || 0;
+      const technical = feedback.technical || 0;
+
+      const score = (clarity + confidence + technical) / 3;
 
       totalScore += score;
+      claritySum += clarity;
+      confidenceSum += confidence;
+      technicalSum += technical;
 
-      claritySum += feedback.clarity || 0;
-      confidenceSum += feedback.confidence || 0;
-      technicalSum += feedback.technical || 0;
-
-      // collect strengths & weaknesses
+      // 🔹 Deduplicate automatically using Set
       if (Array.isArray(feedback.strengths)) {
-        strengths.push(...feedback.strengths);
+        feedback.strengths.forEach(s => strengths.add(s));
       }
 
       if (Array.isArray(feedback.improvements)) {
-        improvements.push(...feedback.improvements);
+        feedback.improvements.forEach(i => improvements.add(i));
       }
     });
 
+    // 🔹 Calculate averages
     const avgScore = totalScore / total;
 
-    // 🔥 Deduplicate insights
-    const uniqueStrengths = [...new Set(strengths)].slice(0, 5);
-    const uniqueWeaknesses = [...new Set(improvements)].slice(0, 5);
+    const performance = {
+      clarity: Math.round(claritySum / total),
+      confidence: Math.round(confidenceSum / total),
+      technical: Math.round(technicalSum / total)
+    };
 
-    // 🔥 Category performance
-    const avgClarity = claritySum / total;
-    const avgConfidence = confidenceSum / total;
-    const avgTechnical = technicalSum / total;
-
-    // 🔥 Recommendation logic (smarter)
-    let recommendation = "";
-
-    if (avgScore >= 80) {
-      recommendation = "Ready for FAANG-level interviews 🚀";
-    } else if (avgScore >= 65) {
-      recommendation = "Strong candidate, needs polishing";
-    } else if (avgScore >= 50) {
-      recommendation = "Good foundation but needs improvement";
-    } else {
-      recommendation = "Needs strong preparation";
-    }
-
-    // 🔥 Store final score in session (optional but powerful)
+    // 🔹 Update session
     session.score = avgScore;
+    session.status =
+      session.status === "terminated" ? "terminated" : "completed";
+
     await session.save();
 
-    // 📤 Final response
+    // 🔹 Recommendation engine (cleaner)
+    const getRecommendation = (score) => {
+      if (score >= 80) return "Ready for FAANG-level interviews 🚀";
+      if (score >= 65) return "Strong candidate";
+      if (score >= 50) return "Needs improvement";
+      return "Needs strong preparation";
+    };
+
+    // 🔹 Final response
     return res.json({
+      success: true,
       totalQuestions: total,
       avgScore: Math.round(avgScore),
 
-      performance: {
-        clarity: Math.round(avgClarity),
-        confidence: Math.round(avgConfidence),
-        technical: Math.round(avgTechnical)
-      },
+      performance,
 
-      strengths: uniqueStrengths,
-      weaknesses: uniqueWeaknesses,
+      strengths: [...strengths].slice(0, 5),
+      weaknesses: [...improvements].slice(0, 5),
 
-      recommendation
+      trustScore: session.trustScore,
+      status: session.status,
+
+      recommendation: getRecommendation(avgScore)
     });
 
   } catch (err) {
-    console.error("❌ END INTERVIEW ERROR:", err);
+    console.error("END INTERVIEW ERROR:", err);
 
     return res.status(500).json({
-      message: "End interview failed"
+      success: false,
+      message: "End interview failed",
+      error: process.env.NODE_ENV === "development" ? err.message : undefined
     });
   }
 }
+
+async function startInterview(req, res) {
+  try {
+    const { mode, cameraEnabled } = req.body;
+
+    const session = await InterviewSession.create({
+      user: req.user.id,
+      mode: mode || "real",
+      cameraEnabled: cameraEnabled ?? true,
+      interviewMode: cameraEnabled ? "video" : "audio",
+      trustScore: 100,
+      status: "active"
+    });
+
+    res.json({
+      sessionId: session._id,
+      message: "Interview started"
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: "Failed to start interview" });
+  }
+};
 module.exports = {
   generateInterViewReportController,
   getInterviewReportByIdController,
@@ -754,5 +809,6 @@ module.exports = {
   generateQuestionController,
   updateRoadmap,
   liveInterviewController,
-  endInterview
+  endInterview,
+  startInterview
 };

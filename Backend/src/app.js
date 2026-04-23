@@ -39,6 +39,8 @@ app.use(cors({
 const authRouter = require('./routes/auth.routes');
 const interviewRouter = require("./routes/interview.routes");
 const resumeRoutes = require("./routes/resume.routes");
+const monitoringRoutes = require("./routes/monitoring.routes");
+const adminRoutes = require("./routes/admin.routes");
 
 
 
@@ -46,5 +48,7 @@ const resumeRoutes = require("./routes/resume.routes");
 app.use('/api/auth', authRouter);
 app.use('/api/interview',interviewRouter);
 app.use("/api/resume", resumeRoutes);
+app.use("/api/monitor", monitoringRoutes);
+app.use("/api/admin", adminRoutes);
 
 module.exports = app;

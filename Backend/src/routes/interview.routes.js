@@ -95,4 +95,6 @@ interviewRouter.post(
   authMiddleware,
   interviewController.endInterview
 );
+
+interviewRouter.post("/start", authMiddleware, interviewController.startInterview);
 module.exports = interviewRouter

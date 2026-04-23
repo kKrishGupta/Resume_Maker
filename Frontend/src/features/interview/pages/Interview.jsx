@@ -211,6 +211,7 @@ const Interview = () => {
     const [showScrollTop, setShowScrollTop] = useState(false);
     const [behavioralQuestions, setBehavioralQuestions] = useState([]);
     const [generatingBehavioral, setGeneratingBehavioral] = useState(false);
+<<<<<<< HEAD
     // 🔥 MOCK INTERVIEW STATE
     const [mockMode, setMockMode] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -233,6 +234,8 @@ const Interview = () => {
     const [mode, setMode] = useState("practice"); // practice | real
     const [cameraStream, setCameraStream] = useState(null);
     const videoRef = useRef(null);
+=======
+>>>>>>> 7dfba3b (updation of mock features)
     const navigate = useNavigate();
     const handleGenerateMore = async () => {
         try {
@@ -639,11 +642,11 @@ if (loading || !report) {
                         </button>
 
                         {/* 🎤 ADD THIS HERE */}
-                        <button
-                        className="mock-btn"
-                        onClick={() => setMockMode(true)}
+                       <button
+                          className="mock-btn"
+                          onClick={() => navigate(`/mock/${interviewId}`)}
                         >
-                        🎤 Start Mock Interview
+                          🎤 Start Mock Interview
                         </button>
                             </div>
                             <div className='q-list'>
@@ -782,6 +785,7 @@ if (loading || !report) {
                 ⬆
             </button>
         )}
+<<<<<<< HEAD
 
         {mockMode && (
   <div className="mock-overlay">
@@ -999,6 +1003,8 @@ if (loading || !report) {
 )}
 {/* 🎥 CAMERA VIEW */}
 
+=======
+>>>>>>> 7dfba3b (updation of mock features)
         </div>
     )
 }

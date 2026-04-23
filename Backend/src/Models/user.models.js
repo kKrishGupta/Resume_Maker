@@ -15,6 +15,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true 
   },
+  role: {
+  type: String,
+  enum: ["admin", "recruiter", "candidate"],
+  default: "candidate"
+},
    // 🔥 OTP fields (for login only)
   otp: String,
   otpExpires: Date
