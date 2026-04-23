@@ -101,34 +101,25 @@ export const generateFollowUp = async ({ question, answer }) => {
   return res.data;
 };
 
-<<<<<<< HEAD
+// get evaluation for mock 
+export const evaluateMockAnswer = async ({ question, answer }) => {
+  const res = await api.post("/api/interview/mock/evaluate", {
+    question,
+    answer
+  });
+
+  return res.data;
+};
+
 export const generateQuestion = async ({ topic, type,difficulty }) => {
   const res = await api.post("/api/interview/mock/generate-question", {
     topic,
     type,
     difficulty
   });
-=======
-// get evaluation for mock 
-// export const evaluateMockAnswer = async ({ question, answer }) => {
-//   const res = await api.post("/api/interview/mock/evaluate", {
-//     question,
-//     answer
-//   });
 
-//   return res.data;
-// };
-
-// export const generateQuestion = async ({ topic, type,difficulty }) => {
-//   const res = await api.post("/api/interview/mock/generate-question", {
-//     topic,
-//     type,
-//     difficulty
-//   });
->>>>>>> 91f268a (features updation for mock interview)
-
-//   return res.data;
-// };
+  return res.data;
+};
 
 // 🔥 UPDATE ROADMAP DAY
 export const updateRoadmap = async (interviewId, day, tasks) => {

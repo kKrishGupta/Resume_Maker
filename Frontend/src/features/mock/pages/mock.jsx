@@ -3,11 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useMock } from "../hooks/useMock";
 import { endInterview } from "../service/mock.api";
 import "../style/mock.scss";
-<<<<<<< HEAD
-=======
 import { useContext } from "react";
 import { SessionContext } from "../../interview/session.context";
->>>>>>> 7dfba3b (updation of mock features)
 
 const SESSION_ITEMS = [
   { id: "real", label: "AI Interview" },
@@ -103,7 +100,8 @@ const Mock = () => {
     resetFeedback,
     interviewId
   } = useMock();
-
+  const endedRef = useRef(false);
+  const isMicActiveRef = useRef(false);
   const [sessionMode, setSessionMode] = useState("real");
   const [selectedDifficulty, setSelectedDifficulty] = useState("medium");
   const [questionTypes, setQuestionTypes] = useState({
@@ -133,10 +131,6 @@ const Mock = () => {
   const advanceTimeoutRef = useRef(null);
   const cameraStreamRef = useRef(null);
   const videoRef = useRef(null);
-<<<<<<< HEAD
-  const isMicActiveRef = useRef(false);
-  const endedRef = useRef(false);
-=======
 const {
   sessionId,
   setSessionId,
@@ -145,7 +139,6 @@ const {
   status,
   setStatus
 } = useContext(SessionContext);
->>>>>>> 7dfba3b (updation of mock features)
   const answeredQuestions = useMemo(
     () => new Set(feedbackHistory.map((item) => item.index)),
     [ feedbackHistory ]
@@ -369,11 +362,7 @@ useEffect(() => {
     setCurrentIndex((prev) => prev + 1);
   };
 
-<<<<<<< HEAD
- const handleSubmitAnswer = async () => {
-=======
-  const handleSubmitAnswer = async () => {
->>>>>>> 7dfba3b (updation of mock features)
+const handleSubmitAnswer = async () => {
   if (!currentQuestion || !answerText.trim()) return;
 
   setIsSubmitting(true);
@@ -391,41 +380,24 @@ useEffect(() => {
             ...payload,
             history: conversation,
             sessionId,
-<<<<<<< HEAD
-            mode: sessionMode === "real" ? "real" : "practice"
-          });
-
-    // 🔥 SAVE SESSION
-    if (response?.sessionId) {
-      setSessionId(response.sessionId);
-    }
-
-=======
             mode: sessionMode
           });
 
-    // 🔥 SAVE SESSION (ONLY FIRST TIME)
     if (response?.sessionId && !sessionId) {
       setSessionId(response.sessionId);
     }
 
-    // 🔥 TRUST SCORE UPDATE
     if (response?.trustScore !== undefined) {
       setTrustScore(response.trustScore);
     }
 
-    // 🚨 TERMINATION HANDLING (CRITICAL)
     if (response?.status === "terminated") {
       setStatus("terminated");
-
       alert("❌ Interview terminated due to violations");
-
       navigate(`/interview/${interviewId}`);
       return;
     }
 
->>>>>>> 7dfba3b (updation of mock features)
-    // 🔥 SAVE CONVERSATION
     setConversation(prev => [
       ...prev,
       {
@@ -434,61 +406,8 @@ useEffect(() => {
       }
     ]);
 
-<<<<<<< HEAD
-    // 🔥 HANDLE FOLLOW-UPS
     if (response?.followUps?.length && questionQueue.length < 20) {
       const follow = response.followUps[0];
-=======
-    // 🔥 FOLLOW-UP QUESTIONS
-    if (response?.followUps?.length && questionQueue.length < 20) {
-      const follow = response.followUps[0];
-
-      setQuestionQueue(prev => [
-        ...prev,
-        {
-          id: `follow-${Date.now()}`,
-          question: follow.question,
-          intention: follow.intention,
-          answer: follow.answer,
-          type: "followup",
-          source: "ai"
-        }
-      ]);
-    }
-
-    const feedback = response?.feedback || {};
-    if (!feedback) return;
-
-    // 🔥 SAVE FEEDBACK
-    pushFeedback({
-      index: currentIndex,
-      question: currentQuestion.question,
-      answer: answerText.trim(),
-      feedback
-    });
-
-    setLatestFeedback(feedback);
-
-    // 🔊 VOICE FEEDBACK (REAL MODE ONLY)
-    if (sessionMode === "real") {
-      speakText(
-        feedback?.strengths?.[0]
-          ? `Good answer. ${feedback.strengths[0]}`
-          : "Answer received."
-      );
-    }
-
-    // ⏭ AUTO NEXT QUESTION
-    window.clearTimeout(advanceTimeoutRef.current);
-    advanceTimeoutRef.current = window.setTimeout(() => {
-      moveToNextQuestion();
-    }, 1400);
-
-  } finally {
-    setIsSubmitting(false);
-  }
-};
->>>>>>> 7dfba3b (updation of mock features)
 
       setQuestionQueue(prev => [
         ...prev,
@@ -515,9 +434,7 @@ useEffect(() => {
 
     setLatestFeedback(feedback);
 
-    // ✅ FIXED SPEECH FLOW (NO OVERLAP)
     if (sessionMode === "real") {
-      // 1️⃣ Speak feedback first
       speakText(
         feedback?.strengths?.[0]
           ? `Good answer. ${feedback.strengths[0]}`

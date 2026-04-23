@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-import React from 'react'
-import { RouterProvider } from 'react-router-dom';
-=======
 import React from 'react';
 import { RouterProvider } from 'react-router';
->>>>>>> 7dfba3b (updation of mock features)
 import { router } from './app.routes.jsx';
 
 import { AuthProvider } from './features/auth/auth.context.jsx';
