@@ -660,9 +660,6 @@ export default function ResumeBuilder() {
                     <h2>Insights & actions</h2>
                   </div>
 
-                  <button type="button" onClick={() => setAssistantOpen(true)}>
-                    Open Chat
-                  </button>
                 </div>
 
                 <ResumeAIPanel

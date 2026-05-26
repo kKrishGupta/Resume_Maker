@@ -164,17 +164,29 @@ const Mock = () => {
       }
 
       const result = await endInterview({ sessionId });
+      const params = new URLSearchParams();
 
-      // 🔥 SHOW RESULT
-      alert(`Score: ${result.avgScore}`);
+      if (interviewId) {
+        params.set("reportId", interviewId);
+      }
+
+      params.set("sessionId", sessionId);
+
+      const reportRoute = `/dashboard/report${params.toString() ? `?${params.toString()}` : ""}`;
 
       // 🔥 RESET SESSION (VERY IMPORTANT)
       setSessionId(null);
       setTrustScore(100);
       setStatus("idle");
 
-      // 🔥 NAVIGATE BACK TO REPORT PAGE
-      navigate(`/interview/${interviewId}`);
+      // 🔥 NAVIGATE TO CANDIDATE REPORT PAGE
+      navigate(reportRoute, {
+        state: {
+          reportSummary: result,
+          reportId: interviewId,
+          sessionId
+        }
+      });
 
     } catch (err) {
       console.error(err);

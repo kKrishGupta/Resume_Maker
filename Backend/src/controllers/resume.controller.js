@@ -1,21 +1,48 @@
 const resumeService = require("../services/resume.service");
 
 // 🔥 SAVE
-exports.saveResumeController = async (req, res) => {
+exports.saveResumeController =
+async (req, res) => {
   try {
+
     const userId = req.user?.id;
 
     if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized"
+      });
     }
 
-    const resume = await resumeService.saveResume(userId, req.body);
+    const resume =
+      await resumeService.saveResume(
+        userId,
+        req.body
+      );
 
-    res.json({ success: true, resume });
+    return res.status(200).json({
+      success: true,
+      resume
+    });
 
   } catch (err) {
-    console.error("SAVE ERROR:", err);
-    res.status(500).json({ success: false, message: "Failed to save resume" });
+
+    console.error(err);
+
+    // ✅ ZOD ERROR
+    if (err.name === "ZodError") {
+
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: err.errors
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to save resume"
+    });
   }
 };
 
@@ -67,14 +94,31 @@ exports.generateResumePdfController = async (req, res) => {
   }
 };
 
-exports.analyzeResumeController = async (req, res) => {
-  try {
-    const analysis = await resumeService.analyzeResume(req.body);
+exports.analyzeResumeController =
+async (req, res) => {
 
-    res.json({ success: true, analysis });
+  try {
+
+    const analysis =
+      await resumeService
+      .analyzeResume(
+        req.body
+      );
+
+    return res.json({
+      success: true,
+      analysis
+    });
 
   } catch (err) {
-    console.error("ANALYZE ERROR:", err);
-    res.status(500).json({ success: false, message: "Analysis failed" });
+
+    console.error(err);
+
+    return res.status(500)
+    .json({
+      success: false,
+      message:
+        "ATS analysis failed"
+    });
   }
 };

@@ -2,7 +2,7 @@ export default function AIOptimizer({ analytics, onAutoFix }) {
   if (!analytics) return null;
 
   return (
-    <aside className="ai-optimizer">
+    <aside className="ai-optimizer glass-panel">
 
       {/* HEADER */}
       <div className="ai-optimizer__header">
