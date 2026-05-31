@@ -1,124 +1,181 @@
 const resumeService = require("../services/resume.service");
+const { asyncHandler, AppError } = require("../middleware/errorHandler");
+const { validateRequest, rateLimit } = require("../middleware/validation");
+const { ResumeSchema } = require("../validators/resume.validator");
+const logger = require("../utils/logger");
 
-// 🔥 SAVE
-exports.saveResumeController =
-async (req, res) => {
+// 🔥 SAVE - with validation and rate limiting
+exports.saveResumeController = asyncHandler(async (req, res, next) => {
+  const startTime = Date.now();
+  
   try {
-
     const userId = req.user?.id;
 
     if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized"
-      });
+      logger.warn('Unauthorized save attempt');
+      throw new AppError("Unauthorized access", 401, "UNAUTHORIZED");
     }
 
-    const resume =
-      await resumeService.saveResume(
-        userId,
-        req.body
-      );
+    // Validate request body
+    const validated = ResumeSchema.parse(req.body);
+
+    const resume = await resumeService.saveResume(userId, validated);
+
+    logger.info(`Resume saved for user ${userId}`, { 
+      duration: Date.now() - startTime 
+    });
 
     return res.status(200).json({
       success: true,
+      statusCode: 200,
+      message: "Resume saved successfully",
       resume
     });
 
   } catch (err) {
-
-    console.error(err);
-
-    // ✅ ZOD ERROR
-    if (err.name === "ZodError") {
-
-      return res.status(400).json({
-        success: false,
-        message: "Validation failed",
-        errors: err.errors
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to save resume"
+    logger.error('Save resume error:', { 
+      message: err.message,
+      userId: req.user?.id,
+      duration: Date.now() - startTime
     });
+    next(err);
   }
-};
+});
 
 // 🔥 GET
-exports.getResumeController = async (req, res) => {
+exports.getResumeController = asyncHandler(async (req, res, next) => {
   try {
     const userId = req.user?.id;
 
     if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
+      throw new AppError("Unauthorized access", 401, "UNAUTHORIZED");
     }
 
     const resume = await resumeService.getResume(userId);
 
-    res.json({ success: true, resume });
+    if (!resume) {
+      logger.info(`No resume found for user ${userId}`);
+      return res.status(200).json({ 
+        success: true, 
+        statusCode: 200,
+        message: "No resume found",
+        resume: null 
+      });
+    }
+
+    logger.info(`Resume fetched for user ${userId}`);
+
+    res.status(200).json({ 
+      success: true, 
+      statusCode: 200,
+      message: "Resume fetched successfully",
+      resume 
+    });
 
   } catch (err) {
-    res.status(500).json({ success: false, message: "Failed to fetch resume" });
+    logger.error('Get resume error:', { message: err.message });
+    next(err);
   }
-};
+});
 
 // 🔥 AI IMPROVE
-exports.improveResumeController = async (req, res) => {
+exports.improveResumeController = asyncHandler(async (req, res, next) => {
+  const startTime = Date.now();
+  
   try {
+    if (!req.body || Object.keys(req.body).length === 0) {
+      throw new AppError("Resume data is required", 400, "MISSING_RESUME_DATA");
+    }
+
     const improved = await resumeService.improveResume(req.body);
 
-    res.json({ success: true, resume: improved });
+    logger.info(`Resume improved for user ${req.user?.id}`, {
+      duration: Date.now() - startTime
+    });
+
+    res.status(200).json({ 
+      success: true, 
+      statusCode: 200,
+      message: "Resume improved successfully",
+      resume: improved 
+    });
 
   } catch (err) {
-    res.status(500).json({ success: false, message: "AI improve failed" });
+    logger.error('Improve resume error:', { 
+      message: err.message,
+      duration: Date.now() - startTime
+    });
+    next(err);
   }
-};
+});
 
 // 🔥 PDF
-exports.generateResumePdfController = async (req, res) => {
+exports.generateResumePdfController = asyncHandler(async (req, res, next) => {
+  const startTime = Date.now();
+  
   try {
+    if (!req.body || Object.keys(req.body).length === 0) {
+      throw new AppError("Resume data is required for PDF generation", 400, "MISSING_RESUME_DATA");
+    }
+
     const pdfBuffer = await resumeService.generateResumePDF(req.body);
+
+    if (!pdfBuffer) {
+      throw new AppError("Failed to generate PDF", 500, "PDF_GENERATION_FAILED");
+    }
+
+    logger.info(`PDF generated for user ${req.user?.id}`, {
+      size: pdfBuffer.length,
+      duration: Date.now() - startTime
+    });
 
     res.set({
       "Content-Type": "application/pdf",
-      "Content-Disposition": "attachment; filename=resume.pdf"
+      "Content-Disposition": `attachment; filename=resume_${Date.now()}.pdf`,
+      "Content-Length": pdfBuffer.length
     });
 
     res.send(pdfBuffer);
 
   } catch (err) {
-    console.error("PDF ERROR:", err);
-    res.status(500).json({ success: false, message: "PDF failed" });
+    logger.error('PDF generation error:', { 
+      message: err.message,
+      duration: Date.now() - startTime
+    });
+    next(err);
   }
-};
+});
 
-exports.analyzeResumeController =
-async (req, res) => {
-
+exports.analyzeResumeController = asyncHandler(async (req, res, next) => {
+  const startTime = Date.now();
+  
   try {
+    if (!req.body || Object.keys(req.body).length === 0) {
+      throw new AppError("Resume data is required for analysis", 400, "MISSING_RESUME_DATA");
+    }
 
-    const analysis =
-      await resumeService
-      .analyzeResume(
-        req.body
-      );
+    const analysis = await resumeService.analyzeResume(req.body);
 
-    return res.json({
+    if (!analysis) {
+      throw new AppError("Analysis failed", 500, "ANALYSIS_FAILED");
+    }
+
+    logger.info(`Resume analyzed for user ${req.user?.id}`, {
+      duration: Date.now() - startTime
+    });
+
+    return res.status(200).json({
       success: true,
+      statusCode: 200,
+      message: "Resume analyzed successfully",
       analysis
     });
 
   } catch (err) {
-
-    console.error(err);
-
-    return res.status(500)
-    .json({
-      success: false,
-      message:
-        "ATS analysis failed"
+    logger.error('Analyze resume error:', { 
+      message: err.message,
+      duration: Date.now() - startTime
     });
+    next(err);
   }
-};
+});
