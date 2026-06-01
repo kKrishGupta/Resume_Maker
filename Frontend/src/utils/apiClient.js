@@ -171,12 +171,18 @@ class APIClient {
       });
 
       try {
+        // Create abort controller for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), requestConfig.timeout);
+
         const response = await fetch(requestConfig.url, {
           method: requestConfig.method,
           headers: requestConfig.headers,
           body: requestConfig.data ? JSON.stringify(requestConfig.data) : null,
-          signal: AbortSignal.timeout(requestConfig.timeout),
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         // Parse response
         let responseData;
@@ -226,6 +232,9 @@ class APIClient {
           message: error.message,
           duration: `${Date.now() - startTime}ms`,
         });
+
+        // Clear timeout on error
+        clearTimeout(timeoutId);
 
         // Execute error interceptors
         const finalError = await this.executeErrorInterceptors(error);
