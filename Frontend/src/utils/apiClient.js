@@ -187,9 +187,9 @@ class APIClient {
         // Parse response
         let responseData;
         const contentType = response.headers.get('content-type');
-        if (contentType?.includes('application/json')) {
+        if (contentType && contentType.includes('application/json')) {
           responseData = await response.json();
-        } else if (contentType?.includes('application/pdf')) {
+        } else if (contentType && contentType.includes('application/pdf')) {
           responseData = await response.blob();
         } else {
           responseData = await response.text();
