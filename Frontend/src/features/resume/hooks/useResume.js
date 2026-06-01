@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
+import { ResumeContext } from "../context/resume.context";
 import api from "../../../utils/api";
 import {
   analyzeResume,
   getResume,
   improveResume,
   saveResume,
+  getResumeErrorMessage,
 } from "../services/resume.api";
 
 const sectionKeys = [
@@ -250,37 +252,36 @@ const normalizeResume = (data) => {
   };
 };
 
+/**
+ * Custom hook to use resume context with additional helpers
+ * 
+ * Provides:
+ * - Resume data and operations from context
+ * - Error message helpers
+ * - Analytics data
+ * - Interview data integration
+ */
 export const useResume = (id) => {
-  const [resume, setResume] = useState(baseResume);
+  const context = useContext(ResumeContext);
   const [analytics, setAnalytics] = useState(baseAnalytics);
   const [lastAnalyzed, setLastAnalyzed] = useState("");
+  const [interviewData, setInterviewData] = useState(null);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await getResume();
+  // Ensure context is available
+  if (!context) {
+    throw new Error("useResume must be used within ResumeProvider");
+  }
 
-        if (data?.resume) {
-          setResume(normalizeResume(data.resume));
-        }
-      } catch (err) {
-        console.log("Load resume failed", err);
-      }
-    };
+  const {
+    resume,
+    updateResumeLocal,
+    improveResume,
+    analyzeResume: analyzeResumeCtx,
+    error,
+    loading,
+  } = context;
 
-    load();
-  }, []);
-
-  useEffect(() => {
-    if (!resume) return;
-
-    const timer = setTimeout(() => {
-      saveResume(resume);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [resume]);
-
+  // Analyze resume when it changes
   useEffect(() => {
     if (!resume) return;
 
@@ -290,23 +291,24 @@ export const useResume = (id) => {
 
     const timer = setTimeout(async () => {
       try {
-        const data = await analyzeResume(resume);
+        const data = await analyzeResumeCtx(resume);
 
-        if (data?.analysis) {
+        if (data) {
           setAnalytics((prev) => ({
             ...prev,
-            ...data.analysis,
+            ...data,
           }));
           setLastAnalyzed(current);
         }
       } catch (err) {
-        console.log("ATS error", err);
+        console.error("[useResume] Analysis error:", err);
       }
     }, 900);
 
     return () => clearTimeout(timer);
-  }, [resume, lastAnalyzed]);
+  }, [resume, lastAnalyzed, analyzeResumeCtx]);
 
+  // Fetch interview data if ID provided
   useEffect(() => {
     if (!id) return;
 
@@ -317,43 +319,60 @@ export const useResume = (id) => {
 
         if (!report) return;
 
-        setResume((prev) =>
-          normalizeResume({
-            ...prev,
-            role: report.selfDescription || prev.role,
-          })
-        );
+        setInterviewData(report);
 
+        // Update resume with interview insights
+        updateResumeLocal({
+          role: report.selfDescription || resume?.role,
+        });
+
+        // Update analytics with skill gaps
         if (report.skillGaps?.length) {
           setAnalytics((prev) => ({
             ...prev,
-            keywords: report.skillGaps.slice(0, 4).map((skill) => skill.skill),
+            keywords: report.skillGaps
+              .slice(0, 4)
+              .map((skill) => skill.skill),
           }));
         }
       } catch (err) {
-        console.log("Interview fetch failed", err);
+        console.error("[useResume] Interview data fetch failed:", err);
       }
     };
 
     fetchInterviewData();
-  }, [id]);
+  }, [id, resume?.role, updateResumeLocal]);
 
+  /**
+   * Handle AI improvement
+   */
   const handleAIImprove = async () => {
     try {
-      const data = await improveResume(resume);
-
-      if (data?.resume) {
-        setResume(normalizeResume(data.resume));
+      const improved = await improveResume(resume);
+      if (improved) {
+        updateResumeLocal(normalizeResume(improved));
       }
     } catch (err) {
-      console.log("AI improve failed", err);
+      console.error("[useResume] AI improve failed:", err);
+      throw err;
     }
   };
 
+  /**
+   * Get user-friendly error message
+   */
+  const getErrorMessage = () => {
+    return getResumeErrorMessage(error);
+  };
+
   return {
-    resume,
-    setResume,
+    resume: resume || normalizeResume(baseResume),
+    setResume: updateResumeLocal,
     analytics,
     handleAIImprove,
+    error,
+    errorMessage: error ? getErrorMessage() : null,
+    loading,
+    interviewData,
   };
 };
