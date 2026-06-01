@@ -9,7 +9,28 @@
  * - Token refresh support
  */
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Support both Vite (import.meta.env) and Create React App (window environment variables)
+const getAPIBaseURL = () => {
+  // Try Vite environment
+  if (typeof import?.meta?.env?.VITE_API_URL !== 'undefined') {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Try CRA environment
+  if (typeof process !== 'undefined' && process.env?.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  
+  // Try window object (set by HTML script)
+  if (typeof window !== 'undefined' && window.__API_URL__) {
+    return window.__API_URL__;
+  }
+  
+  // Default fallback
+  return 'http://localhost:5000/api';
+};
+
+const API_BASE_URL = getAPIBaseURL();
 const REQUEST_TIMEOUT = 30000; // 30 seconds
 const MAX_RETRIES = 3;
 
