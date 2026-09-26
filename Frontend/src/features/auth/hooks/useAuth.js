@@ -18,7 +18,10 @@ export const useAuth = () => {
     if (!data || !data.user) {
       setUser(null);
       return;
-      // throw new Error("Invalid credentials");
+    }
+
+    if (data.token) {
+      localStorage.setItem("token", data.token);
     }
 
     setUser(data.user);
@@ -36,9 +39,16 @@ export const useAuth = () => {
         setLoading(true)
         try {
             const data = await register({ username, email, password })
-            setUser(data.user)
+            if (data?.token) {
+                localStorage.setItem("token", data.token);
+            }
+            if (data?.user) {
+                setUser(data.user);
+            }
+            return data;
         } catch (err) {
-            
+            console.error("Register error:", err);
+            throw err;
         } finally {
             setLoading(false)
         }
@@ -60,7 +70,11 @@ export const useAuth = () => {
   setLoading(true);
   try {
     const data = await verifyLoginOtp({ email, otp });
+    if (data?.token) {
+      localStorage.setItem("token", data.token);
+    }
     setUser(data.user);
+    return data;
   } catch (err) {
     setUser(null);
     console.error(err);
@@ -73,10 +87,13 @@ export const useAuth = () => {
     const handleLogout = async () => {
         setLoading(true)
         try {
-            const data = await logout()
-            setUser(null)
+            await logout();
+            localStorage.removeItem("token");
+            setUser(null);
         } catch (err) {
-
+            console.error("Logout error:", err);
+            localStorage.removeItem("token");
+            setUser(null);
         } finally {
             setLoading(false)
         }

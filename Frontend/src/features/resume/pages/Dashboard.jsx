@@ -1,6 +1,6 @@
 import ResumePreview from "../components/ResumePreviewLive";
 import Sidebar from "../components/Sidebar";
-import TemplateCard from "../components/TemplateCard";
+// import TemplateCard from "../components/TemplateCard";
 import Topbar from "../components/Topbar";
 import { useResume } from "../hooks/useResume";
 import "../style/resume.scss";

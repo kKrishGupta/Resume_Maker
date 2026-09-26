@@ -44,15 +44,17 @@ async function registerUser(req, res) {
     { expiresIn: "1d" }
   );
 
- res.cookie("token", token, {
-  httpOnly: true,
-  secure: true,
-  sameSite: "None",
-  path: "/"
-});
+  const isProduction = process.env.NODE_ENV === "production";
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "None" : "Lax",
+    path: "/"
+  });
 
   res.status(201).json({
     message: "User registered successfully",
+    token,
     user: {
       id: user._id,
       username: user.username,
@@ -97,15 +99,17 @@ async function loginUser(req, res) {
     { expiresIn: "1d" }
   );
 
+  const isProduction = process.env.NODE_ENV === "production";
   res.cookie("token", token, {
-  httpOnly: true,
-  secure: true,
-  sameSite: "None",
-  path: "/"
-});
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "None" : "Lax",
+    path: "/"
+  });
 
   res.status(200).json({
     message: "User logged in successfully",
+    token,
     user: {
       id: user._id,
       username: user.username,
@@ -187,15 +191,17 @@ async function loginWithOtp(req, res) {
       { expiresIn: "1d" }
     );
 
+    const isProduction = process.env.NODE_ENV === "production";
     res.cookie("token", token, {
       httpOnly: true,
-      secure: true,
-      sameSite: "None",
+      secure: isProduction,
+      sameSite: isProduction ? "None" : "Lax",
       path: "/"
     });
 
     return res.status(200).json({
       message: "Login successful (OTP)",
+      token,
       user: {
         id: user._id,
         username: user.username,
@@ -211,24 +217,31 @@ async function loginWithOtp(req, res) {
   }
 }
 
-// logout user
 const logoutUser = async (req, res) => {
-  const token = req.cookies.token;
-
-  if (!token) {
-    return res.status(400).json({ message: "No token provided" });
-  }
-
   try {
-    const blackListToken = new BlackListToken({ token });
-    await blackListToken.save();
+    const authHeader = req.headers.authorization;
+    const token = req.cookies?.token || (authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null);
 
-    res.clearCookie("token");
+    if (token) {
+      try {
+        const blackListToken = new BlackListToken({ token });
+        await blackListToken.save();
+      } catch (e) {
+        // ignore duplicate blacklist
+      }
+    }
+
+    const isProduction = process.env.NODE_ENV === "production";
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "None" : "Lax",
+      path: "/"
+    });
 
     return res.status(200).json({ 
       message: "User logged out successfully" 
     });
-
   } catch (error) {
     console.error("Logout Error:", error);
 
