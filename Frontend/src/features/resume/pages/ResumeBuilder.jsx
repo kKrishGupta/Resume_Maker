@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router";
 import { 
   Sparkles, 
@@ -26,7 +27,13 @@ import {
   PanelRightClose,
   PanelRightOpen,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Menu,
+  ArrowLeft,
+  Compass,
+  Mic,
+  BarChart2,
+  LogOut
 } from "lucide-react";
 import ResumeEditor from "../components/ResumeEditor";
 import ResumePreviewLive from "../components/ResumePreviewLive";
@@ -47,7 +54,7 @@ import { useAuth } from "../../auth/hooks/useAuth";
 export default function ResumeBuilder() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, handleLogout } = useAuth();
   const { resume, setResume, handleAIImprove } = useResume(id);
 
   const userName = user?.username || user?.email?.split("@")[0] || "Candidate";
@@ -59,6 +66,16 @@ export default function ResumeBuilder() {
   const [zoomMode, setZoomMode] = useState("fit");
   const [activeRightTab, setActiveRightTab] = useState("ats"); // 'ats' | 'matcher' | 'suggestions'
   const [mobileTab, setMobileTab] = useState("editor"); // 'editor' | 'preview' | 'ai'
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" ? window.innerWidth <= 900 : false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 900);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
   const viewportRef = useRef(null);
   const [saveStatus, setSaveStatus] = useState("Saved just now");
   const [isAILoading, setIsAILoading] = useState(false);
@@ -388,13 +405,36 @@ export default function ResumeBuilder() {
       {/* ── Top Header ── */}
       <header className="rf-header">
         <div className="rf-header__left">
+          {/* Mobile Menu / Navigation Toggle Button */}
+          <button
+            type="button"
+            className="rf-menu-toggle-btn"
+            onClick={() => setMobileDrawerOpen(true)}
+            title="Open PrepAI Navigation"
+            aria-label="Open Navigation"
+          >
+            <Menu size={20} />
+          </button>
+
           <div className="rf-logo" onClick={() => navigate("/")}>
             <BrandLogo size={36} />
             <div className="rf-logo__text">
               <span className="rf-logo__brand">PrepAI</span>
-              <span className="rf-logo__tag">AI Career Platform</span>
+              <span className="rf-logo__tag">Studio</span>
             </div>
           </div>
+
+          {id && (
+            <button
+              type="button"
+              className="rf-back-btn"
+              onClick={() => navigate(`/interview/${id}`)}
+              title="Return to Interview Intelligence"
+            >
+              <ArrowLeft size={13} />
+              <span className="rf-back-text">Interview</span>
+            </button>
+          )}
 
           <div className="rf-header__divider" />
 
@@ -438,6 +478,23 @@ export default function ResumeBuilder() {
             onClick={() => setChatOpen(true)}
           >
             <Sparkles size={14} /> AI Copilot
+          </button>
+          <div className="rf-header__divider" />
+          <button 
+            type="button" 
+            className="rf-nav-pill rf-nav-pill--external"
+            onClick={() => navigate(id ? `/interview/${id}` : "/")}
+            title="Go to Interview Intelligence"
+          >
+            <Compass size={13} /> Interview
+          </button>
+          <button 
+            type="button" 
+            className="rf-nav-pill rf-nav-pill--external"
+            onClick={() => navigate("/dashboard")}
+            title="Go to Command Center"
+          >
+            <BarChart2 size={13} /> Command Center
           </button>
         </div>
 
@@ -527,7 +584,7 @@ export default function ResumeBuilder() {
       {/* ── 3-Panel Independent Scrolling Workspace ── */}
       <div className={`rf-workspace rf-workspace--mobile-${mobileTab} ${editorCollapsed ? "rf-workspace--left-collapsed" : ""} ${aiCollapsed ? "rf-workspace--right-collapsed" : ""} ${isFocusMode ? "rf-workspace--both-collapsed" : ""}`}>
         {/* ── Left Panel (30%): Editor or Collapsed Rail ── */}
-        {editorCollapsed ? (
+        {(editorCollapsed && !isMobile) ? (
           <aside
             className="rf-rail rf-rail--left"
             onClick={() => setEditorCollapsed(false)}
@@ -699,7 +756,7 @@ export default function ResumeBuilder() {
         </main>
 
         {/* ── Right Panel (25%): AI Copilot & ATS Analyzer or Collapsed Rail ── */}
-        {aiCollapsed ? (
+        {(aiCollapsed && !isMobile) ? (
           <aside
             className="rf-rail rf-rail--right"
             onClick={() => setAiCollapsed(false)}
@@ -1193,6 +1250,119 @@ export default function ResumeBuilder() {
           {toast.type === "warning" && <AlertTriangle size={15} />}
           <span>{toast.text}</span>
         </div>
+      )}
+      {/* ── Mobile Navigation Drawer (Teleported to document.body) ── */}
+      {typeof document !== 'undefined' && createPortal(
+        <>
+          {mobileDrawerOpen && (
+            <div 
+              className="app-navbar__mobile-backdrop"
+              onClick={() => setMobileDrawerOpen(false)}
+              aria-hidden="true"
+            />
+          )}
+
+          <div 
+            className={`app-navbar__mobile-drawer ${mobileDrawerOpen ? 'open' : ''}`}
+            aria-hidden={!mobileDrawerOpen}
+          >
+            <div className="mobile-drawer-header">
+              <div className="mobile-user-info">
+                <div className="user-avatar">
+                  {userInitials}
+                </div>
+                <div>
+                  <p className="mobile-user-name">{userName}</p>
+                  <p className="mobile-user-sub">Career Prep Active</p>
+                </div>
+              </div>
+              <button 
+                className="mobile-close-btn"
+                onClick={() => setMobileDrawerOpen(false)}
+                aria-label="Close menu"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="mobile-drawer-nav">
+              {id && (
+                <button
+                  type="button"
+                  className="mobile-nav-link"
+                  style={{ background: 'rgba(99, 102, 241, 0.16)', borderColor: 'rgba(99, 102, 241, 0.35)' }}
+                  onClick={() => {
+                    setMobileDrawerOpen(false);
+                    navigate(`/interview/${id}`);
+                  }}
+                >
+                  <ArrowLeft size={16} />
+                  <span>Back to Interview Intelligence</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="mobile-nav-link"
+                onClick={() => {
+                  setMobileDrawerOpen(false);
+                  navigate(id ? `/interview/${id}` : '/');
+                }}
+              >
+                <Compass size={16} />
+                <span>Interview Prep</span>
+              </button>
+
+              <button
+                type="button"
+                className="mobile-nav-link active"
+                onClick={() => setMobileDrawerOpen(false)}
+              >
+                <FileText size={16} />
+                <span>Resume Builder</span>
+                <span className="mobile-active-pill">Editing</span>
+              </button>
+
+              <button
+                type="button"
+                className="mobile-nav-link"
+                onClick={() => {
+                  setMobileDrawerOpen(false);
+                  navigate(id ? `/mock/${id}` : '/mock');
+                }}
+              >
+                <Mic size={16} />
+                <span>Mock Studio</span>
+              </button>
+
+              <button
+                type="button"
+                className="mobile-nav-link"
+                onClick={() => {
+                  setMobileDrawerOpen(false);
+                  navigate('/dashboard');
+                }}
+              >
+                <BarChart2 size={16} />
+                <span>Command Center</span>
+              </button>
+            </div>
+
+            <div className="mobile-drawer-footer">
+              <button 
+                onClick={async () => {
+                  setMobileDrawerOpen(false);
+                  if (handleLogout) await handleLogout();
+                  navigate('/login');
+                }} 
+                className="mobile-logout-btn"
+              >
+                <LogOut size={16} /> Log Out
+              </button>
+            </div>
+          </div>
+        </>,
+        document.body
       )}
     </div>
   );

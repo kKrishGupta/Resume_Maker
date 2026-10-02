@@ -2582,6 +2582,14 @@
     }
   }
 
+  /* Hide collapse buttons & rails on mobile */
+  .rf-collapse-panel-btn {
+    display: none !important;
+  }
+  .rf-rail {
+    display: none !important;
+  }
+
   /* Segmented Mobile Tab Bar */
   .rf-mobile-tabs {
     display: flex;
@@ -3288,3 +3296,64 @@
   }
 }
 
+
+/* ── Mobile Navigation & Back Buttons ── */
+.rf-menu-toggle-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
+  }
+
+  @media (max-width: 900px) {
+    display: inline-flex !important;
+  }
+}
+
+.rf-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.14);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #A5B4FC;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: rgba(99, 102, 241, 0.25);
+    color: #FFFFFF;
+  }
+
+  @media (max-width: 480px) {
+    .rf-back-text {
+      display: none;
+    }
+  }
+}
+
+.rf-nav-pill--external {
+  opacity: 0.8;
+  border-style: dashed !important;
+  &:hover {
+    opacity: 1;
+    border-style: solid !important;
+  }
+}
