@@ -215,9 +215,10 @@
   &__mobile-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(4px);
-    z-index: calc(var(--z-drawer) - 1);
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 99998;
   }
 
   &__mobile-drawer {
@@ -225,20 +226,23 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: 290px;
+    width: 300px;
     max-width: 85vw;
-    background: var(--prepai-bg-surface);
-    border-left: 1px solid var(--prepai-border-default);
-    z-index: var(--z-drawer);
-    padding: var(--space-6);
+    height: 100vh;
+    height: 100dvh;
+    background: #0E1626; /* 100% solid opaque background to prevent text bleedthrough */
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    z-index: 99999;
+    padding: 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: var(--space-6);
+    gap: 1.5rem;
     transform: translateX(100%);
     visibility: hidden;
     pointer-events: none;
     transition: transform var(--transition-smooth), visibility var(--transition-smooth);
-    box-shadow: var(--shadow-xl);
+    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.7);
+    overflow-y: auto;
 
     &.open {
       transform: translateX(0);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/hooks/useAuth';
 import BrandLogo from '../../../components/BrandLogo';
@@ -131,68 +132,73 @@ export const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Drawer / Overlay */}
-      {mobileMenuOpen && (
-        <div 
-          className="app-navbar__mobile-backdrop"
-          onClick={() => setMobileMenuOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+      {/* Mobile Drawer / Overlay rendered at document.body level */}
+      {typeof document !== 'undefined' && createPortal(
+        <>
+          {mobileMenuOpen && (
+            <div 
+              className="app-navbar__mobile-backdrop"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-hidden="true"
+            />
+          )}
 
-      <div 
-        className={`app-navbar__mobile-drawer ${mobileMenuOpen ? 'open' : ''}`}
-        aria-hidden={!mobileMenuOpen}
-      >
-        <div className="mobile-drawer-header">
-          <div className="mobile-user-info">
-            <div className="user-avatar">
-              {displayName.charAt(0).toUpperCase()}
+          <div 
+            className={`app-navbar__mobile-drawer ${mobileMenuOpen ? 'open' : ''}`}
+            aria-hidden={!mobileMenuOpen}
+          >
+            <div className="mobile-drawer-header">
+              <div className="mobile-user-info">
+                <div className="user-avatar">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="mobile-user-name">{displayName}</p>
+                  <p className="mobile-user-sub">Career Prep Active</p>
+                </div>
+              </div>
+              <button 
+                className="mobile-close-btn"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu"
+              >
+                <X size={20} />
+              </button>
             </div>
-            <div>
-              <p className="mobile-user-name">{displayName}</p>
-              <p className="mobile-user-sub">Career Prep Active</p>
+
+            <div className="mobile-drawer-nav">
+              {navItems.map((item) => {
+                const active = isActive(item.path);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`mobile-nav-link ${active ? 'active' : ''}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span className="mobile-nav-icon">{item.icon}</span>
+                    <span className="mobile-nav-title">{item.label}</span>
+                    {active && <span className="mobile-active-pill">Active</span>}
+                  </Link>
+                );
+              })}
+            </div>
+
+            <div className="mobile-drawer-footer">
+              <button 
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onLogout();
+                }} 
+                className="mobile-logout-btn"
+              >
+                <LogOut size={16} /> Log Out
+              </button>
             </div>
           </div>
-          <button 
-            className="mobile-close-btn"
-            onClick={() => setMobileMenuOpen(false)}
-            aria-label="Close menu"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="mobile-drawer-nav">
-          {navItems.map((item) => {
-            const active = isActive(item.path);
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`mobile-nav-link ${active ? 'active' : ''}`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <span className="mobile-nav-icon">{item.icon}</span>
-                <span className="mobile-nav-title">{item.label}</span>
-                {active && <span className="mobile-active-pill">Active</span>}
-              </Link>
-            );
-          })}
-        </div>
-
-        <div className="mobile-drawer-footer">
-          <button 
-            onClick={() => {
-              setMobileMenuOpen(false);
-              onLogout();
-            }} 
-            className="mobile-logout-btn"
-          >
-            <LogOut size={16} /> Log Out
-          </button>
-        </div>
-      </div>
+        </>,
+        document.body
+      )}
     </header>
   );
 };

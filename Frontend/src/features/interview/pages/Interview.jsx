@@ -24,14 +24,17 @@ import {
   Copy, 
   RefreshCw, 
   Compass,
-  ArrowUp
+  ArrowUp,
+  PanelRightClose,
+  PanelRightOpen,
+  X
 } from 'lucide-react';
 
 const NAV_ITEMS = [
     { id: 'technical', label: 'Technical Questions', icon: <Code2 size={16} /> },
     { id: 'behavioral', label: 'Behavioral Questions', icon: <Users size={16} /> },
     { id: 'roadmap', label: 'Preparation Road Map', icon: <Map size={16} /> },
-    { id: 'analysis', label: 'Match & Skills', mobileOnly: true, icon: <BarChart3 size={16} /> },
+    { id: 'analysis', label: 'Match & Skills', icon: <BarChart3 size={16} /> },
 ];
 
 // ── Question Card Component ──────────────────────────────────────────────────
@@ -613,6 +616,7 @@ export const Interview = () => {
     const [generatingBehavioral, setGeneratingBehavioral] = useState(false);
     const [isReAnalyzing, setIsReAnalyzing] = useState(false);
     const [showScrollTop, setShowScrollTop] = useState(false);
+    const [showSidebar, setShowSidebar] = useState(true);
 
     const contentRef = useRef(null);
 
@@ -737,7 +741,7 @@ export const Interview = () => {
                             {NAV_ITEMS.map(item => (
                                 <button
                                     key={item.id}
-                                    className={`interview-nav__item ${activeNav === item.id ? 'interview-nav__item--active' : ''} ${item.mobileOnly ? 'nav-item--mobile-only' : ''}`}
+                                    className={`interview-nav__item ${activeNav === item.id ? 'interview-nav__item--active' : ''}`}
                                     onClick={() => handleNavClick(item.id)}
                                 >
                                     <span className='interview-nav__icon'>{item.icon}</span>
@@ -796,6 +800,15 @@ export const Interview = () => {
                                             <FileText size={14} />
                                             Resume
                                         </button>
+
+                                        <button
+                                            className="sidebar-toggle-btn"
+                                            onClick={() => setShowSidebar(s => !s)}
+                                            title={showSidebar ? "Hide Intelligence Sidebar" : "Show Intelligence Sidebar"}
+                                        >
+                                            {showSidebar ? <PanelRightClose size={15} /> : <PanelRightOpen size={15} />}
+                                            <span className="sidebar-toggle-text">{showSidebar ? "Hide Intel" : "Role Intel"}</span>
+                                        </button>
                                     </div>
                                 </div>
                                 <div className='q-list'>
@@ -837,6 +850,15 @@ export const Interview = () => {
                                         >
                                             <Play size={14} />
                                             Start Mock
+                                        </button>
+
+                                        <button
+                                            className="sidebar-toggle-btn"
+                                            onClick={() => setShowSidebar(s => !s)}
+                                            title={showSidebar ? "Hide Intelligence Sidebar" : "Show Intelligence Sidebar"}
+                                        >
+                                            {showSidebar ? <PanelRightClose size={15} /> : <PanelRightOpen size={15} />}
+                                            <span className="sidebar-toggle-text">{showSidebar ? "Hide Intel" : "Role Intel"}</span>
                                         </button>
                                     </div>
                                 </div>
@@ -881,16 +903,31 @@ export const Interview = () => {
                         )}
                     </main>
 
-                    <div className='interview-divider' />
-
                     {/* ── Right Sidebar (Desktop only - 3rd column) ── */}
-                    <aside className='interview-sidebar'>
-                        <AnalysisPanel
-                            report={report}
-                            onReAnalyze={handleReAnalyze}
-                            isReAnalyzing={isReAnalyzing}
-                        />
-                    </aside>
+                    {showSidebar && (
+                        <>
+                            <div className='interview-divider interview-divider--sidebar' />
+                            <aside className='interview-sidebar'>
+                                <div className="interview-sidebar__header">
+                                    <span className="interview-sidebar__title">Role Intelligence</span>
+                                    <button 
+                                        type="button"
+                                        className="sidebar-close-btn"
+                                        onClick={() => setShowSidebar(false)}
+                                        title="Collapse sidebar"
+                                        aria-label="Collapse sidebar"
+                                    >
+                                        <X size={15} />
+                                    </button>
+                                </div>
+                                <AnalysisPanel
+                                    report={report}
+                                    onReAnalyze={handleReAnalyze}
+                                    isReAnalyzing={isReAnalyzing}
+                                />
+                            </aside>
+                        </>
+                    )}
                 </div>
 
                 {showScrollTop && (
