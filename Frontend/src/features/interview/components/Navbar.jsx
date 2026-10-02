@@ -7,7 +7,6 @@ import {
   FileText, 
   Mic, 
   BarChart2, 
-  Layout, 
   LogOut, 
   Menu, 
   X,
@@ -26,7 +25,6 @@ export const Navbar = () => {
     { label: 'Resume Builder', path: '/resume', icon: <FileText size={16} /> },
     { label: 'Mock Studio', path: '/mock', icon: <Mic size={16} /> },
     { label: 'Command Center', path: '/dashboard', icon: <BarChart2 size={16} /> },
-    { label: 'Templates', path: '/templates', icon: <Layout size={16} /> },
   ];
 
   const onLogout = async () => {
