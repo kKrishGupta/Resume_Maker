@@ -105,48 +105,56 @@ const QuestionCard = ({ item, index }) => {
 };
 
 // ── RoadMap Day Component ────────────────────────────────────────────────────
-const RoadMapDay = ({ day, onUpdateDay }) => {
+const RoadMapDay = ({ day, index, onUpdateDay }) => {
     const [tasks, setTasks] = useState(day.tasks || []);
     const [newTask, setNewTask] = useState("");
     const [editingIndex, setEditingIndex] = useState(null);
     const [editText, setEditText] = useState("");
+
+    useEffect(() => {
+        setTasks(day.tasks || []);
+    }, [day.tasks]);
+
+    // Ensure day display is always properly sequenced starting from Day 1
+    const displayDay = index !== undefined ? index + 1 : (day.day || 1);
+    const dayIdentifier = day.day || displayDay;
 
     const handleAddTask = () => {
         if (!newTask.trim()) return;
         const updated = [...tasks, { text: newTask.trim(), done: false }];
         setTasks(updated);
         setNewTask("");
-        onUpdateDay(day.day, updated);
+        onUpdateDay(dayIdentifier, updated);
     };
 
-    const handleDelete = (index) => {
-        const updated = tasks.filter((_, i) => i !== index);
+    const handleDelete = (taskIndex) => {
+        const updated = tasks.filter((_, i) => i !== taskIndex);
         setTasks(updated);
-        onUpdateDay(day.day, updated);
+        onUpdateDay(dayIdentifier, updated);
     };
 
-    const handleToggle = (index) => {
+    const handleToggle = (taskIndex) => {
         const updated = [...tasks];
-        updated[index].done = !updated[index].done;
+        updated[taskIndex].done = !updated[taskIndex].done;
         setTasks(updated);
-        onUpdateDay(day.day, updated);
+        onUpdateDay(dayIdentifier, updated);
     };
 
-    const handleEditSave = (index) => {
+    const handleEditSave = (taskIndex) => {
         if (!editText.trim()) return;
         const updated = [...tasks];
-        updated[index].text = editText.trim();
+        updated[taskIndex].text = editText.trim();
         setTasks(updated);
         setEditingIndex(null);
         setEditText("");
-        onUpdateDay(day.day, updated);
+        onUpdateDay(dayIdentifier, updated);
     };
 
     return (
         <div className="roadmap-day">
             <div className="roadmap-day__header">
-                <span className="roadmap-day__badge">Day {day.day}</span>
-                <p className="roadmap-day__focus">{day.focus}</p>
+                <span className="roadmap-day__badge">Day {displayDay}</span>
+                <p className="roadmap-day__focus">{day.focus || `Core Concepts & Practice (Day ${displayDay})`}</p>
             </div>
 
             <ul className="roadmap-day__tasks">
@@ -713,8 +721,8 @@ const Interview = () => {
                                     </div>
                                 </div>
                                 <div className='roadmap-list'>
-                                    {report?.preparationPlan?.map((day) => (
-                                        <RoadMapDay key={day.day} day={day} onUpdateDay={handleUpdateDay} />
+                                    {(report?.preparationPlan || []).map((day, i) => (
+                                        <RoadMapDay key={day.day || i} day={day} index={i} onUpdateDay={handleUpdateDay} />
                                     ))}
                                 </div>
                             </section>
