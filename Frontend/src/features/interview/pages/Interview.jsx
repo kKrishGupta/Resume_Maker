@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import '../style/interview.scss';
 import { useInterview } from '../hooks/useInterview.js';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -471,7 +471,14 @@ const Interview = () => {
     const [showScrollTop, setShowScrollTop] = useState(false);
     const [behavioralQuestions, setBehavioralQuestions] = useState([]);
     const [generatingBehavioral, setGeneratingBehavioral] = useState(false);
+    const contentRef = useRef(null);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (contentRef.current) {
+            contentRef.current.scrollTop = 0;
+        }
+    }, [activeNav, report]);
 
     const handleReAnalyze = async () => {
         if (!interviewId) return;
@@ -600,7 +607,7 @@ const Interview = () => {
                     <div className='interview-divider' />
 
                     {/* ── Center Content ── */}
-                    <main className='interview-content'>
+                    <main className='interview-content' ref={contentRef}>
                         {activeNav === 'technical' && (
                             <section>
                                 <div className='content-header'>
