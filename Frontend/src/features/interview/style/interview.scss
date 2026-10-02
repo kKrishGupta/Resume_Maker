@@ -263,7 +263,7 @@ $severity-low:    #10b981;
         gap: 0.45rem !important;
         border-right: none !important;
         border-bottom: 1px solid $border-color !important;
-        background: rgba(14, 22, 38, 0.98) !important;
+        background: #0B101D !important; border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch !important;
         white-space: nowrap !important;
@@ -290,9 +290,7 @@ $severity-low:    #10b981;
             padding: 0.45rem 0.85rem !important;
             font-size: 0.82rem !important;
             border-radius: 9999px !important;
-            background: rgba(255, 255, 255, 0.05) !important;
-            border: 1px solid rgba(255, 255, 255, 0.08) !important;
-            color: #94a3b8 !important;
+            background: rgba(255, 255, 255, 0.07) !important; border: 1px solid rgba(255, 255, 255, 0.14) !important; color: #E2E8F0 !important; font-weight: 600 !important;
 
             &:hover {
                 background: rgba(255, 255, 255, 0.09) !important;
@@ -301,13 +299,18 @@ $severity-low:    #10b981;
             }
 
             &--active {
-                background: #6366f1 !important;
-                border-color: #6366f1 !important;
-                color: #ffffff !important;
-                box-shadow: 0 2px 10px rgba(99, 102, 241, 0.4) !important;
+                background: #6366F1 !important;
+                background-color: #6366F1 !important;
+                border: 1px solid #818CF8 !important;
+                color: #FFFFFF !important;
+                font-weight: 700 !important;
+                box-shadow: 0 4px 14px rgba(99, 102, 241, 0.6) !important;
 
                 .interview-nav__icon svg {
-                    stroke: #ffffff !important;
+                    stroke: #FFFFFF !important;
+                }
+                .interview-nav__text {
+                    color: #FFFFFF !important;
                 }
             }
         }
@@ -937,10 +940,15 @@ $severity-low:    #10b981;
                 font-weight: 700;
                 color: #ffffff;
                 background: linear-gradient(135deg, var(--prepai-brand-primary) 0%, var(--prepai-brand-primary-hover) 100%);
-                padding: 0.25rem 0.65rem;
+                padding: 0.3rem 0.85rem;
                 border-radius: var(--radius-full);
                 letter-spacing: 0.04em;
                 box-shadow: 0 0 10px var(--prepai-brand-primary-glow);
+                white-space: nowrap !important;
+                flex-shrink: 0 !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
             }
 
             .roadmap-day__focus {

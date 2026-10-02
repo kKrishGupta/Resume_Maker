@@ -215,7 +215,7 @@
   &__mobile-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     z-index: 99998;
@@ -226,12 +226,13 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: 300px;
-    max-width: 85vw;
+    width: 310px;
+    max-width: 88vw;
     height: 100vh;
     height: 100dvh;
-    background: #0E1626; /* 100% solid opaque background to prevent text bleedthrough */
-    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    background: #0B101D; /* 100% solid opaque background to prevent text bleedthrough */
+    background-color: #0B101D;
+    border-left: 1px solid rgba(255, 255, 255, 0.14);
     z-index: 99999;
     padding: 1.5rem;
     display: flex;
@@ -241,7 +242,7 @@
     visibility: hidden;
     pointer-events: none;
     transition: transform var(--transition-smooth), visibility var(--transition-smooth);
-    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.7);
+    box-shadow: -15px 0 50px rgba(0, 0, 0, 0.85);
     overflow-y: auto;
 
     &.open {
@@ -255,7 +256,7 @@
       align-items: center;
       justify-content: space-between;
       padding-bottom: var(--space-4);
-      border-bottom: 1px solid var(--prepai-border-subtle);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
       .mobile-user-info {
         display: flex;
@@ -263,8 +264,8 @@
         gap: var(--space-3);
 
         .user-avatar {
-          width: 36px;
-          height: 36px;
+          width: 38px;
+          height: 38px;
           border-radius: 50%;
           background: linear-gradient(135deg, var(--prepai-brand-primary) 0%, var(--prepai-brand-accent) 100%);
           color: white;
@@ -272,12 +273,13 @@
           display: flex;
           align-items: center;
           justify-content: center;
+          box-shadow: 0 0 12px var(--prepai-brand-primary-glow);
         }
 
         .mobile-user-name {
-          font-weight: 600;
-          font-size: 14px;
-          color: var(--prepai-text-primary);
+          font-weight: 700;
+          font-size: 15px;
+          color: #ffffff;
         }
 
         .mobile-user-sub {
@@ -287,17 +289,20 @@
       }
 
       .mobile-close-btn {
-        background: transparent;
-        border: none;
-        color: var(--prepai-text-secondary);
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #cbd5e1;
         cursor: pointer;
         padding: 6px;
+        border-radius: 6px;
         display: flex;
         align-items: center;
         justify-content: center;
+        transition: all var(--transition-fast);
 
         &:hover {
-          color: var(--prepai-text-primary);
+          color: #ffffff;
+          background: rgba(255, 255, 255, 0.12);
         }
       }
     }
@@ -305,52 +310,58 @@
     .mobile-drawer-nav {
       display: flex;
       flex-direction: column;
-      gap: var(--space-2);
+      gap: 0.65rem;
       flex: 1;
 
       .mobile-nav-link {
         display: flex;
         align-items: center;
-        gap: var(--space-3);
+        gap: 0.75rem;
         padding: 12px 14px;
         border-radius: var(--radius-md);
         text-decoration: none;
         font-size: 14px;
-        font-weight: 500;
-        color: var(--prepai-text-secondary);
-        min-height: 44px;
+        font-weight: 600;
+        color: #f1f5f9;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        min-height: 46px;
         transition: all var(--transition-fast);
 
         &:hover {
-          background: var(--prepai-bg-surface-elevated);
-          color: var(--prepai-text-primary);
+          background: rgba(255, 255, 255, 0.09);
+          color: #ffffff;
+          border-color: rgba(255, 255, 255, 0.16);
         }
 
         &.active {
-          background: var(--prepai-brand-primary-soft);
-          color: var(--prepai-brand-primary-light);
-          border: 1px solid rgba(99, 102, 241, 0.3);
+          background: var(--prepai-brand-primary);
+          color: #ffffff;
+          border: 1px solid var(--prepai-brand-primary-light);
+          box-shadow: 0 4px 16px var(--prepai-brand-primary-glow);
 
           .mobile-nav-icon {
-            color: var(--prepai-brand-primary);
+            color: #ffffff;
           }
         }
 
         .mobile-active-pill {
           margin-left: auto;
           font-size: 10px;
+          font-weight: 700;
           text-transform: uppercase;
-          background: var(--prepai-brand-primary);
-          color: white;
-          padding: 2px 6px;
+          background: rgba(255, 255, 255, 0.28);
+          color: #ffffff;
+          padding: 2px 7px;
           border-radius: var(--radius-full);
+          letter-spacing: 0.05em;
         }
       }
     }
 
     .mobile-drawer-footer {
       padding-top: var(--space-4);
-      border-top: 1px solid var(--prepai-border-subtle);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
 
       .mobile-logout-btn {
         width: 100%;
@@ -360,15 +371,17 @@
         gap: var(--space-2);
         padding: 12px;
         border-radius: var(--radius-md);
-        background: rgba(239, 68, 68, 0.1);
-        border: 1px solid rgba(239, 68, 68, 0.25);
-        color: var(--prepai-danger);
+        background: rgba(239, 68, 68, 0.14);
+        border: 1px solid rgba(239, 68, 68, 0.35);
+        color: #fca5a5;
         font-weight: 600;
         cursor: pointer;
         min-height: 44px;
+        transition: all var(--transition-fast);
 
         &:hover {
           background: var(--prepai-danger);
+          border-color: var(--prepai-danger);
           color: white;
         }
       }
