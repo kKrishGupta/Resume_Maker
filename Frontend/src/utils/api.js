@@ -18,7 +18,8 @@ const getBaseURL = () => {
 
 const api = axios.create({
   baseURL: getBaseURL(),
-  withCredentials: true
+  withCredentials: true,
+  timeout: 8000 // 8 second timeout to prevent any hung network requests
 });
 
 // 🔐 attach token automatically
@@ -38,7 +39,6 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       if (typeof localStorage !== "undefined") {
-        // If the server explicitly rejected the token as invalid or blacklisted
         if (error.response?.data?.message?.includes("blacklisted") || error.response?.data?.message?.includes("Invalid")) {
           localStorage.removeItem("token");
         }

@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Sparkles, Mail, Lock, Eye, EyeOff, ArrowRight, KeyRound, ShieldCheck } from 'lucide-react';
 
 const Login = () => {
-  const { loading, handleLogin, handleSendOtp, handleOtpLogin } = useAuth();
+  const { user, loading, handleLogin, handleSendOtp, handleOtpLogin } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,7 +15,15 @@ const Login = () => {
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [timer, setTimer] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user && !loading) {
+      navigate("/", { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   // HANDLE SUBMIT
   const handleSubmit = async (e) => {
@@ -31,6 +39,7 @@ const Login = () => {
           return;
         }
 
+        setSubmitting(true);
         await handleLogin({ email, password });
         navigate("/");
       }
@@ -43,6 +52,7 @@ const Login = () => {
 
         // STEP 1: SEND OTP
         if (!otpSent) {
+          setSubmitting(true);
           await handleSendOtp({ email });
           setOtpSent(true);
           setTimer(30);
@@ -55,11 +65,14 @@ const Login = () => {
           return;
         }
 
+        setSubmitting(true);
         await handleOtpLogin({ email, otp });
         navigate("/");
       }
     } catch (err) {
       setError(err.message || "Authentication failed. Please verify your credentials.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -84,13 +97,7 @@ const Login = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <main className="auth-page">
-        <div className="loader"></div>
-      </main>
-    );
-  }
+  const isBusy = submitting || loading;
 
   return (
     <main className="auth-page">
@@ -233,9 +240,9 @@ const Login = () => {
           )}
 
           {/* SUBMIT BUTTON */}
-          <button className="button primary-button" type="submit" disabled={loading}>
+          <button className="button primary-button" type="submit" disabled={isBusy}>
             <span>
-              {loading
+              {isBusy
                 ? "Authenticating..."
                 : mode === "password"
                 ? "Sign In to Workspace"

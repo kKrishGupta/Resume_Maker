@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Link } from "react-router-dom";
 import { useAuth } from '../hooks/useAuth';
@@ -7,12 +7,20 @@ import { Sparkles, Mail, Lock, User, Eye, EyeOff, ArrowRight } from 'lucide-reac
 
 const Register = () => {
   const navigate = useNavigate();
-  const { loading, handleRegister } = useAuth();
+  const { user, loading, handleRegister } = useAuth();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user && !loading) {
+      navigate("/", { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,20 +30,17 @@ const Register = () => {
     }
     try {
       setError("");
+      setSubmitting(true);
       await handleRegister({ username, email, password });
       navigate("/");
     } catch {
       setError("Registration failed. Please check your credentials and try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <main className="auth-page">
-        <div className="loader"></div>
-      </main>
-    );
-  }
+  const isBusy = submitting || loading;
 
   return (
     <main className="auth-page">
@@ -117,8 +122,8 @@ const Register = () => {
             </div>
           </div>
 
-          <button type="submit" className="button primary-button" disabled={loading}>
-            <span>{loading ? "Creating Account..." : "Create Account & Get Started"}</span>
+          <button type="submit" className="button primary-button" disabled={isBusy}>
+            <span>{isBusy ? "Creating Account..." : "Create Account & Get Started"}</span>
             <ArrowRight size={16} />
           </button>
         </form>
