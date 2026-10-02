@@ -51,15 +51,202 @@ $severity-low:    #10b981;
     box-sizing: border-box;
 
     @media (max-width: 960px) {
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+    }
+}
+
+// ── Page Shell (Fixed Desktop SaaS Viewport) ──────────────────────────────────
+.interview-page {
+    flex: 1;
+    min-height: 0; // CRITICAL: allows flex child to shrink within remaining viewport height!
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background: 
+        radial-gradient(circle at 10% 10%, rgba(99, 102, 241, 0.1), transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(244, 63, 94, 0.08), transparent 45%),
+        $bg-page;
+    color: $text-primary;
+    font-family: $font-stack;
+    display: flex;
+    align-items: stretch;
+    padding: 0.75rem 1rem 1rem;
+    box-sizing: border-box;
+
+    @media (max-width: 960px) {
+        flex: none;
+        height: auto;
+        min-height: 0;
+        overflow: visible;
+        padding: 0.75rem 0.5rem 2rem;
+    }
+}
+
+// ── 3-Column Layout (Full Height Nested Flexbox) ──────────────────────────────
+.interview-layout {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    margin: 0 auto;
+    background-color: $bg-card;
+    border: 1px solid $border-color;
+    border-radius: 1.25rem;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.5),
+        0 0 35px -5px rgba(99, 102, 241, 0.06);
+    overflow: hidden;
+    box-sizing: border-box;
+
+    @media (max-width: 960px) {
+        flex-direction: column;
+        height: auto;
+        max-height: none;
+        border-radius: 0.85rem;
+        overflow: visible;
+    }
+}
+
+.interview-divider {
+    width: 1px;
+    background-color: $border-color;
+    flex-shrink: 0;
+
+    @media (max-width: 960px) {
+        width: 100%;
+        height: 1px;
+    }
+}
+
+// ── Left Nav (Static Fixed Sidebar) ──────────────────────────────────────────
+.interview-nav {
+    width: 240px;
+    flex-shrink: 0;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    padding: 1.25rem 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 0.75rem;
+    background: rgba(11, 16, 28, 0.5);
+    overflow: hidden;
+    box-sizing: border-box;
+    user-select: none;
+
+    &__label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: $text-subtle;
+        padding: 0 0.75rem;
+        margin-bottom: 0.65rem;
+    }
+
+    .nav-content {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        overflow-y: auto;
+    }
+
+    &__item {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        width: 100%;
+        padding: 0.7rem 0.85rem;
+        background: none;
+        border: 1px solid transparent;
+        border-radius: 0.65rem;
+        color: $text-muted;
+        font-family: $font-stack;
+        font-size: 0.88rem;
+        font-weight: 500;
+        cursor: pointer;
+        text-align: left;
+        transition: all 0.2s ease;
+
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.04);
+            color: $text-primary;
+        }
+
+        &--active {
+            background-color: rgba(244, 63, 94, 0.12);
+            border-color: rgba(244, 63, 94, 0.28);
+            color: #ffffff;
+            font-weight: 600;
+
+            .interview-nav__icon svg {
+                stroke: $accent;
+            }
+        }
+    }
+
+    &__icon {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        color: $text-subtle;
+    }
+
+    .nav-desktop-action {
+        flex-shrink: 0;
+        padding-top: 0.85rem;
+        border-top: 1px solid $border-color;
+        margin-top: auto;
+    }
+
+    .nav-resume-btn {
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-radius: 0.65rem;
+        border: none;
+        background: $accent-gradient;
+        color: white;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(244, 63, 94, 0.35);
+        transition: all 0.2s ease;
+
+        &:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(244, 63, 94, 0.5);
+        }
+    }
+
+    .nav-item--mobile-only {
+        display: none;
+    }
+
+    // ── Mobile Navigation Transformation ──
+    @media (max-width: 960px) {
         width: 100% !important;
         height: auto !important;
         min-height: 0 !important;
         max-height: none !important;
         flex: none !important;
         flex-direction: row !important;
-        padding: 0.5rem 0.65rem !important;
-        gap: 0.4rem !important;
+        padding: 0.5rem 0.75rem !important;
+        gap: 0.45rem !important;
         border-bottom: 1px solid $border-color !important;
+        background: rgba(14, 22, 38, 0.95) !important;
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch !important;
         white-space: nowrap !important;
@@ -75,7 +262,7 @@ $severity-low:    #10b981;
             height: auto !important;
             max-height: none !important;
             flex: none !important;
-            gap: 0.4rem !important;
+            gap: 0.45rem !important;
             overflow: visible !important;
         }
 
@@ -84,8 +271,27 @@ $severity-low:    #10b981;
             width: auto !important;
             white-space: nowrap !important;
             padding: 0.5rem 0.85rem !important;
-            font-size: 0.8rem !important;
+            font-size: 0.82rem !important;
             border-radius: 0.55rem !important;
+            background: rgba(255, 255, 255, 0.04) !important;
+            border: 1px solid var(--prepai-border-subtle) !important;
+            color: var(--prepai-text-secondary) !important;
+
+            &:hover {
+                background: rgba(255, 255, 255, 0.08) !important;
+                color: var(--prepai-text-primary) !important;
+            }
+
+            &--active {
+                background: var(--prepai-brand-primary) !important;
+                border-color: var(--prepai-brand-primary) !important;
+                color: #ffffff !important;
+                box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35) !important;
+
+                .interview-nav__icon svg {
+                    stroke: #ffffff !important;
+                }
+            }
         }
 
         .nav-desktop-action {

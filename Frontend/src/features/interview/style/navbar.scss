@@ -235,11 +235,15 @@
     flex-direction: column;
     gap: var(--space-6);
     transform: translateX(100%);
-    transition: transform var(--transition-smooth);
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform var(--transition-smooth), visibility var(--transition-smooth);
     box-shadow: var(--shadow-xl);
 
     &.open {
       transform: translateX(0);
+      visibility: visible;
+      pointer-events: auto;
     }
 
     .mobile-drawer-header {

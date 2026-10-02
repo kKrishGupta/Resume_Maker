@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/hooks/useAuth';
 import BrandLogo from '../../../components/BrandLogo';
@@ -19,6 +19,17 @@ export const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, handleLogout } = useAuth();
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
 
   const navItems = [
     { label: 'Interview Prep', path: '/', icon: <Compass size={16} /> },
