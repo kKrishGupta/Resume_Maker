@@ -3432,3 +3432,35 @@
     padding: 6px 8px;
   }
 }
+
+/* ── Exit Button (Matching Image 2 Navbar) ── */
+.rf-exit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap !important;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.35);
+    transform: translateY(-1px);
+  }
+
+  @media (max-width: 640px) {
+    padding: 6px 8px;
+    .rf-exit-text {
+      display: none;
+    }
+  }
+}

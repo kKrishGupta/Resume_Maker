@@ -551,6 +551,18 @@ export default function ResumeBuilder() {
           <div className="rf-avatar" title={`Signed in as ${userName}`}>
             {userInitials}
           </div>
+
+          {/* Exit Button - sends directly to Image 2 (Home page) */}
+          <button 
+            type="button" 
+            onClick={() => navigate('/')} 
+            className="rf-exit-btn" 
+            title="Exit to Interview Prep"
+            aria-label="Exit"
+          >
+            <LogOut size={14} />
+            <span className="rf-exit-text">Exit</span>
+          </button>
         </div>
       </header>
 
