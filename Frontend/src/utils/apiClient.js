@@ -196,12 +196,6 @@ class APIClient {
         }
       }
 
-      console.log('[APIClient] Request', {
-        method,
-        endpoint: requestUrl,
-        duration: `${Date.now() - startTime}ms`,
-      });
-
       const controller = new AbortController();
       let timeoutId = setTimeout(() => controller.abort(), requestConfig.timeout);
 
@@ -256,14 +250,6 @@ class APIClient {
 
         // Execute response interceptors
         const finalResponse = await this.executeResponseInterceptors(result);
-
-        console.log('[APIClient] Success', {
-          method,
-          endpoint,
-          status: response.status,
-          duration: `${Date.now() - startTime}ms`,
-        });
-
         return finalResponse;
       } catch (error) {
         if (error.statusCode !== 401 && error.response?.status !== 401) {
