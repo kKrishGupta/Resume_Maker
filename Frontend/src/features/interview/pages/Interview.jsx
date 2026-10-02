@@ -33,8 +33,6 @@ import {
   RefreshCw, 
   Compass,
   ArrowUp,
-  PanelRightClose,
-  PanelRightOpen,
   X
 } from 'lucide-react';
 
@@ -885,15 +883,6 @@ const Interview = () => {
                                             <FileText size={14} />
                                             Resume
                                         </button>
-
-                                        <button
-                                            className="sidebar-toggle-btn"
-                                            onClick={() => setShowSidebar(s => !s)}
-                                            title={showSidebar ? "Hide Intelligence Sidebar" : "Show Intelligence Sidebar"}
-                                        >
-                                            {showSidebar ? <PanelRightClose size={15} /> : <PanelRightOpen size={15} />}
-                                            <span className="sidebar-toggle-text">{showSidebar ? "Hide Intel" : "Role Intel"}</span>
-                                        </button>
                                     </div>
                                 </div>
                                 <div className='q-list'>
@@ -935,15 +924,6 @@ const Interview = () => {
                                         >
                                             <Play size={14} />
                                             Start Mock
-                                        </button>
-
-                                        <button
-                                            className="sidebar-toggle-btn"
-                                            onClick={() => setShowSidebar(s => !s)}
-                                            title={showSidebar ? "Hide Intelligence Sidebar" : "Show Intelligence Sidebar"}
-                                        >
-                                            {showSidebar ? <PanelRightClose size={15} /> : <PanelRightOpen size={15} />}
-                                            <span className="sidebar-toggle-text">{showSidebar ? "Hide Intel" : "Role Intel"}</span>
                                         </button>
                                     </div>
                                 </div>
