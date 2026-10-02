@@ -18,13 +18,26 @@ const QuestionCard = ({ item, index }) => {
     const [followUps, setFollowUps] = useState([]);
     const [loadingFollow, setLoadingFollow] = useState(false);
 
+    // Resilient question text extraction so questions always display cleanly
+    const questionText = typeof item === 'string'
+        ? item
+        : (item?.question || item?.q || item?.questionText || item?.title || item?.prompt || `Technical Assessment Question ${index + 1}`);
+
+    const intentionText = typeof item === 'object'
+        ? (item?.intention || item?.intent || item?.purpose || "Assess practical understanding and depth of technical reasoning.")
+        : "Assess practical understanding and depth of technical reasoning.";
+
+    const answerText = typeof item === 'object'
+        ? (item?.answer || item?.modelAnswer || item?.sampleAnswer || item?.solution || "Provide a structured, methodical response detailing relevant concepts, architectural choices, and edge cases.")
+        : "Provide a structured, methodical response detailing relevant concepts, architectural choices, and edge cases.";
+
     const handleFollowUp = async (e) => {
         e.stopPropagation();
         try {
             setLoadingFollow(true);
             const data = await generateFollowUp({
-                question: item.question,
-                answer: item.answer
+                question: questionText,
+                answer: answerText
             });
 
             if (data?.followUps) {
@@ -43,7 +56,7 @@ const QuestionCard = ({ item, index }) => {
         <div className='q-card'>
             <div className='q-card__header' onClick={() => setOpen(o => !o)}>
                 <span className='q-card__index'>Q{index + 1}</span>
-                <p className='q-card__question'>{item.question}</p>
+                <p className='q-card__question'>{questionText}</p>
                 <button
                     type="button"
                     className="follow-btn"
@@ -60,11 +73,11 @@ const QuestionCard = ({ item, index }) => {
                 <div className='q-card__body'>
                     <div className='q-card__section'>
                         <span className='q-card__tag q-card__tag--intention'>Interviewer's Intention</span>
-                        <p>{item.intention}</p>
+                        <p>{intentionText}</p>
                     </div>
                     <div className='q-card__section'>
                         <span className='q-card__tag q-card__tag--answer'>Strong Model Answer</span>
-                        <p>{item.answer}</p>
+                        <p>{answerText}</p>
                     </div>
 
                     {followUps.length > 0 && (
@@ -72,14 +85,14 @@ const QuestionCard = ({ item, index }) => {
                             <p className="followups-title">Potential Follow-Up Probes</p>
                             {followUps.map((f, i) => (
                                 <div key={i} className="followup-card">
-                                    <p className="followup-question">👉 {f.question}</p>
+                                    <p className="followup-question">👉 {f.question || f.q}</p>
                                     <div className="followup-section">
                                         <span className="tag intention">Intention</span>
-                                        <p>{f.intention}</p>
+                                        <p>{f.intention || f.intent}</p>
                                     </div>
                                     <div className="followup-section">
                                         <span className="tag answer">Model Answer</span>
-                                        <p>{f.answer}</p>
+                                        <p>{f.answer || f.modelAnswer}</p>
                                     </div>
                                 </div>
                             ))}
