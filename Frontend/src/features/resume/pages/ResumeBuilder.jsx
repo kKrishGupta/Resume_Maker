@@ -455,52 +455,53 @@ export default function ResumeBuilder() {
             type="button" 
             className="rf-nav-pill is-active"
             onClick={() => setActiveRightTab("ats")}
+            title="Resume Editor"
           >
-            <FileText size={14} /> Resume Builder
+            <FileText size={14} />
+            <span className="rf-pill-text">Resume</span>
           </button>
           <button 
             type="button" 
             className={`rf-nav-pill ${activeRightTab === "matcher" ? "is-active" : ""}`}
             onClick={() => setActiveRightTab("matcher")}
+            title="ATS Matcher"
           >
-            <Target size={14} /> ATS Matcher
+            <Target size={14} />
+            <span className="rf-pill-text">ATS Matcher</span>
           </button>
           <button 
             type="button" 
             className="rf-nav-pill"
             onClick={() => setCoverLetterOpen(true)}
+            title="Cover Letter"
           >
-            <Briefcase size={14} /> Cover Letter
+            <Briefcase size={14} />
+            <span className="rf-pill-text">Cover Letter</span>
           </button>
           <button 
             type="button" 
             className="rf-nav-pill"
             onClick={() => setChatOpen(true)}
+            title="AI Copilot"
           >
-            <Sparkles size={14} /> AI Copilot
+            <Sparkles size={14} />
+            <span className="rf-pill-text">AI Copilot</span>
           </button>
-          <div className="rf-header__divider" />
-          <button 
-            type="button" 
-            className="rf-nav-pill rf-nav-pill--external"
-            onClick={() => navigate(id ? `/interview/${id}` : "/")}
-            title="Go to Interview Intelligence"
-          >
-            <Compass size={13} /> Interview
-          </button>
+          <div className="rf-header__divider rf-header__divider--nav" />
           <button 
             type="button" 
             className="rf-nav-pill rf-nav-pill--external"
             onClick={() => navigate("/dashboard")}
             title="Go to Command Center"
           >
-            <BarChart2 size={13} /> Command Center
+            <BarChart2 size={13} />
+            <span className="rf-pill-text">Dashboard</span>
           </button>
         </div>
 
         {/* Right Actions */}
         <div className="rf-header__right">
-          <div className="rf-save-indicator">
+          <div className="rf-save-indicator" title={saveStatus}>
             <span className="rf-save-dot" />
             <span className="rf-save-text">{saveStatus}</span>
           </div>

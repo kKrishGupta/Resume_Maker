@@ -159,10 +159,10 @@
 }
 
 .rf-nav-pill {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 6px 11px;
   font-size: 12.5px;
   font-weight: 500;
   color: var(--rf-text-muted);
@@ -171,6 +171,8 @@
   border-radius: 7px;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap !important;
+  flex-shrink: 0;
 
   &:hover {
     color: var(--rf-text);
@@ -181,6 +183,10 @@
     color: var(--rf-brand);
     font-weight: 600;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .rf-pill-text {
+    white-space: nowrap !important;
   }
 }
 
@@ -3355,5 +3361,74 @@
   &:hover {
     opacity: 1;
     border-style: solid !important;
+  }
+}
+
+/* ── Responsive Header Scaling (1000px - 1400px) ── */
+.rf-save-indicator {
+  white-space: nowrap !important;
+  flex-shrink: 0;
+}
+
+.rf-doc-title {
+  min-width: 0;
+  flex-shrink: 1;
+
+  input {
+    width: clamp(110px, 12vw, 190px) !important;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (max-width: 1400px) {
+  .rf-header {
+    padding: 0 14px;
+    gap: 10px;
+
+    &__left {
+      gap: 10px;
+    }
+
+    &__right {
+      gap: 8px;
+    }
+  }
+
+  .rf-nav-pill {
+    padding: 5px 9px;
+    font-size: 12px;
+    gap: 5px;
+  }
+}
+
+@media (max-width: 1250px) {
+  .rf-role-badge {
+    display: none !important;
+  }
+
+  .rf-save-indicator .rf-save-text {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1120px) {
+  .rf-nav-pill--external,
+  .rf-header__divider--nav {
+    display: none !important;
+  }
+
+  .rf-cmd-btn .rf-kbd {
+    display: none !important;
+  }
+}
+
+@media (max-width: 980px) {
+  .rf-nav-pill .rf-pill-text {
+    display: none !important;
+  }
+
+  .rf-nav-pill {
+    padding: 6px 8px;
   }
 }
