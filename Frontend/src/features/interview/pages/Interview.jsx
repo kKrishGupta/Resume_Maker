@@ -602,7 +602,6 @@ const Interview = () => {
                                         />
                                     ))}
                                 </div>
-                                <div className="content-scroll-spacer" style={{ height: "120px", width: "100%", flexShrink: 0 }} />
                             </section>
                         )}
 
@@ -639,7 +638,6 @@ const Interview = () => {
                                         <QuestionCard key={i} item={q} index={i} />
                                     ))}
                                 </div>
-                                <div className="content-scroll-spacer" style={{ height: "120px", width: "100%", flexShrink: 0 }} />
                             </section>
                         )}
 
@@ -656,7 +654,6 @@ const Interview = () => {
                                         <RoadMapDay key={day.day} day={day} onUpdateDay={handleUpdateDay} />
                                     ))}
                                 </div>
-                                <div className="content-scroll-spacer" style={{ height: "120px", width: "100%", flexShrink: 0 }} />
                             </section>
                         )}
 
@@ -675,7 +672,6 @@ const Interview = () => {
                                     onReAnalyze={handleReAnalyze}
                                     isReAnalyzing={isReAnalyzing}
                                 />
-                                <div className="content-scroll-spacer" style={{ height: "120px", width: "100%", flexShrink: 0 }} />
                             </section>
                         )}
                     </main>
@@ -691,7 +687,6 @@ const Interview = () => {
                             onReAnalyze={handleReAnalyze}
                             isReAnalyzing={isReAnalyzing}
                         />
-                        <div className="content-scroll-spacer" style={{ height: "120px", width: "100%", flexShrink: 0 }} />
                     </aside>
                 </div>
 

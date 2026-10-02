@@ -277,23 +277,22 @@ $severity-low:    #10b981;
     min-width: 0;
     height: 100%;
     max-height: 100%;
-    padding: 1.5rem 2rem 5rem;
+    padding: 1.25rem 1.75rem 1.5rem;
     overflow-y: auto;
     overscroll-behavior: contain;
     box-sizing: border-box;
 
     @media (max-width: 960px) {
-        padding: 1.25rem 0.85rem 3.5rem;
+        padding: 1rem 0.85rem 1.5rem;
         height: auto;
         max-height: none;
         overflow: visible;
     }
 
     section {
-        min-height: 100%;
         display: flex;
         flex-direction: column;
-        padding-bottom: 2.5rem;
+        padding-bottom: 0.5rem;
     }
 }
 
@@ -763,7 +762,7 @@ $severity-low:    #10b981;
     flex-shrink: 0;
     height: 100%;
     max-height: 100%;
-    padding: 1.5rem 1.25rem 5rem;
+    padding: 1.25rem 1.15rem 1.5rem;
     overflow-y: auto;
     overscroll-behavior: contain;
     background: rgba(11, 16, 28, 0.4);
