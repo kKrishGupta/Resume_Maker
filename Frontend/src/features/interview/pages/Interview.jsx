@@ -185,11 +185,20 @@ const RoadMapDay = ({ day, onUpdateDay }) => {
 };
 
 // ── Reusable Analysis Panel Component ────────────────────────────────────────
-// ── Reusable Analysis Panel Component ────────────────────────────────────────
-const AnalysisPanel = ({ report, openSection, setOpenSection, onReAnalyze, isReAnalyzing }) => {
+const AnalysisPanel = ({ report, onReAnalyze, isReAnalyzing }) => {
     if (!report) return null;
 
     const [copiedBullet, setCopiedBullet] = useState(null);
+    const [collapsed, setCollapsed] = useState({});
+
+    const toggleSection = (key) => {
+        setCollapsed(prev => ({
+            ...prev,
+            [key]: !prev[key]
+        }));
+    };
+
+    const isSectionOpen = (key) => !collapsed[key];
 
     // Dynamic, resilient fallbacks so the panel is never empty
     const rawKeywords = Array.isArray(report.missingKeywords) && report.missingKeywords.length > 0
@@ -294,19 +303,26 @@ const AnalysisPanel = ({ report, openSection, setOpenSection, onReAnalyze, isReA
             <div className="analysis-card">
                 <div
                     className="analysis-card__header"
-                    onClick={() => setOpenSection(prev => (prev === "keywords" ? null : "keywords"))}
+                    onClick={() => toggleSection("keywords")}
                 >
                     <span className="card-title">
                         <span className="icon">🎯</span> Missing Keywords
                     </span>
-                    <span className="pill-badge">{rawKeywords.length}</span>
+                    <div className="card-header-right">
+                        <span className="pill-badge">{rawKeywords.length}</span>
+                        <span className={`chevron-icon ${isSectionOpen("keywords") ? "chevron-icon--open" : ""}`}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </span>
+                    </div>
                 </div>
 
-                {(openSection === "keywords" || openSection === null) && (
+                {isSectionOpen("keywords") && (
                     <div className="analysis-card__body">
                         <div className="analysis-tags-wrap">
                             {rawKeywords.map((item, i) => (
-                                <span key={i} className="keyword-tag" title="Click to copy keyword" onClick={() => navigator.clipboard.writeText(item)}>
+                                <span key={i} className="keyword-tag" title="Click to copy keyword" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(item); }}>
                                     + {item}
                                 </span>
                             ))}
@@ -320,14 +336,21 @@ const AnalysisPanel = ({ report, openSection, setOpenSection, onReAnalyze, isReA
             <div className="analysis-card">
                 <div 
                     className="analysis-card__header"
-                    onClick={() => setOpenSection(prev => (prev === "projects" ? null : "projects"))}
+                    onClick={() => toggleSection("projects")}
                 >
                     <span className="card-title">
                         <span className="icon">⚠️</span> Project Critique
                     </span>
-                    <span className="pill-badge pill-badge--neutral">{rawCritique.length}</span>
+                    <div className="card-header-right">
+                        <span className="pill-badge pill-badge--neutral">{rawCritique.length}</span>
+                        <span className={`chevron-icon ${isSectionOpen("projects") ? "chevron-icon--open" : ""}`}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </span>
+                    </div>
                 </div>
-                {(openSection === "projects" || openSection === null) && (
+                {isSectionOpen("projects") && (
                     <div className="analysis-card__body">
                         {rawCritique.map((item, i) => (
                             <p key={i} className="analysis-text warning">• {item}</p>
@@ -340,14 +363,21 @@ const AnalysisPanel = ({ report, openSection, setOpenSection, onReAnalyze, isReA
             <div className="analysis-card">
                 <div 
                     className="analysis-card__header"
-                    onClick={() => setOpenSection(prev => (prev === "improvements" ? null : "improvements"))}
+                    onClick={() => toggleSection("improvements")}
                 >
                     <span className="card-title">
                         <span className="icon">💡</span> Strategic Improvements
                     </span>
-                    <span className="pill-badge pill-badge--neutral">{rawImprovements.length}</span>
+                    <div className="card-header-right">
+                        <span className="pill-badge pill-badge--neutral">{rawImprovements.length}</span>
+                        <span className={`chevron-icon ${isSectionOpen("improvements") ? "chevron-icon--open" : ""}`}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </span>
+                    </div>
                 </div>
-                {(openSection === "improvements" || openSection === null) && (
+                {isSectionOpen("improvements") && (
                     <div className="analysis-card__body">
                         {rawImprovements.map((item, i) => (
                             <p key={i} className="analysis-text">• {item}</p>
@@ -360,14 +390,21 @@ const AnalysisPanel = ({ report, openSection, setOpenSection, onReAnalyze, isReA
             <div className="analysis-card">
                 <div 
                     className="analysis-card__header"
-                    onClick={() => setOpenSection(prev => (prev === "bullets" ? null : "bullets"))}
+                    onClick={() => toggleSection("bullets")}
                 >
                     <span className="card-title">
                         <span className="icon">✨</span> Resume Bullet Points
                     </span>
-                    <span className="pill-badge pill-badge--neutral">{rawBullets.length}</span>
+                    <div className="card-header-right">
+                        <span className="pill-badge pill-badge--neutral">{rawBullets.length}</span>
+                        <span className={`chevron-icon ${isSectionOpen("bullets") ? "chevron-icon--open" : ""}`}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </span>
+                    </div>
                 </div>
-                {(openSection === "bullets" || openSection === null) && (
+                {isSectionOpen("bullets") && (
                     <div className="analysis-card__body">
                         {rawBullets.map((item, i) => (
                             <div key={i} className="boost-bullet">
@@ -376,7 +413,7 @@ const AnalysisPanel = ({ report, openSection, setOpenSection, onReAnalyze, isReA
                                 <button 
                                     type="button" 
                                     className="copy-bullet-btn"
-                                    onClick={() => handleCopy(item, i)}
+                                    onClick={(e) => { e.stopPropagation(); handleCopy(item, i); }}
                                     title="Copy bullet to clipboard"
                                 >
                                     {copiedBullet === i ? "✓ Copied" : "Copy"}
@@ -391,14 +428,21 @@ const AnalysisPanel = ({ report, openSection, setOpenSection, onReAnalyze, isReA
             <div className="analysis-card">
                 <div 
                     className="analysis-card__header"
-                    onClick={() => setOpenSection(prev => (prev === "skills" ? null : "skills"))}
+                    onClick={() => toggleSection("skills")}
                 >
                     <span className="card-title">
                         <span className="icon">📊</span> Skill Gap Priorities
                     </span>
-                    <span className="pill-badge pill-badge--neutral">{rawSkillGaps.length}</span>
+                    <div className="card-header-right">
+                        <span className="pill-badge pill-badge--neutral">{rawSkillGaps.length}</span>
+                        <span className={`chevron-icon ${isSectionOpen("skills") ? "chevron-icon--open" : ""}`}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </span>
+                    </div>
                 </div>
-                {(openSection === "skills" || openSection === null) && (
+                {isSectionOpen("skills") && (
                     <div className="analysis-card__body">
                         <div className='skill-gaps-list'>
                             {rawSkillGaps.map((gap, i) => (
@@ -427,7 +471,6 @@ const Interview = () => {
     const [showScrollTop, setShowScrollTop] = useState(false);
     const [behavioralQuestions, setBehavioralQuestions] = useState([]);
     const [generatingBehavioral, setGeneratingBehavioral] = useState(false);
-    const [openSection, setOpenSection] = useState(null);
     const navigate = useNavigate();
 
     const handleReAnalyze = async () => {
@@ -667,8 +710,6 @@ const Interview = () => {
                                 </div>
                                 <AnalysisPanel
                                     report={report}
-                                    openSection={openSection}
-                                    setOpenSection={setOpenSection}
                                     onReAnalyze={handleReAnalyze}
                                     isReAnalyzing={isReAnalyzing}
                                 />
@@ -682,8 +723,6 @@ const Interview = () => {
                     <aside className='interview-sidebar'>
                         <AnalysisPanel
                             report={report}
-                            openSection={openSection}
-                            setOpenSection={setOpenSection}
                             onReAnalyze={handleReAnalyze}
                             isReAnalyzing={isReAnalyzing}
                         />

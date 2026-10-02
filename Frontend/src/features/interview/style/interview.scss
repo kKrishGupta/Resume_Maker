@@ -974,6 +974,26 @@ $severity-low:    #10b981;
                 }
             }
 
+            .card-header-right {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .chevron-icon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                color: $text-muted;
+                transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s ease;
+                transform: rotate(-90deg);
+
+                &--open {
+                    transform: rotate(0deg);
+                    color: #ffffff;
+                }
+            }
+
             .pill-badge {
                 font-size: 0.72rem;
                 font-weight: 700;
@@ -996,6 +1016,7 @@ $severity-low:    #10b981;
             display: flex;
             flex-direction: column;
             gap: 0.55rem;
+            animation: fadeInBody 0.2s ease-out;
         }
 
         .analysis-tags-wrap {
@@ -1174,5 +1195,16 @@ $severity-low:    #10b981;
         background: $accent;
         border-color: $accent;
         transform: translateY(-2px);
+    }
+}
+
+@keyframes fadeInBody {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
