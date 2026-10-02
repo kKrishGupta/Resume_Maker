@@ -19,7 +19,7 @@ const getBaseURL = () => {
 const api = axios.create({
   baseURL: getBaseURL(),
   withCredentials: true,
-  timeout: 8000 // 8 second timeout to prevent any hung network requests
+  timeout: 20000 // 20 second timeout for reliable AI queries and authentication
 });
 
 // 🔐 attach token automatically

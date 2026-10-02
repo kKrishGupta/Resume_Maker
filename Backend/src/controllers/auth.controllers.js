@@ -35,8 +35,8 @@ async function registerUser(req, res) {
     password: hash
   });
 
-   // ✅ SEND MAIL (non-blocking safe)
-  await sendMail("register", user);
+   // Send email asynchronously in background (non-blocking)
+  sendMail("register", user).catch((err) => console.error("Register mail error:", err.message));
 
   const token = jwt.sign(
     { id: user._id, username: user.username },
@@ -90,9 +90,8 @@ async function loginUser(req, res) {
     });
   }
 
-   // ✅ SEND LOGIN ALERT MAIL
-  
-  await sendMail("login", user);
+   // Send login alert asynchronously in background (non-blocking)
+  sendMail("login", user).catch((err) => console.error("Login alert mail error:", err.message));
 
   const token = jwt.sign(
     { id: user._id, username: user.username },
