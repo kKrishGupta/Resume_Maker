@@ -40,8 +40,9 @@ $severity-low:    #10b981;
 // ── Page Shell (Fixed Desktop SaaS Viewport) ──────────────────────────────────
 .interview-page {
     width: 100%;
-    height: calc(100vh - 60px);
-    max-height: calc(100vh - 60px);
+    min-height: calc(100vh - 68px);
+    height: calc(100vh - 68px);
+    max-height: calc(100vh - 68px);
     overflow: hidden;
     background: 
         radial-gradient(circle at 10% 10%, rgba(99, 102, 241, 0.1), transparent 40%),
@@ -56,6 +57,7 @@ $severity-low:    #10b981;
 
     @media (max-width: 960px) {
         height: auto;
+        min-height: calc(100vh - 68px);
         max-height: none;
         overflow: visible;
         padding: 0.75rem 0.5rem 2rem;
@@ -248,18 +250,25 @@ $severity-low:    #10b981;
 .interview-content {
     flex: 1;
     min-width: 0;
-    padding: 1.75rem 2rem;
+    height: 100%;
+    max-height: 100%;
+    padding: 1.5rem 2rem 5rem;
     overflow-y: auto;
-    max-height: calc(100vh - 4rem);
+    overscroll-behavior: contain;
+    box-sizing: border-box;
 
     @media (max-width: 960px) {
-        padding: 1.25rem 0.85rem;
+        padding: 1.25rem 0.85rem 3.5rem;
+        height: auto;
         max-height: none;
         overflow: visible;
     }
 
     section {
         min-height: 100%;
+        display: flex;
+        flex-direction: column;
+        padding-bottom: 2.5rem;
     }
 }
 
@@ -582,12 +591,20 @@ $severity-low:    #10b981;
     }
 }
 
-// ── Road Map ──────────────────────────────────────────────────────────────────
+// ── Road Map & Question Lists ────────────────────────────────────────────────
+.q-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-bottom: 4.5rem;
+}
+
 .roadmap-list {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
     position: relative;
+    padding-bottom: 4.5rem;
 }
 
 .roadmap-day {
@@ -718,9 +735,13 @@ $severity-low:    #10b981;
 .interview-sidebar {
     width: 300px;
     flex-shrink: 0;
-    padding: 1.5rem 1.25rem;
+    height: 100%;
+    max-height: 100%;
+    padding: 1.5rem 1.25rem 5rem;
     overflow-y: auto;
+    overscroll-behavior: contain;
     background: rgba(11, 16, 28, 0.4);
+    box-sizing: border-box;
 
     @media (max-width: 960px) {
         display: none; // Hidden on mobile; user accesses via "Match & Skills" tab!
