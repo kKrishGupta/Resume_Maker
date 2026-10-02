@@ -37,11 +37,11 @@ const NAV_ITEMS = [
 // ── Question Card Component ──────────────────────────────────────────────────
 const QuestionCard = ({ item, index, isBehavioral = false }) => {
     const [open, setOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState('answer'); // 'answer' | 'intention' | 'practice' | 'followups'
     const [followUps, setFollowUps] = useState([]);
     const [loadingFollow, setLoadingFollow] = useState(false);
     const [confidence, setConfidence] = useState(null); // 'confident' | 'practice' | null
     const [practiceAnswer, setPracticeAnswer] = useState("");
-    const [showPractice, setShowPractice] = useState(false);
 
     // Resilient question text extraction
     const questionText = typeof item === 'string'
@@ -59,7 +59,7 @@ const QuestionCard = ({ item, index, isBehavioral = false }) => {
     const topicText = typeof item === 'object' && item?.topic 
         ? item.topic 
         : isBehavioral 
-            ? "STAR Framework · Behavioral" 
+            ? "Behavioral · STAR Framework" 
             : (index % 3 === 0 ? "System Architecture & Design" : index % 2 === 0 ? "Data Flow & Concurrency" : "API & Distributed Systems");
 
     const difficultyText = typeof item === 'object' && item?.difficulty
@@ -77,26 +77,23 @@ const QuestionCard = ({ item, index, isBehavioral = false }) => {
 
             if (data?.followUps) {
                 setFollowUps(data.followUps);
+                setActiveTab('followups');
                 setOpen(true);
             }
         } catch (err) {
             console.error(err);
-            alert(err?.response?.data?.message || err?.message || "Failed to generate follow-up questions");
         } finally {
             setLoadingFollow(false);
         }
     };
 
     return (
-        <div className={`q-card ${open ? 'q-card--expanded' : ''} ${confidence ? `q-card--${confidence}` : ''}`}>
-            {/* Header / Question Banner */}
+        <article className={`q-card ${open ? 'q-card--expanded' : ''} ${confidence ? `q-card--${confidence}` : ''}`}>
+            {/* Header / Clickable Question Strip */}
             <div className='q-card__header' onClick={() => setOpen(o => !o)}>
-                <div className="q-card__index-col">
-                    <span className='q-card__index'>Q{String(index + 1).padStart(2, '0')}</span>
-                </div>
-
-                <div className="q-card__meta-content">
-                    <div className="q-card__tags-row">
+                <div className="q-card__top-strip">
+                    <div className="q-card__badge-cluster">
+                        <span className='q-card__index'>Q{String(index + 1).padStart(2, '0')}</span>
                         <span className="q-card__topic">{topicText}</span>
                         <span className={`q-card__diff q-card__diff--${difficultyText.toLowerCase()}`}>
                             {difficultyText}
@@ -112,122 +109,159 @@ const QuestionCard = ({ item, index, isBehavioral = false }) => {
                             </span>
                         )}
                     </div>
-                    <p className='q-card__question'>{questionText}</p>
+
+                    <div className="q-card__actions" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            type="button"
+                            className="follow-btn"
+                            onClick={handleFollowUp}
+                            title="Generate AI probing questions"
+                            disabled={loadingFollow}
+                        >
+                            <Sparkles size={13} />
+                            <span>{loadingFollow ? "Synthesizing..." : "Follow-up"}</span>
+                        </button>
+
+                        <button 
+                            type="button" 
+                            className="q-card__chevron-btn"
+                            onClick={() => setOpen(o => !o)}
+                            aria-label={open ? "Collapse details" : "Expand details"}
+                        >
+                            {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                        </button>
+                    </div>
                 </div>
 
-                <div className="q-card__actions" onClick={(e) => e.stopPropagation()}>
-                    <button
-                        type="button"
-                        className="follow-btn"
-                        onClick={handleFollowUp}
-                        title="Generate follow-up probing questions"
-                        disabled={loadingFollow}
-                    >
-                        <MessageSquare size={13} />
-                        <span>{loadingFollow ? "Synthesizing..." : "Follow-up"}</span>
-                    </button>
-
-                    <button 
-                        type="button" 
-                        className="q-card__chevron-btn"
-                        onClick={() => setOpen(o => !o)}
-                        aria-label={open ? "Collapse details" : "Expand details"}
-                    >
-                        {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                    </button>
-                </div>
+                <h3 className='q-card__question'>{questionText}</h3>
             </div>
 
-            {/* Expanded Content */}
+            {/* Expanded Content with Clean Segmented Tabs */}
             {open && (
                 <div className='q-card__body'>
-                    {/* Intention Section */}
-                    <div className='q-card__section'>
-                        <span className='q-card__tag q-card__tag--intention'>
-                            <HelpCircle size={12} /> Interviewer's Evaluation Goal
-                        </span>
-                        <p>{intentionText}</p>
-                    </div>
-
-                    {/* Model Answer Section */}
-                    <div className='q-card__section'>
-                        <span className='q-card__tag q-card__tag--answer'>
-                            <CheckCircle2 size={12} /> Recommended Framework & Model Answer
-                        </span>
-                        <p>{answerText}</p>
-                    </div>
-
-                    {/* Interactive Practice Box */}
-                    <div className="q-card__practice-bar">
-                        <div className="confidence-selector">
-                            <span className="selector-label">Confidence:</span>
-                            <button
-                                type="button"
-                                className={`conf-btn ${confidence === 'confident' ? 'is-active' : ''}`}
-                                onClick={() => setConfidence(confidence === 'confident' ? null : 'confident')}
-                            >
-                                <Check size={12} /> Confident
-                            </button>
-                            <button
-                                type="button"
-                                className={`conf-btn ${confidence === 'practice' ? 'is-active' : ''}`}
-                                onClick={() => setConfidence(confidence === 'practice' ? null : 'practice')}
-                            >
-                                <HelpCircle size={12} /> Review Later
-                            </button>
-                        </div>
+                    {/* View Switcher Tabs */}
+                    <div className="q-card__view-tabs" role="tablist">
+                        <button
+                            type="button"
+                            className={`q-card__tab ${activeTab === 'answer' ? 'is-active' : ''}`}
+                            onClick={() => setActiveTab('answer')}
+                        >
+                            <CheckCircle2 size={13} /> Model Answer & Framework
+                        </button>
 
                         <button
                             type="button"
-                            className="toggle-practice-btn"
-                            onClick={() => setShowPractice(p => !p)}
+                            className={`q-card__tab ${activeTab === 'intention' ? 'is-active' : ''}`}
+                            onClick={() => setActiveTab('intention')}
                         >
-                            <Edit3 size={13} /> {showPractice ? "Hide Practice Draft" : "Draft Your Answer"}
+                            <HelpCircle size={13} /> Evaluation Goal
                         </button>
+
+                        <button
+                            type="button"
+                            className={`q-card__tab ${activeTab === 'practice' ? 'is-active' : ''}`}
+                            onClick={() => setActiveTab('practice')}
+                        >
+                            <Edit3 size={13} /> Practice Notes {practiceAnswer ? `(${practiceAnswer.length})` : ''}
+                        </button>
+
+                        {followUps.length > 0 && (
+                            <button
+                                type="button"
+                                className={`q-card__tab q-card__tab--probes ${activeTab === 'followups' ? 'is-active' : ''}`}
+                                onClick={() => setActiveTab('followups')}
+                            >
+                                <Sparkles size={13} /> Probes ({followUps.length})
+                            </button>
+                        )}
                     </div>
 
-                    {showPractice && (
-                        <div className="practice-draft-area">
-                            <textarea
-                                value={practiceAnswer}
-                                onChange={(e) => setPracticeAnswer(e.target.value)}
-                                placeholder={isBehavioral 
-                                    ? "Outline your STAR response:\n• Situation: The context & problem...\n• Task: Your responsibility...\n• Action: Concrete technical steps you took...\n• Result: Measurable outcome (%, scale, speed)..."
-                                    : "Structure your technical points, trade-offs, architecture decisions, and edge-cases here..."
-                                }
-                                rows={4}
-                            />
-                            <div className="practice-draft-footer">
-                                <span className="char-note">{practiceAnswer.length} characters</span>
-                                <span className="autosave-note">Self-practice notes preserved in session</span>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Follow-up Questions Probes */}
-                    {followUps.length > 0 && (
-                        <div className="followups">
-                            <p className="followups-title">
-                                <Sparkles size={14} /> Potential Follow-Up Probes
-                            </p>
-                            {followUps.map((f, i) => (
-                                <div key={i} className="followup-card">
-                                    <p className="followup-question">👉 {f.question || f.q}</p>
-                                    <div className="followup-section">
-                                        <span className="tag intention">Intention</span>
-                                        <p>{f.intention || f.intent}</p>
-                                    </div>
-                                    <div className="followup-section">
-                                        <span className="tag answer">Model Answer</span>
-                                        <p>{f.answer || f.modelAnswer}</p>
-                                    </div>
+                    {/* Tab Panes */}
+                    <div className="q-card__tab-content">
+                        {activeTab === 'answer' && (
+                            <div className='q-card__section q-card__section--answer'>
+                                <div className="section-callout-header">
+                                    <span className="badge-tag">Recommended Response</span>
+                                    <span className="hint-tag">Core technical reasoning</span>
                                 </div>
-                            ))}
+                                <p className="model-answer-text">{answerText}</p>
+                            </div>
+                        )}
+
+                        {activeTab === 'intention' && (
+                            <div className='q-card__section q-card__section--intention'>
+                                <div className="section-callout-header">
+                                    <span className="badge-tag">Recruiter Evaluation Goal</span>
+                                    <span className="hint-tag">What the interviewer evaluates</span>
+                                </div>
+                                <p className="intention-text">{intentionText}</p>
+                            </div>
+                        )}
+
+                        {activeTab === 'practice' && (
+                            <div className="practice-draft-area">
+                                <label className="practice-label">Self-Paced Practice Notepad</label>
+                                <textarea
+                                    value={practiceAnswer}
+                                    onChange={(e) => setPracticeAnswer(e.target.value)}
+                                    placeholder={isBehavioral 
+                                        ? "Apply STAR framework:\n• Situation: Describe the background and project scope...\n• Task: What specific problem or milestone were you assigned?\n• Action: Technical decisions, architecture choices, steps taken...\n• Result: Measurable outcome (speed, reliability %, impact)..."
+                                        : "Draft your talking points, trade-offs, architecture decisions, and failure modes..."
+                                    }
+                                    rows={5}
+                                />
+                                <div className="practice-draft-footer">
+                                    <span className="char-note">{practiceAnswer.length} characters</span>
+                                    <span className="autosave-note">Preserved for this session</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'followups' && followUps.length > 0 && (
+                            <div className="followups">
+                                <p className="followups-title">
+                                    <Sparkles size={14} /> Potential Follow-Up Probing Questions
+                                </p>
+                                {followUps.map((f, i) => (
+                                    <div key={i} className="followup-card">
+                                        <p className="followup-question">👉 {f.question || f.q}</p>
+                                        <div className="followup-section">
+                                            <span className="tag intention">Intention</span>
+                                            <p>{f.intention || f.intent}</p>
+                                        </div>
+                                        <div className="followup-section">
+                                            <span className="tag answer">Model Answer</span>
+                                            <p>{f.answer || f.modelAnswer}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Quick Confidence Bar */}
+                    <div className="q-card__confidence-bar">
+                        <span className="selector-label">Readiness Assessment:</span>
+                        <div className="confidence-buttons">
+                            <button
+                                type="button"
+                                className={`conf-btn conf-btn--confident ${confidence === 'confident' ? 'is-active' : ''}`}
+                                onClick={() => setConfidence(confidence === 'confident' ? null : 'confident')}
+                            >
+                                <Check size={13} /> <span>Mastered</span>
+                            </button>
+                            <button
+                                type="button"
+                                className={`conf-btn conf-btn--practice ${confidence === 'practice' ? 'is-active' : ''}`}
+                                onClick={() => setConfidence(confidence === 'practice' ? null : 'practice')}
+                            >
+                                <HelpCircle size={13} /> <span>Needs Review</span>
+                            </button>
                         </div>
-                    )}
+                    </div>
                 </div>
             )}
-        </div>
+        </article>
     );
 };
 
