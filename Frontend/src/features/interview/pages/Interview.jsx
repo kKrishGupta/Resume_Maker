@@ -841,7 +841,6 @@ const Interview = () => {
     const [generatingBehavioral, setGeneratingBehavioral] = useState(false);
     const [isReAnalyzing, setIsReAnalyzing] = useState(false);
     const [showScrollTop, setShowScrollTop] = useState(false);
-    const [showSidebar, setShowSidebar] = useState(true);
 
     const contentRef = useRef(null);
 
@@ -1110,35 +1109,7 @@ const Interview = () => {
                         )}
                     </main>
 
-                    {/* ── Right Sidebar (Desktop only - 3rd column) ── */}
-                    {showSidebar && (
-                        <>
-                            <div className='interview-divider interview-divider--sidebar' />
-                            <aside className='interview-sidebar'>
-                                <div className="interview-sidebar__header">
-                                    <div className="interview-sidebar__header-left">
-                                        <span className="sidebar-header-icon"><Target size={14} /></span>
-                                        <span className="interview-sidebar__title">Role Intelligence</span>
-                                        <span className="sidebar-live-pill">LIVE ATS</span>
-                                    </div>
-                                    <button 
-                                        type="button"
-                                        className="sidebar-close-btn"
-                                        onClick={() => setShowSidebar(false)}
-                                        title="Collapse sidebar"
-                                        aria-label="Collapse sidebar"
-                                    >
-                                        <X size={15} />
-                                    </button>
-                                </div>
-                                <AnalysisPanel
-                                    report={report}
-                                    onReAnalyze={handleReAnalyze}
-                                    isReAnalyzing={isReAnalyzing}
-                                />
-                            </aside>
-                        </>
-                    )}
+                    
                 </div>
 
                 {showScrollTop && (
