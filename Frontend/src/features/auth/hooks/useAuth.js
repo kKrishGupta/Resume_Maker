@@ -100,28 +100,34 @@ export const useAuth = () => {
     }
 
     useEffect(() => {
-
         const getAndSetUser = async () => {
-    try {
-        const data = await getMe();
+            const token = localStorage.getItem("token");
+            if (!token) {
+                setUser(null);
+                setLoading(false);
+                return;
+            }
 
-        // ✅ HANDLE LOGOUT CASE
-        if (!data || !data.user) {
-            setUser(null);
-            return;
-        }
+            try {
+                const data = await getMe();
 
-        setUser(data.user);
+                // ✅ HANDLE LOGOUT / EXPIRED TOKEN CASE
+                if (!data || !data.user) {
+                    localStorage.removeItem("token");
+                    setUser(null);
+                    return;
+                }
 
-    } catch (err) {
-        setUser(null); // fallback safety
-    } finally {
-        setLoading(false);
-    }
-};
+                setUser(data.user);
+            } catch (err) {
+                localStorage.removeItem("token");
+                setUser(null);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-        getAndSetUser()
-
+        getAndSetUser();
     }, [])
 
     return { user, loading, handleRegister, handleLogin, handleLogout,handleSendOtp,

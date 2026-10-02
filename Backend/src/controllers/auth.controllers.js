@@ -44,12 +44,13 @@ async function registerUser(req, res) {
     { expiresIn: "1d" }
   );
 
-  const isProduction = process.env.NODE_ENV === "production";
+  const isProduction = process.env.NODE_ENV === "production" || process.env.RENDER === "true" || process.env.VERCEL;
   res.cookie("token", token, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? "None" : "Lax",
-    path: "/"
+    sameSite: isProduction ? "none" : "lax",
+    path: "/",
+    maxAge: 24 * 60 * 60 * 1000
   });
 
   res.status(201).json({
@@ -99,12 +100,13 @@ async function loginUser(req, res) {
     { expiresIn: "1d" }
   );
 
-  const isProduction = process.env.NODE_ENV === "production";
+  const isProduction = process.env.NODE_ENV === "production" || process.env.RENDER === "true" || process.env.VERCEL;
   res.cookie("token", token, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? "None" : "Lax",
-    path: "/"
+    sameSite: isProduction ? "none" : "lax",
+    path: "/",
+    maxAge: 24 * 60 * 60 * 1000
   });
 
   res.status(200).json({
@@ -191,12 +193,13 @@ async function loginWithOtp(req, res) {
       { expiresIn: "1d" }
     );
 
-    const isProduction = process.env.NODE_ENV === "production";
+    const isProduction = process.env.NODE_ENV === "production" || process.env.RENDER === "true" || process.env.VERCEL;
     res.cookie("token", token, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? "None" : "Lax",
-      path: "/"
+      sameSite: isProduction ? "none" : "lax",
+      path: "/",
+      maxAge: 24 * 60 * 60 * 1000
     });
 
     return res.status(200).json({
@@ -219,8 +222,8 @@ async function loginWithOtp(req, res) {
 
 const logoutUser = async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    const token = req.cookies?.token || (authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null);
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    const token = (authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null) || req.cookies?.token;
 
     if (token) {
       try {
@@ -231,11 +234,11 @@ const logoutUser = async (req, res) => {
       }
     }
 
-    const isProduction = process.env.NODE_ENV === "production";
+    const isProduction = process.env.NODE_ENV === "production" || process.env.RENDER === "true" || process.env.VERCEL;
     res.clearCookie("token", {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? "None" : "Lax",
+      sameSite: isProduction ? "none" : "lax",
       path: "/"
     });
 

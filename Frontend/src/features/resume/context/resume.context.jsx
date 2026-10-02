@@ -76,15 +76,18 @@ function resumeReducer(state, action) {
         isDirty: false,
       };
 
-    case ACTIONS.UPDATE_RESUME:
+    case ACTIONS.UPDATE_RESUME: {
+      const currentResume = state.resume || {};
+      const updates = typeof action.payload === 'function' ? action.payload(currentResume) : action.payload;
       return {
         ...state,
         resume: {
-          ...state.resume,
-          ...action.payload,
+          ...currentResume,
+          ...updates,
         },
         isDirty: true,
       };
+    }
 
     case ACTIONS.SET_DIRTY:
       return {
@@ -148,6 +151,12 @@ export function ResumeProvider({ children }) {
    * Fetch resume from API
    */
   const fetchResume = useCallback(async () => {
+    const token = typeof localStorage !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) {
+      dispatch({ type: ACTIONS.SET_LOADING, payload: false });
+      return;
+    }
+
     dispatch({ type: ACTIONS.SET_LOADING, payload: true });
 
     try {

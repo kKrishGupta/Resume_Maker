@@ -2,7 +2,7 @@ import api from "../../../utils/api.js";
 
 export const sendMonitorEvent = async({sessionId,type}) =>{
   try{
-    const res = await api.post("/monitor/event",{
+    const res = await api.post("/api/monitor/event",{
       sessionId,
       type
     });

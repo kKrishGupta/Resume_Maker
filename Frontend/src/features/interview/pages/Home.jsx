@@ -23,12 +23,26 @@ const Home = () => {
     };
 
     const handleGenerateReport = async () => {
-        try {
-            if (!resumeFile && !selfDescription) {
-                alert("Please upload a resume or provide a self-description to continue.");
-                return;
-            }
+        const hasJobDesc = Boolean(jobDescription && jobDescription.trim());
+        const hasResume = Boolean(resumeFile);
+        const hasSelfDesc = Boolean(selfDescription && selfDescription.trim());
 
+        if (!hasJobDesc && !hasResume && !hasSelfDesc) {
+            alert("Please provide a Job Description and either upload a Resume or enter a Self-Description.");
+            return;
+        }
+
+        if (!hasJobDesc) {
+            alert("Please provide a Target Job Description.");
+            return;
+        }
+
+        if (!hasResume && !hasSelfDesc) {
+            alert("Please upload a Resume or enter a Quick Self-Description.");
+            return;
+        }
+
+        try {
             setIsGenerating(true);
             const data = await generateReport({
                 jobDescription,
@@ -37,14 +51,15 @@ const Home = () => {
             });
 
             if (!data || !data._id) {
-                alert("Failed to generate interview report. Please try again.");
+                alert("Could not generate interview report. Please check your inputs and try again.");
                 return;
             }
 
             navigate(`/interview/${data._id}`);
         } catch (err) {
-            console.error(err);
-            alert("Something went wrong while generating the report.");
+            console.error("[Generate Report Error]:", err);
+            const errorMessage = err?.response?.data?.message || err?.message || "An error occurred while generating the report. Please try again.";
+            alert(errorMessage);
         } finally {
             setIsGenerating(false);
         }
@@ -59,7 +74,7 @@ const Home = () => {
             setReports(prev => prev.filter(report => report._id !== id));
         } catch (err) {
             console.error(err);
-            alert("Failed to delete report");
+            alert(err?.response?.data?.message || err?.message || "Failed to delete report");
         }
     };
 

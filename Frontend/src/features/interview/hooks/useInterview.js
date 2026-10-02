@@ -43,7 +43,7 @@ export const useInterview = () => {
 
     } catch (err) {
       console.error(err);
-      return null;
+      throw err;
     } finally {
       setLoading(false);
     }

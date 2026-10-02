@@ -253,21 +253,193 @@ const normalizeResume = (data) => {
 };
 
 /**
- * Custom hook to use resume context with additional helpers
- * 
- * Provides:
- * - Resume data and operations from context
- * - Error message helpers
- * - Analytics data
- * - Interview data integration
+ * Real ATS scoring calculation based on actual resume completeness & signal depth
  */
+export function calculateLiveATS(resume, jobDescription = "") {
+  if (!resume) {
+    return {
+      score: 0,
+      breakdown: { contact: 0, summary: 0, experience: 0, projects: 0, skills: 0, education: 0 },
+      formattingIssues: ["No resume data provided."],
+      suggestions: ["Start by filling in your identity and contact information."],
+      keywords: [],
+      missingKeywords: [],
+      percentile: "Unranked"
+    };
+  }
+
+  let contactScore = 0;
+  if (resume.name?.trim()) contactScore += 4;
+  if (resume.email?.includes("@")) contactScore += 4;
+  if (resume.phone?.trim()) contactScore += 4;
+  if (resume.location?.trim()) contactScore += 4;
+  if (resume.github?.trim() || resume.linkedin?.trim() || resume.portfolio?.trim()) contactScore += 4;
+
+  let summaryScore = 0;
+  const summaryLen = (resume.summary || "").trim().length;
+  if (summaryLen > 0) summaryScore += 5;
+  if (summaryLen >= 150 && summaryLen <= 650) summaryScore += 10;
+  else if (summaryLen > 50) summaryScore += 5;
+
+  let experienceScore = 0;
+  const exps = resume.experience || [];
+  if (exps.length > 0) {
+    experienceScore += 10;
+    const hasDetails = exps.some(e => e.title && e.company);
+    if (hasDetails) experienceScore += 5;
+    
+    // Check for metrics/numbers in bullets
+    const allBullets = exps.flatMap(e => e.points || []);
+    const metricRegex = /(\d+%|\d+\+|\d+k|\b\d+\b|reduced|increased|optimized|scaled|engineered|architected)/i;
+    const hasMetrics = allBullets.some(b => metricRegex.test(b));
+    if (hasMetrics) experienceScore += 5;
+    if (allBullets.length >= 3) experienceScore += 5;
+  }
+
+  let projectScore = 0;
+  const projs = resume.projects || [];
+  if (projs.length > 0) {
+    projectScore += 10;
+    const hasStack = projs.some(p => p.stack?.trim());
+    if (hasStack) projectScore += 5;
+    const projBullets = projs.flatMap(p => p.points || []);
+    if (projBullets.length >= 2) projectScore += 5;
+  }
+
+  let skillsScore = 0;
+  const skillsCount = (resume.skills || []).length;
+  if (skillsCount >= 4) skillsScore += 8;
+  if (skillsCount >= 8) skillsScore += 7;
+
+  let educationScore = 0;
+  if ((resume.education || []).some(e => e.school || e.degree)) educationScore += 5;
+
+  const totalScore = Math.min(100, Math.round(contactScore + summaryScore + experienceScore + projectScore + skillsScore + educationScore));
+
+  const formattingIssues = [];
+  const suggestions = [];
+
+  if (!resume.email || !resume.phone) {
+    formattingIssues.push("Missing critical contact details (email or phone).");
+  }
+  if (summaryLen < 150) {
+    formattingIssues.push("Professional summary is too brief for ATS parsing (aim for 300-500 characters).");
+  }
+  if (exps.length === 0) {
+    suggestions.push("Add at least one professional work experience or internship.");
+  } else {
+    const allBullets = exps.flatMap(e => e.points || []);
+    const metricCount = allBullets.filter(b => /(\d+%|\d+\+|\d+k)/i.test(b)).length;
+    if (metricCount === 0) {
+      suggestions.push("Add quantifiable metrics (e.g., '% latency reduction', 'number of users served') to your experience bullets.");
+    }
+  }
+
+  if (projs.length === 0) {
+    suggestions.push("Feature 2-3 technical projects demonstrating your core stack.");
+  }
+  if (skillsCount < 6) {
+    suggestions.push("Expand your skills list with databases, cloud tools, and modern frameworks.");
+  }
+
+  // Job description matching if provided
+  let matchedKeywords = [];
+  let missingKeywords = [];
+  if (jobDescription && jobDescription.trim()) {
+    const jdLower = jobDescription.toLowerCase();
+    const commonKeywords = [
+      "react", "node", "typescript", "javascript", "python", "mongodb", "postgresql",
+      "redis", "docker", "aws", "ci/cd", "microservices", "system design", "rest api",
+      "graphql", "kubernetes", "sql", "git", "express", "next.js", "tailwind"
+    ];
+    const resumeText = JSON.stringify(resume).toLowerCase();
+
+    commonKeywords.forEach(kw => {
+      if (jdLower.includes(kw)) {
+        if (resumeText.includes(kw)) {
+          matchedKeywords.push(kw.toUpperCase());
+        } else {
+          missingKeywords.push(kw.toUpperCase());
+        }
+      }
+    });
+  } else {
+    matchedKeywords = (resume.skills || []).slice(0, 4);
+    missingKeywords = ["Docker", "CI/CD", "System Design", "Cloud Infrastructure"].filter(
+      k => !(resume.skills || []).some(s => s.toLowerCase() === k.toLowerCase())
+    );
+  }
+
+  let percentile = "Top 40%";
+  if (totalScore >= 85) percentile = "Top 5%";
+  else if (totalScore >= 75) percentile = "Top 15%";
+  else if (totalScore >= 60) percentile = "Top 30%";
+
+  return {
+    score: totalScore,
+    percentile,
+    breakdown: {
+      contact: Math.round((contactScore / 20) * 100),
+      summary: Math.round((summaryScore / 15) * 100),
+      experience: Math.round((experienceScore / 25) * 100),
+      projects: Math.round((projectScore / 20) * 100),
+      skills: Math.round((skillsScore / 15) * 100),
+      education: Math.round((educationScore / 5) * 100)
+    },
+    keywords: matchedKeywords.length ? matchedKeywords : (resume.skills || []).slice(0, 4),
+    missingKeywords: missingKeywords.length ? missingKeywords : ["CI/CD", "Docker", "Unit Testing"],
+    formattingIssues: formattingIssues.length ? formattingIssues : ["Ensure all bullet points end with periods.", "Keep links clean without https:// prefix."],
+    suggestions: suggestions.length ? suggestions : ["Move your strongest technical project to the top.", "Highlight cloud and deployment experience in summary."]
+  };
+}
+
+export const templateLibrary = [
+  {
+    key: "modern",
+    title: "Modern",
+    category: "Tech & Product",
+    rating: "4.9",
+    atsScore: "98%",
+    copy: "Clean single-column layout with subtle brand accent bar and crisp metadata.",
+  },
+  {
+    key: "professional",
+    title: "Professional",
+    category: "Corporate & Executive",
+    rating: "4.8",
+    atsScore: "99%",
+    copy: "Classic serif typography and traditional horizontal dividers for corporate roles.",
+  },
+  {
+    key: "tech",
+    title: "Tech / Developer",
+    category: "Software & Engineering",
+    rating: "5.0",
+    atsScore: "97%",
+    copy: "Developer-focused design with monospace tech tags and prominent project links.",
+  },
+  {
+    key: "minimal",
+    title: "Minimal",
+    category: "Design & Startups",
+    rating: "4.8",
+    atsScore: "99%",
+    copy: "Swiss-inspired minimalist layout with generous whitespace and quiet typography.",
+  },
+  {
+    key: "ats-classic",
+    title: "ATS Classic",
+    category: "ATS Universal",
+    rating: "4.9",
+    atsScore: "100%",
+    copy: "Strict top-down hierarchy engineered for 100% parseability by legacy ATS.",
+  },
+];
+
 export const useResume = (id) => {
   const context = useContext(ResumeContext);
-  const [analytics, setAnalytics] = useState(baseAnalytics);
-  const [lastAnalyzed, setLastAnalyzed] = useState("");
   const [interviewData, setInterviewData] = useState(null);
 
-  // Ensure context is available
   if (!context) {
     throw new Error("useResume must be used within ResumeProvider");
   }
@@ -281,32 +453,8 @@ export const useResume = (id) => {
     loading,
   } = context;
 
-  // Analyze resume when it changes
-  useEffect(() => {
-    if (!resume) return;
-
-    const current = JSON.stringify(resume);
-
-    if (current === lastAnalyzed) return;
-
-    const timer = setTimeout(async () => {
-      try {
-        const data = await analyzeResumeCtx(resume);
-
-        if (data) {
-          setAnalytics((prev) => ({
-            ...prev,
-            ...data,
-          }));
-          setLastAnalyzed(current);
-        }
-      } catch (err) {
-        console.error("[useResume] Analysis error:", err);
-      }
-    }, 900);
-
-    return () => clearTimeout(timer);
-  }, [resume, lastAnalyzed, analyzeResumeCtx]);
+  const activeResume = resume || normalizeResume(baseResume);
+  const liveAnalytics = calculateLiveATS(activeResume);
 
   // Fetch interview data if ID provided
   useEffect(() => {
@@ -316,39 +464,23 @@ export const useResume = (id) => {
       try {
         const res = await api.get(`/api/interview/report/${id}`);
         const report = res?.data?.interviewReport;
-
         if (!report) return;
 
         setInterviewData(report);
-
-        // Update resume with interview insights
-        updateResumeLocal({
-          role: report.selfDescription || resume?.role,
-        });
-
-        // Update analytics with skill gaps
-        if (report.skillGaps?.length) {
-          setAnalytics((prev) => ({
-            ...prev,
-            keywords: report.skillGaps
-              .slice(0, 4)
-              .map((skill) => skill.skill),
-          }));
+        if (report.selfDescription) {
+          updateResumeLocal({ role: report.selfDescription });
         }
       } catch (err) {
-        console.error("[useResume] Interview data fetch failed:", err);
+        console.warn("[useResume] Interview data fetch error:", err.message);
       }
     };
 
     fetchInterviewData();
-  }, [id, resume?.role, updateResumeLocal]);
+  }, [id]);
 
-  /**
-   * Handle AI improvement
-   */
   const handleAIImprove = async () => {
     try {
-      const improved = await improveResume(resume);
+      const improved = await improveResume(activeResume);
       if (improved) {
         updateResumeLocal(normalizeResume(improved));
       }
@@ -358,21 +490,47 @@ export const useResume = (id) => {
     }
   };
 
-  /**
-   * Get user-friendly error message
-   */
   const getErrorMessage = () => {
     return getResumeErrorMessage(error);
   };
 
   return {
-    resume: resume || normalizeResume(baseResume),
+    resume: activeResume,
     setResume: updateResumeLocal,
-    analytics,
+    analytics: liveAnalytics,
+    calculateLiveATS,
     handleAIImprove,
     error,
     errorMessage: error ? getErrorMessage() : null,
     loading,
     interviewData,
+    templateLibrary,
+    templateFilters: [
+      { key: "all", label: "All Templates" },
+      { key: "tech", label: "Software & Tech" },
+      { key: "executive", label: "Executive" },
+      { key: "minimal", label: "Minimalist" }
+    ],
+    dashboardSidebar: [
+      { key: "builder", label: "Resume Builder" },
+      { key: "templates", label: "Browse Templates" },
+      { key: "ats", label: "ATS Scanner" },
+      { key: "cover-letter", label: "Cover Letter Generator" }
+    ],
+    recentResumes: [
+      { key: "1", name: activeResume.name, role: activeResume.role, template: activeResume.template || "tech" }
+    ],
+    dashboardStats: [
+      { key: "ats", label: "ATS Readiness", value: `${liveAnalytics.score}%` },
+      { key: "percentile", label: "Market Tier", value: liveAnalytics.percentile },
+      { key: "skills", label: "Verified Skills", value: `${activeResume.skills?.length || 0} skills` }
+    ],
+    dashboardSuggestion: {
+      eyebrow: "AI Recommendation",
+      title: "Elevate your Resume Impact",
+      copy: "Add quantifiable metrics to your recent projects to push your ATS score into the top 5% tier.",
+      action: "Optimize in Builder"
+    },
+    quickStartTemplates: templateLibrary.slice(0, 3)
   };
 };

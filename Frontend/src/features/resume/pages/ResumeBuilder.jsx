@@ -1,733 +1,1194 @@
-import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useParams, useNavigate } from "react-router";
+import { 
+  Sparkles, 
+  Download, 
+  Printer, 
+  RotateCcw, 
+  RotateCw, 
+  Search, 
+  FileText, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Target, 
+  Send, 
+  X, 
+  Copy, 
+  ChevronRight, 
+  LayoutTemplate,
+  Sliders,
+  Check,
+  Briefcase,
+  Eye,
+  Edit3,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  Maximize2,
+  Minimize2
+} from "lucide-react";
 import ResumeEditor from "../components/ResumeEditor";
 import ResumePreviewLive from "../components/ResumePreviewLive";
-import { useResume } from "../hooks/useResume";
-import { downloadPDF } from "../services/resume.api";
+import { useResume, templateLibrary, calculateLiveATS } from "../hooks/useResume";
+import { 
+  downloadPDF, 
+  generateSummary, 
+  rewriteBullets, 
+  suggestSkills, 
+  generateCoverLetter, 
+  analyzeResume, 
+  chatAssistant 
+} from "../services/resume.api";
 import "../style/resume.scss";
-
-const templateOptions = [
-  {
-    key: "minimal",
-    title: "Minimal",
-    copy: "Quiet typography and ATS-first whitespace for conservative hiring pipelines.",
-  },
-  {
-    key: "modern",
-    title: "Modern",
-    copy: "Balanced visual polish with SaaS-style spacing and crisp metadata treatment.",
-  },
-  {
-    key: "tech",
-    title: "Tech",
-    copy: "Stronger accent lines, dense signal, and developer-friendly project emphasis.",
-  },
-  {
-    key: "creative",
-    title: "Creative",
-    copy: "Higher contrast highlight blocks for design-forward portfolios and hybrid roles.",
-  },
-];
-
-const assistantMessages = [
-  {
-    role: "assistant",
-    text: "I found strong backend signals in your projects. Want me to tighten the summary for product engineering roles?",
-  },
-  {
-    role: "user",
-    text: "Yes, keep it ATS-friendly and concise.",
-  },
-  {
-    role: "assistant",
-    text: "Done. I also surfaced JWT, MongoDB transactions, and AI API integration for better recruiter scanning.",
-  },
-];
-
-function triggerFileDownload(filename, content, type = "text/plain;charset=utf-8") {
-  const blob = new Blob([content], { type });
-  const url = window.URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  window.URL.revokeObjectURL(url);
-}
-
-function trimLink(value) {
-  return `${value || ""}`
-    .replace(/^https?:\/\//, "")
-    .replace(/^www\./, "")
-    .replace(/\/$/, "");
-}
-
-function buildLatexExport(resume) {
-  const lines = [
-    "\\documentclass{resumeforge}",
-    "\\begin{document}",
-    `\\name{${resume.name || ""}}`,
-    `\\role{${resume.role || ""}}`,
-    `\\contact{${[
-      resume.phone,
-      resume.email,
-      trimLink(resume.github),
-      trimLink(resume.linkedin),
-      trimLink(resume.leetcode),
-      trimLink(resume.portfolio),
-    ]
-      .filter(Boolean)
-      .join(" | ")}}`,
-    `\\summary{${resume.summary || ""}}`,
-    "",
-    "\\experience{",
-  ];
-
-  (resume.experience || []).forEach((item) => {
-    lines.push(
-      `  \\roleitem{${item.title || ""}}{${item.company || ""}}{${item.startDate || ""} -- ${item.endDate || ""}}`
-    );
-    (item.points || []).forEach((point) => {
-      lines.push(`  \\bullet{${point}}`);
-    });
-    lines.push("");
-  });
-
-  lines.push("}", "", "\\projects{");
-
-  (resume.projects || []).forEach((item) => {
-    lines.push(
-      `  \\project{${item.name || ""}}{${item.role || ""}}{${item.stack || ""}}`
-    );
-    (item.points || []).forEach((point) => {
-      lines.push(`  \\bullet{${point}}`);
-    });
-    lines.push("");
-  });
-
-  lines.push("}", "", "\\skills{");
-  (resume.skills || []).forEach((item) => {
-    lines.push(`  \\skill{${item}}`);
-  });
-  lines.push("}", "", "\\education{");
-
-  (resume.education || []).forEach((item) => {
-    lines.push(
-      `  \\educationitem{${item.school || ""}}{${item.degree || ""}}{${item.startDate || ""} -- ${item.endDate || ""}}{${item.score || ""}}`
-    );
-  });
-
-  lines.push("}", "\\end{document}");
-  return lines.join("\n");
-}
-
-function AppIcon({ name }) {
-  const icons = {
-    compile: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M6 6h12v12H6z" />
-        <path d="M10 10l4 2-4 2z" />
-      </svg>
-    ),
-    download: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 4v10" />
-        <path d="M8 10l4 4 4-4" />
-        <path d="M5 19h14" />
-      </svg>
-    ),
-    score: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 14a8 8 0 1116 0" />
-        <path d="M12 14l4-6" />
-      </svg>
-    ),
-    ai: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="5" y="7" width="14" height="10" rx="4" />
-        <circle cx="10" cy="12" r="1" />
-        <circle cx="14" cy="12" r="1" />
-        <path d="M10 15h4" />
-      </svg>
-    ),
-    template: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="4" y="5" width="16" height="14" rx="3" />
-        <path d="M9 5v14" />
-      </svg>
-    ),
-    sun: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="12" cy="12" r="4" />
-        <path d="M12 2v3" />
-        <path d="M12 19v3" />
-        <path d="M2 12h3" />
-        <path d="M19 12h3" />
-      </svg>
-    ),
-    moon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M16 3a8.5 8.5 0 108 8.5A7 7 0 0116 3z" />
-      </svg>
-    ),
-    share: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="18" cy="5" r="2" />
-        <circle cx="6" cy="12" r="2" />
-        <circle cx="18" cy="19" r="2" />
-        <path d="M8 12l8-6" />
-        <path d="M8 12l8 6" />
-      </svg>
-    ),
-    message: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M5 6h14v10H9l-4 3z" />
-      </svg>
-    ),
-  };
-
-  return <span className="resume-app-icon">{icons[name]}</span>;
-}
-
-function CircularScore({ score }) {
-  const safeScore = Math.max(0, Math.min(100, Number(score || 0)));
-  const radius = 44;
-  const circumference = 2 * Math.PI * radius;
-  const dashOffset = circumference - (safeScore / 100) * circumference;
-
-  return (
-    <div className="resume-score-circle">
-      <svg viewBox="0 0 120 120" aria-hidden="true">
-        <circle className="resume-score-circle__track" cx="60" cy="60" r={radius} />
-        <circle
-          className="resume-score-circle__progress"
-          cx="60"
-          cy="60"
-          r={radius}
-          style={{
-            strokeDasharray: circumference,
-            strokeDashoffset: dashOffset,
-          }}
-        />
-      </svg>
-      <strong>{safeScore}</strong>
-      <span>ATS Score</span>
-    </div>
-  );
-}
-
-function ResumeAIPanel({
-  analytics,
-  atsScore,
-  activeTemplate,
-  onAIOptimize,
-  onDownloadJson,
-  onDownloadLatex,
-  onOpenAssistant,
-  onShareLink,
-  onTemplateChange,
-  scoreRef,
-  actionsRef,
-  templatesRef,
-}) {
-  return (
-    <div className="resume-ai-panel">
-      <section
-        className="resume-ai-panel__section resume-ai-panel__section--score"
-        ref={scoreRef}
-      >
-        <div className="resume-ai-panel__section-head">
-          <div>
-            <p className="resume-ai-panel__eyebrow">ATS Score</p>
-            <h3>Optimization overview</h3>
-          </div>
-          <span className="resume-ai-panel__badge">{analytics?.percentile || "Top tier"}</span>
-        </div>
-
-        <div className="resume-ai-score-card">
-          <CircularScore score={atsScore} />
-          <strong>Strong recruiter match</strong>
-          <p>
-            Your resume already surfaces strong backend and full-stack signals.
-            Tightening keywords will improve shortlist performance.
-          </p>
-          <button type="button" onClick={onAIOptimize}>
-            Improve with AI
-          </button>
-        </div>
-      </section>
-
-      <section className="resume-ai-panel__section" ref={actionsRef}>
-        <div className="resume-ai-panel__section-head">
-          <div>
-            <p className="resume-ai-panel__eyebrow">AI Tools</p>
-            <h3>Resume actions</h3>
-          </div>
-        </div>
-
-        <div className="resume-ai-panel__actions">
-          <button type="button" onClick={onAIOptimize}>
-            AI Optimize Resume
-          </button>
-          <button type="button" onClick={onAIOptimize}>
-            Rewrite Bullet Points
-          </button>
-          <button type="button" onClick={onAIOptimize}>
-            Generate Summary
-          </button>
-          <button type="button" onClick={onAIOptimize}>
-            Suggest Skills
-          </button>
-          <button type="button" onClick={onOpenAssistant}>
-            Open Chat Assistant
-          </button>
-        </div>
-      </section>
-
-      <section className="resume-ai-panel__section">
-        <div className="resume-ai-panel__section-head">
-          <div>
-            <p className="resume-ai-panel__eyebrow">Signals</p>
-            <h3>ATS feedback</h3>
-          </div>
-        </div>
-
-        <div className="resume-ai-panel__block">
-          <h4>Matched Keywords</h4>
-          <div className="resume-ai-panel__chips">
-            {(analytics?.keywords || []).map((item) => (
-              <span key={item}>{item}</span>
-            ))}
-          </div>
-        </div>
-
-        <div className="resume-ai-panel__block">
-          <h4>Missing Keywords</h4>
-          <div className="resume-ai-panel__chips resume-ai-panel__chips--warning">
-            {(analytics?.missingKeywords || []).map((item) => (
-              <span key={item}>{item}</span>
-            ))}
-          </div>
-        </div>
-
-        <div className="resume-ai-panel__block">
-          <h4>Formatting Issues</h4>
-          <ul>
-            {(analytics?.formattingIssues || []).map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="resume-ai-panel__block">
-          <h4>Suggestions</h4>
-          <ul>
-            {(analytics?.suggestions || []).map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      <section className="resume-ai-panel__section">
-        <div className="resume-ai-panel__section-head">
-          <div>
-            <p className="resume-ai-panel__eyebrow">Export</p>
-            <h3>Additional outputs</h3>
-          </div>
-        </div>
-
-        <div className="resume-ai-panel__exports">
-          <button type="button" onClick={onDownloadJson}>
-            <AppIcon name="download" />
-            Download JSON
-          </button>
-          <button type="button" onClick={onDownloadLatex}>
-            <AppIcon name="download" />
-            Download LaTeX
-          </button>
-          <button type="button" onClick={onShareLink}>
-            <AppIcon name="share" />
-            Share via Link
-          </button>
-        </div>
-      </section>
-
-      <section className="resume-ai-panel__section" ref={templatesRef}>
-        <div className="resume-ai-panel__section-head">
-          <div>
-            <p className="resume-ai-panel__eyebrow">Templates</p>
-            <h3>Switch visual style</h3>
-          </div>
-        </div>
-
-        <div className="resume-ai-panel__templates">
-          {templateOptions.map((template) => (
-            <button
-              className={`resume-ai-panel__template ${
-                activeTemplate === template.key ? "is-active" : ""
-              }`}
-              key={template.key}
-              type="button"
-              onClick={() => onTemplateChange(template.key)}
-            >
-              <span
-                className={`resume-ai-panel__template-preview resume-ai-panel__template-preview--${template.key}`}
-              />
-              <strong>{template.title}</strong>
-              <small>{template.copy}</small>
-            </button>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
-}
+import BrandLogo from "../../../components/BrandLogo";
 
 export default function ResumeBuilder() {
   const { id } = useParams();
-  const { resume, analytics, handleAIImprove, setResume } = useResume(id);
-  const [theme, setTheme] = useState("light");
-  const [assistantOpen, setAssistantOpen] = useState(false);
-  const [previewZoom, setPreviewZoom] = useState("fit");
-  const [isCompiling, setIsCompiling] = useState(false);
-  const [saveLabel, setSaveLabel] = useState("Live sync ready");
-  const [toast, setToast] = useState({
-    visible: true,
-    tone: "info",
-    text: "ResumeForge is ready. Edits compile live into the preview.",
-  });
-  const toastTimerRef = useRef(null);
-  const resumeChangeRef = useRef(false);
-  const aiScoreRef = useRef(null);
-  const aiActionsRef = useRef(null);
-  const aiTemplatesRef = useRef(null);
+  const navigate = useNavigate();
+  const { resume, setResume, handleAIImprove } = useResume(id);
 
-  const atsScore = Math.max(0, Math.min(100, Math.round(Number(analytics?.score || 0))));
+  // ── Workspace State ──
+  const [docTitle, setDocTitle] = useState("Software Engineer Resume");
+  const [zoomLevel, setZoomLevel] = useState(0.85);
+  const [zoomMode, setZoomMode] = useState("fit");
+  const [activeRightTab, setActiveRightTab] = useState("ats"); // 'ats' | 'matcher' | 'suggestions'
+  const [mobileTab, setMobileTab] = useState("editor"); // 'editor' | 'preview' | 'ai'
+  const viewportRef = useRef(null);
+  const [saveStatus, setSaveStatus] = useState("Saved just now");
+  const [isAILoading, setIsAILoading] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [editorCollapsed, setEditorCollapsed] = useState(false);
+  const [aiCollapsed, setAiCollapsed] = useState(false);
 
-  const showToast = (text, tone = "info") => {
-    if (toastTimerRef.current) {
-      window.clearTimeout(toastTimerRef.current);
+  const isFocusMode = editorCollapsed && aiCollapsed;
+
+  const toggleFocusMode = () => {
+    if (isFocusMode) {
+      setEditorCollapsed(false);
+      setAiCollapsed(false);
+      showToast("Exited Focus Mode", "info");
+    } else {
+      setEditorCollapsed(true);
+      setAiCollapsed(true);
+      showToast("Entered Focus Mode — Full Canvas", "info");
     }
-
-    setToast({
-      visible: true,
-      tone,
-      text,
-    });
-
-    toastTimerRef.current = window.setTimeout(() => {
-      setToast((prev) => ({
-        ...prev,
-        visible: false,
-      }));
-    }, 2800);
   };
 
-  useEffect(() => {
-    return () => {
-      if (toastTimerRef.current) {
-        window.clearTimeout(toastTimerRef.current);
-      }
-    };
+  // ── Modals / Drawers ──
+  const [coverLetterOpen, setCoverLetterOpen] = useState(false);
+  const [coverLetterForm, setCoverLetterForm] = useState({ company: "", jd: "", tone: "Professional" });
+  const [generatedCoverLetter, setGeneratedCoverLetter] = useState(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([
+    { role: "assistant", text: "Hello! I'm your ResumeForge Copilot. How can I help sharpen your resume for recruiters today?" }
+  ]);
+  const [chatInput, setChatInput] = useState("");
+
+  // ── Job Matcher State ──
+  const [targetJD, setTargetJD] = useState("");
+  const [jdAnalysis, setJdAnalysis] = useState(null);
+
+  // ── AI Suggestions Diff State ──
+  const [aiSuggestions, setAiSuggestions] = useState([]);
+
+  // ── Toast Notification ──
+  const [toast, setToast] = useState({ visible: false, text: "", type: "info" });
+  const toastTimerRef = useRef(null);
+
+  // ── Undo / Redo History Stack ──
+  const historyRef = useRef([]);
+  const futureRef = useRef([]);
+  const isUndoRedoRef = useRef(false);
+
+  const showToast = useCallback((text, type = "info") => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ visible: true, text, type });
+    toastTimerRef.current = setTimeout(() => {
+      setToast(prev => ({ ...prev, visible: false }));
+    }, 2800);
   }, []);
 
+  // ── Compute Live Genuine ATS Score ──
+  const liveATS = calculateLiveATS(resume, targetJD);
+
+  // ── Autosave & History Tracking ──
   useEffect(() => {
-    if (!resumeChangeRef.current) {
-      resumeChangeRef.current = true;
-      return;
+    if (!resume) return;
+
+    if (!isUndoRedoRef.current) {
+      historyRef.current.push(JSON.stringify(resume));
+      if (historyRef.current.length > 30) historyRef.current.shift();
+      futureRef.current = []; // Clear redo stack on new change
     }
+    isUndoRedoRef.current = false;
 
-    setSaveLabel("Autosaving...");
+    setSaveStatus("Saving...");
+    const timer = setTimeout(() => {
+      setSaveStatus("Saved just now");
+    }, 850);
 
-    const timer = window.setTimeout(() => {
-      setSaveLabel("Autosaved just now");
-      showToast("Autosaved changes to your workspace.", "success");
-    }, 1150);
-
-    return () => window.clearTimeout(timer);
+    return () => clearTimeout(timer);
   }, [resume]);
 
-  const scrollToSection = (ref) => {
-    ref.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  };
-
-  const handleCompile = () => {
-    setIsCompiling(true);
-    setPreviewZoom("fit");
-
-    window.setTimeout(() => {
-      setIsCompiling(false);
-      setSaveLabel("Compilation successful");
-      showToast("Resume compiled successfully. Preview refreshed.", "success");
-    }, 900);
-  };
-
-  const handleDownload = async () => {
-    try {
-      const blob = await downloadPDF(resume);
-      const url = window.URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-
-      anchor.href = url;
-      anchor.download = `${(resume.name || "resume").replace(/\s+/g, "-").toLowerCase()}.pdf`;
-      anchor.click();
-      window.URL.revokeObjectURL(url);
-      showToast("PDF download started.", "success");
-    } catch (error) {
-      showToast("PDF export failed. Please try again.", "error");
+  // ── Undo / Redo Functions ──
+  const handleUndo = useCallback(() => {
+    if (historyRef.current.length < 2) return;
+    const current = historyRef.current.pop();
+    futureRef.current.push(current);
+    const previous = historyRef.current[historyRef.current.length - 1];
+    if (previous) {
+      isUndoRedoRef.current = true;
+      setResume(JSON.parse(previous));
+      showToast("Undone last change", "info");
     }
+  }, [setResume, showToast]);
+
+  const handleRedo = useCallback(() => {
+    if (futureRef.current.length === 0) return;
+    const next = futureRef.current.pop();
+    historyRef.current.push(next);
+    isUndoRedoRef.current = true;
+    setResume(JSON.parse(next));
+    showToast("Redone change", "info");
+  }, [setResume, showToast]);
+
+  // ── Keyboard Shortcuts (Ctrl+Z, Ctrl+Y, Ctrl+K) ──
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        if (e.shiftKey) {
+          e.preventDefault();
+          handleRedo();
+        } else {
+          e.preventDefault();
+          handleUndo();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === "y" || e.key === "Y")) {
+        e.preventDefault();
+        handleRedo();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        setCommandPaletteOpen(prev => !prev);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleUndo, handleRedo]);
+
+  // ── Responsive Dynamic Zoom Calculation ──
+  const updateFitZoom = useCallback(() => {
+    if (!viewportRef.current) return;
+    const stageWidth = viewportRef.current.clientWidth;
+    const padding = stageWidth < 600 ? 20 : 36;
+    const availableWidth = stageWidth - padding;
+    if (availableWidth > 0) {
+      const calculatedScale = Math.min(1.05, Math.max(0.32, availableWidth / 794));
+      if (zoomMode === "fit") {
+        setZoomLevel(parseFloat(calculatedScale.toFixed(2)));
+      }
+    }
+  }, [zoomMode]);
+
+  useEffect(() => {
+    if (zoomMode === "fit") {
+      updateFitZoom();
+    } else if (zoomMode === "75") {
+      setZoomLevel(0.75);
+    } else if (zoomMode === "100") {
+      setZoomLevel(1);
+    } else if (zoomMode === "125") {
+      setZoomLevel(1.25);
+    }
+  }, [zoomMode, updateFitZoom]);
+
+  useEffect(() => {
+    window.addEventListener("resize", updateFitZoom);
+    return () => window.removeEventListener("resize", updateFitZoom);
+  }, [updateFitZoom]);
+
+  useEffect(() => {
+    if (mobileTab === "preview") {
+      const t = setTimeout(updateFitZoom, 60);
+      return () => clearTimeout(t);
+    }
+  }, [mobileTab, updateFitZoom]);
+
+  useEffect(() => {
+    const timer = setTimeout(updateFitZoom, 280);
+    return () => clearTimeout(timer);
+  }, [editorCollapsed, aiCollapsed, updateFitZoom]);
+
+  // ── AI Actions ──
+  const handleAISummary = async (tone = "standard") => {
+    setIsAILoading(true);
+    try {
+      const summary = await generateSummary({ resume, targetRole: resume.role, tone });
+      if (summary) {
+        // Add to suggestions diff so user can review and apply
+        setAiSuggestions(prev => [
+          {
+            id: Date.now(),
+            section: "Professional Summary",
+            field: "summary",
+            original: resume.summary,
+            suggested: summary,
+          },
+          ...prev,
+        ]);
+        setActiveRightTab("suggestions");
+        showToast("AI Summary generated! Review in AI Suggestions tab.", "success");
+      }
+    } catch (err) {
+      showToast("AI Summary generation failed. Please try again.", "error");
+    } finally {
+      setIsAILoading(false);
+    }
+  };
+
+  const handleAIBullet = async (bulletText, updateCallback) => {
+    if (!bulletText?.trim()) return;
+    setIsAILoading(true);
+    try {
+      const improved = await rewriteBullets({ bullets: [bulletText], targetRole: resume.role, resume });
+      if (Array.isArray(improved) && improved[0]) {
+        updateCallback(improved[0]);
+        showToast("Bullet polished with Action + Metric format!", "success");
+      }
+    } catch (err) {
+      showToast("Could not polish bullet. Please try again.", "error");
+    } finally {
+      setIsAILoading(false);
+    }
+  };
+
+  const handleAISkills = async () => {
+    setIsAILoading(true);
+    try {
+      const res = await suggestSkills({ resume, targetRole: resume.role });
+      const suggested = res?.skills || [];
+      if (suggested.length > 0) {
+        // Find skills not already present
+        const currentLower = new Set((resume.skills || []).map(s => s.toLowerCase()));
+        const newSkills = suggested.filter(s => !currentLower.has(s.toLowerCase()));
+
+        if (newSkills.length > 0) {
+          setResume(prev => ({
+            ...prev,
+            skills: [...new Set([...(prev.skills || []), ...newSkills.slice(0, 5)])]
+          }));
+          showToast(`Added ${Math.min(5, newSkills.length)} in-demand skills to your resume!`, "success");
+        } else {
+          showToast("Your skills list is already comprehensive!", "info");
+        }
+      }
+    } catch (err) {
+      showToast("Failed to suggest skills.", "error");
+    } finally {
+      setIsAILoading(false);
+    }
+  };
+
+  const applySuggestion = (suggestion) => {
+    if (suggestion.field === "summary") {
+      setResume(prev => ({ ...prev, summary: suggestion.suggested }));
+    }
+    setAiSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
+    showToast(`Applied improvement to ${suggestion.section}!`, "success");
+  };
+
+  const dismissSuggestion = (id) => {
+    setAiSuggestions(prev => prev.filter(s => s.id !== id));
+  };
+
+  // ── Job Matcher Scan ──
+  const handleRunJobMatcher = () => {
+    if (!targetJD.trim()) {
+      showToast("Please paste a Job Description first", "warning");
+      return;
+    }
+    const analysis = calculateLiveATS(resume, targetJD);
+    setJdAnalysis(analysis);
+    showToast("Job Match analysis complete!", "success");
+  };
+
+  const addMissingSkill = (skill) => {
+    setResume(prev => ({
+      ...prev,
+      skills: [...new Set([...(prev.skills || []), skill])]
+    }));
+    showToast(`Added "${skill}" to your skills!`, "success");
+  };
+
+  // ── Cover Letter Generation ──
+  const handleGenerateCoverLetter = async () => {
+    if (!coverLetterForm.jd.trim()) {
+      showToast("Job description is required for a tailored cover letter", "warning");
+      return;
+    }
+    setIsAILoading(true);
+    try {
+      const res = await generateCoverLetter({
+        resume,
+        jobDescription: coverLetterForm.jd,
+        companyName: coverLetterForm.company,
+        tone: coverLetterForm.tone
+      });
+      setGeneratedCoverLetter(res);
+      showToast("Cover letter created successfully!", "success");
+    } catch (err) {
+      showToast("Failed to generate cover letter", "error");
+    } finally {
+      setIsAILoading(false);
+    }
+  };
+
+  // ── AI Chat Copilot ──
+  const handleSendMessage = async () => {
+    if (!chatInput.trim()) return;
+    const msg = chatInput.trim();
+    setChatMessages(prev => [...prev, { role: "user", text: msg }]);
+    setChatInput("");
+
+    try {
+      const reply = await chatAssistant({ resume, message: msg });
+      setChatMessages(prev => [...prev, { role: "assistant", text: reply }]);
+    } catch (err) {
+      setChatMessages(prev => [...prev, { role: "assistant", text: "I encountered an issue processing your request. Please try again." }]);
+    }
+  };
+
+  // ── Export Handlers ──
+  const handlePrint = () => {
+    setExportMenuOpen(false);
+    window.print();
   };
 
   const handleDownloadJson = () => {
-    triggerFileDownload("resume.json", JSON.stringify(resume, null, 2), "application/json");
-    showToast("JSON export ready.", "success");
+    setExportMenuOpen(false);
+    const blob = new Blob([JSON.stringify(resume, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(resume.name || "resume").toLowerCase().replace(/\s+/g, "_")}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("JSON export downloaded", "success");
   };
-
-  const handleDownloadLatex = () => {
-    triggerFileDownload("resume.tex", buildLatexExport(resume));
-    showToast("LaTeX export ready.", "success");
-  };
-
-  const handleShareLink = async () => {
-    const shareUrl = `${window.location.origin}${window.location.pathname}?template=${resume.template || "tech"}`;
-
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareUrl);
-        showToast("Share link copied to clipboard.", "success");
-        return;
-      }
-    } catch (error) {
-      console.log("Clipboard unavailable", error);
-    }
-
-    showToast(`Share link: ${shareUrl}`, "info");
-  };
-
-  const handleAIOptimize = async () => {
-    await handleAIImprove();
-    showToast("AI optimization suggestions applied.", "success");
-  };
-
-  const handleTemplateChange = (templateKey) => {
-    setResume((prev) => ({
-      ...prev,
-      template: templateKey,
-    }));
-    showToast(
-      `${templateKey[0].toUpperCase()}${templateKey.slice(1)} template applied.`,
-      "success"
-    );
-  };
-
-  const previewScale = previewZoom === "100" ? 1 : 0.9;
 
   return (
-    <div className="resume-ui resume-page resume-page--builder">
-      <div className={`resume-workbench resume-workbench--${theme}`}>
-        <div className="resume-workbench__backdrop" />
-
-        <div className="resume-workbench__shell">
-          <header className="resume-workbench__nav">
-            <div className="resume-brand">
-              <div className="resume-brand__mark">RF</div>
-              <div>
-                <strong>ResumeForge</strong>
-                <span>Premium resume builder workspace</span>
-              </div>
+    <div className="rf-app">
+      {/* ── Top Header ── */}
+      <header className="rf-header">
+        <div className="rf-header__left">
+          <div className="rf-logo" onClick={() => navigate("/")}>
+            <BrandLogo size={36} />
+            <div className="rf-logo__text">
+              <span className="rf-logo__brand">ResumeForge</span>
+              <span className="rf-logo__tag">AI Career Workspace</span>
             </div>
+          </div>
 
-            <div className="resume-workbench__nav-actions">
-              <button type="button" onClick={handleCompile}>
-                <AppIcon name="compile" />
-                {isCompiling ? "Compiling..." : "Compile / Generate Resume"}
-              </button>
-              {/* <button type="button" onClick={handleDownload}>
-                <AppIcon name="download" />
-                Download PDF
-              </button> */}
-              <button type="button" onClick={() => scrollToSection(aiScoreRef)}>
-                <AppIcon name="score" />
-                ATS Score
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  scrollToSection(aiActionsRef);
-                  handleAIOptimize();
-                }}
-              >
-                <AppIcon name="ai" />
-                AI Optimize
-              </button>
-              <button type="button" onClick={() => scrollToSection(aiTemplatesRef)}>
-                <AppIcon name="template" />
-                Templates
-              </button>
-            </div>
+          <div className="rf-header__divider" />
 
-            <div className="resume-workbench__nav-profile">
-              <span className="resume-workbench__sync">{saveLabel}</span>
-
-              <button
-                className="resume-theme-toggle"
-                type="button"
-                onClick={() =>
-                  setTheme((prev) => (prev === "light" ? "dark" : "light"))
-                }
-              >
-                <AppIcon name={theme === "light" ? "moon" : "sun"} />
-                {theme === "light" ? "Dark" : "Light"}
-              </button>
-
-              <button className="resume-profile-chip" type="button">
-                KG
-              </button>
-            </div>
-          </header>
-
-          <div className="resume-workbench__content">
-            <aside className="resume-workbench__panel resume-workbench__panel--form">
-              <div className="resume-panel-shell">
-                <div className="resume-panel-shell__header">
-                  <div>
-                    <p className="resume-panel-shell__eyebrow">Editor</p>
-                    <h2>Smart Resume Editor</h2>
-                  </div>
-                </div>
-
-                <ResumeEditor
-                  onAIImprove={handleAIOptimize}
-                  onOpenAssistant={() => setAssistantOpen(true)}
-                  resume={resume}
-                  setResume={setResume}
-                />
-              </div>
-            </aside>
-
-            <section className="resume-workbench__panel resume-workbench__panel--preview">
-              <div className="resume-panel-shell resume-panel-shell--preview">
-                <div className="resume-preview-stage__toolbar">
-                  <div>
-                    <p className="resume-preview-stage__eyebrow">Live Resume Preview</p>
-                    <h2>Fixed A4 canvas</h2>
-                  </div>
-
-                  <div className="resume-preview-stage__toolbar-actions">
-                    <div className="resume-preview-stage__zoom">
-                      <button
-                        className={previewZoom === "100" ? "is-active" : ""}
-                        type="button"
-                        onClick={() => setPreviewZoom("100")}
-                      >
-                        100%
-                      </button>
-                      <button
-                        className={previewZoom === "fit" ? "is-active" : ""}
-                        type="button"
-                        onClick={() => setPreviewZoom("fit")}
-                      >
-                        Fit
-                      </button>
-                    </div>
-
-                    <span className="resume-preview-stage__page">A4 Preview</span>
-                  </div>
-                </div>
-
-                <div className="resume-preview-stage__viewport">
-                  <div className="resume-preview-stage__canvas">
-                    <div
-                      className="resume-preview-stage__sheet-scale"
-                      style={{ transform: `scale(${previewScale})` }}
-                    >
-                      <ResumePreviewLive resume={resume} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <aside className="resume-workbench__panel resume-workbench__panel--ai">
-              <div className="resume-panel-shell">
-                <div className="resume-panel-shell__header">
-                  <div>
-                    <p className="resume-panel-shell__eyebrow">AI Panel</p>
-                    <h2>Insights & actions</h2>
-                  </div>
-
-                </div>
-
-                <ResumeAIPanel
-                  activeTemplate={resume.template}
-                  analytics={analytics}
-                  atsScore={atsScore}
-                  onAIOptimize={handleAIOptimize}
-                  onDownloadJson={handleDownloadJson}
-                  onDownloadLatex={handleDownloadLatex}
-                  onOpenAssistant={() => setAssistantOpen(true)}
-                  onShareLink={handleShareLink}
-                  onTemplateChange={handleTemplateChange}
-                  actionsRef={aiActionsRef}
-                  scoreRef={aiScoreRef}
-                  templatesRef={aiTemplatesRef}
-                />
-              </div>
-            </aside>
+          {/* Editable Document Title */}
+          <div className="rf-doc-title">
+            <input
+              value={docTitle}
+              onChange={(e) => setDocTitle(e.target.value)}
+              title="Click to rename resume"
+            />
+            <span className="rf-role-badge">{resume.role || "Software Engineer"}</span>
           </div>
         </div>
 
-        {assistantOpen && (
-          <aside className="resume-assistant">
-            <div className="resume-assistant__head">
-              <div>
-                <p>AI Assistant</p>
-                <h3>Resume Copilot</h3>
+        {/* Center Navigation Switcher */}
+        <div className="rf-header__center">
+          <button 
+            type="button" 
+            className="rf-nav-pill is-active"
+            onClick={() => setActiveRightTab("ats")}
+          >
+            <FileText size={14} /> Resume Builder
+          </button>
+          <button 
+            type="button" 
+            className={`rf-nav-pill ${activeRightTab === "matcher" ? "is-active" : ""}`}
+            onClick={() => setActiveRightTab("matcher")}
+          >
+            <Target size={14} /> ATS Matcher
+          </button>
+          <button 
+            type="button" 
+            className="rf-nav-pill"
+            onClick={() => setCoverLetterOpen(true)}
+          >
+            <Briefcase size={14} /> Cover Letter
+          </button>
+          <button 
+            type="button" 
+            className="rf-nav-pill"
+            onClick={() => setChatOpen(true)}
+          >
+            <Sparkles size={14} /> AI Copilot
+          </button>
+        </div>
+
+        {/* Right Actions */}
+        <div className="rf-header__right">
+          <div className="rf-save-indicator">
+            <span className="rf-save-dot" />
+            <span className="rf-save-text">{saveStatus}</span>
+          </div>
+
+          <div className="rf-history-btns">
+            <button type="button" onClick={handleUndo} title="Undo (Ctrl+Z)">
+              <RotateCcw size={14} />
+            </button>
+            <button type="button" onClick={handleRedo} title="Redo (Ctrl+Y)">
+              <RotateCw size={14} />
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="rf-cmd-btn"
+            onClick={() => setCommandPaletteOpen(true)}
+            title="Command Palette"
+          >
+            <Search size={14} />
+            <span className="rf-kbd">⌘K</span>
+          </button>
+
+          {/* Export Dropdown */}
+          <div className="rf-export-wrap">
+            <button
+              type="button"
+              className="rf-btn-primary"
+              onClick={() => setExportMenuOpen(prev => !prev)}
+            >
+              <Download size={14} /> Export <ChevronRight size={13} className={exportMenuOpen ? "rotate-90" : ""} />
+            </button>
+
+            {exportMenuOpen && (
+              <div className="rf-dropdown-menu">
+                <button type="button" onClick={handlePrint}>
+                  <Printer size={14} /> Print / Save as PDF
+                </button>
+                <button type="button" onClick={handleDownloadJson}>
+                  <FileText size={14} /> Download JSON Data
+                </button>
               </div>
-              <button type="button" onClick={() => setAssistantOpen(false)}>
-                Close
-              </button>
-            </div>
+            )}
+          </div>
 
-            <div className="resume-assistant__messages">
-              {assistantMessages.map((message, index) => (
-                <article
-                  className={`resume-assistant__bubble resume-assistant__bubble--${message.role}`}
-                  key={`${message.role}-${index}`}
+          {/* User Profile */}
+          <div className="rf-avatar" title="Krish Gupta">
+            KG
+          </div>
+        </div>
+      </header>
+
+      {/* ── Mobile Viewport Tab Switcher (Visible on <= 900px) ── */}
+      <div className="rf-mobile-tabs">
+        <button
+          type="button"
+          className={`rf-mobile-tab ${mobileTab === "editor" ? "is-active" : ""}`}
+          onClick={() => setMobileTab("editor")}
+        >
+          <Edit3 size={14} /> Editor
+        </button>
+        <button
+          type="button"
+          className={`rf-mobile-tab ${mobileTab === "preview" ? "is-active" : ""}`}
+          onClick={() => {
+            setMobileTab("preview");
+            setTimeout(updateFitZoom, 60);
+          }}
+        >
+          <Eye size={14} /> A4 Preview
+        </button>
+        <button
+          type="button"
+          className={`rf-mobile-tab ${mobileTab === "ai" ? "is-active" : ""}`}
+          onClick={() => setMobileTab("ai")}
+        >
+          <Sparkles size={14} /> AI Copilot ({liveATS.score}%)
+        </button>
+      </div>
+
+      {/* ── 3-Panel Independent Scrolling Workspace ── */}
+      <div className={`rf-workspace rf-workspace--mobile-${mobileTab} ${editorCollapsed ? "rf-workspace--left-collapsed" : ""} ${aiCollapsed ? "rf-workspace--right-collapsed" : ""} ${isFocusMode ? "rf-workspace--both-collapsed" : ""}`}>
+        {/* ── Left Panel (30%): Editor or Collapsed Rail ── */}
+        {editorCollapsed ? (
+          <aside
+            className="rf-rail rf-rail--left"
+            onClick={() => setEditorCollapsed(false)}
+            title="Expand Resume Editor"
+          >
+            <button
+              type="button"
+              className="rf-rail-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditorCollapsed(false);
+              }}
+              title="Expand Resume Editor"
+            >
+              <PanelLeftOpen size={16} />
+            </button>
+            <div className="rf-rail-badge">
+              {liveATS.score}%
+            </div>
+            <div className="rf-rail-label-wrap">
+              <span className="rf-rail-label">RESUME EDITOR</span>
+            </div>
+          </aside>
+        ) : (
+          <aside className="rf-panel rf-panel--editor">
+            <div className="rf-panel__header">
+              <div>
+                <h2 className="rf-panel__title">Resume Editor</h2>
+                <p className="rf-panel__desc">Build a recruiter-ready resume with live ATS checks</p>
+              </div>
+              <div className="rf-panel__header-actions">
+                <div className="rf-panel__badge">
+                  {liveATS.score}% Ready
+                </div>
+                <button
+                  type="button"
+                  className="rf-collapse-panel-btn"
+                  onClick={() => setEditorCollapsed(true)}
+                  title="Compress Editor Panel"
                 >
-                  <span>{message.role === "assistant" ? "AI" : "You"}</span>
-                  <p>{message.text}</p>
-                </article>
-              ))}
+                  <PanelLeftClose size={15} />
+                </button>
+              </div>
             </div>
 
-            <div className="resume-assistant__actions">
-              <button type="button" onClick={handleAIOptimize}>
-                Rewrite Bullet Points
-              </button>
-              <button type="button" onClick={handleAIOptimize}>
-                Generate Summary
-              </button>
-              <button type="button" onClick={handleAIOptimize}>
-                Suggest Skills
-              </button>
+            <div className="rf-panel__body">
+              <ResumeEditor
+                resume={resume}
+                setResume={setResume}
+                onAISummary={handleAISummary}
+                onAIBullet={handleAIBullet}
+                onAISkills={handleAISkills}
+                isAILoading={isAILoading}
+              />
             </div>
 
-            <label className="resume-assistant__input">
-              <AppIcon name="message" />
-              <input placeholder="Ask for recruiter-ready phrasing or ATS feedback..." />
-            </label>
+            {/* Mobile Floating Action Button to View Preview */}
+            <div className="rf-mobile-floating-wrap">
+              <button
+                type="button"
+                className="rf-mobile-floating-btn"
+                onClick={() => {
+                  setMobileTab("preview");
+                  setTimeout(updateFitZoom, 60);
+                }}
+              >
+                <Eye size={15} /> View A4 Preview ({liveATS.score}%)
+              </button>
+            </div>
           </aside>
         )}
 
-        {toast.visible && (
-          <div className={`resume-toast resume-toast--${toast.tone}`}>{toast.text}</div>
+        {/* ── Center Panel (45%): Live A4 Canvas ── */}
+        <main className="rf-panel rf-panel--preview">
+          <div className="rf-preview-bar">
+            <div className="rf-preview-bar__left">
+              <span className="rf-preview-tag">True A4 Canvas</span>
+              <span className="rf-preview-template-name">
+                Template: <strong>{resume.template || "Modern"}</strong>
+              </span>
+            </div>
+
+            <div className="rf-preview-bar__center">
+              <div className="rf-template-chips">
+                {templateLibrary.map(t => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    className={`rf-tpl-chip ${resume.template === t.key ? "is-selected" : ""}`}
+                    onClick={() => {
+                      setResume(prev => ({ ...prev, template: t.key }));
+                      showToast(`Switched to ${t.title} template`, "info");
+                    }}
+                  >
+                    {t.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rf-preview-bar__right">
+              <button
+                type="button"
+                className={`rf-canvas-btn ${isFocusMode ? "is-active" : ""}`}
+                onClick={toggleFocusMode}
+                title={isFocusMode ? "Exit Focus Mode (Restore sidebars)" : "Focus Canvas (Collapse sidebars)"}
+              >
+                {isFocusMode ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                <span>{isFocusMode ? "Exit Focus" : "Focus Canvas"}</span>
+              </button>
+
+              <div className="rf-zoom-controls">
+                <button
+                  type="button"
+                  className={zoomMode === "fit" ? "is-active" : ""}
+                  onClick={() => setZoomMode("fit")}
+                >
+                  Fit
+                </button>
+                <button
+                  type="button"
+                  className={zoomMode === "75" ? "is-active" : ""}
+                  onClick={() => setZoomMode("75")}
+                >
+                  75%
+                </button>
+                <button
+                  type="button"
+                  className={zoomMode === "100" ? "is-active" : ""}
+                  onClick={() => setZoomMode("100")}
+                >
+                  100%
+                </button>
+              </div>
+
+              <button
+                type="button"
+                className="rf-quick-print-btn"
+                onClick={handlePrint}
+                title="Print / Save PDF"
+              >
+                <Printer size={14} />
+              </button>
+            </div>
+          </div>
+
+          {/* Dedicated Canvas Viewport with Container Ref */}
+          <div className="rf-viewport" ref={viewportRef}>
+            <ResumePreviewLive resume={resume} zoom={zoomLevel} />
+          </div>
+
+          {/* Mobile Floating Action Bar on Preview */}
+          <div className="rf-mobile-floating-wrap">
+            <button
+              type="button"
+              className="rf-mobile-floating-btn secondary"
+              onClick={() => setMobileTab("editor")}
+            >
+              <Edit3 size={15} /> Edit Resume
+            </button>
+            <button
+              type="button"
+              className="rf-mobile-floating-btn primary"
+              onClick={handlePrint}
+            >
+              <Download size={15} /> Export PDF
+            </button>
+          </div>
+        </main>
+
+        {/* ── Right Panel (25%): AI Copilot & ATS Analyzer or Collapsed Rail ── */}
+        {aiCollapsed ? (
+          <aside
+            className="rf-rail rf-rail--right"
+            onClick={() => setAiCollapsed(false)}
+            title="Expand AI Career Copilot"
+          >
+            <button
+              type="button"
+              className="rf-rail-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setAiCollapsed(false);
+              }}
+              title="Expand AI Career Copilot"
+            >
+              <PanelRightOpen size={16} />
+            </button>
+            <div className="rf-rail-badge rf-rail-badge--score">
+              {liveATS.score}
+            </div>
+            <div className="rf-rail-label-wrap">
+              <span className="rf-rail-label">AI COPILOT</span>
+            </div>
+          </aside>
+        ) : (
+          <aside className="rf-panel rf-panel--ai">
+            <div className="rf-panel__header">
+              <div>
+                <h2 className="rf-panel__title">AI Career Copilot</h2>
+                <p className="rf-panel__desc">Intelligent ATS scoring & recruiter optimization</p>
+              </div>
+              <button
+                type="button"
+                className="rf-collapse-panel-btn"
+                onClick={() => setAiCollapsed(true)}
+                title="Compress AI Copilot Panel"
+              >
+                <PanelRightClose size={15} />
+              </button>
+            </div>
+
+          {/* Segmented Tab Controls */}
+          <div className="rf-ai-tabs">
+            <button
+              type="button"
+              className={activeRightTab === "ats" ? "is-active" : ""}
+              onClick={() => setActiveRightTab("ats")}
+            >
+              ATS Score
+            </button>
+            <button
+              type="button"
+              className={activeRightTab === "matcher" ? "is-active" : ""}
+              onClick={() => setActiveRightTab("matcher")}
+            >
+              Job Matcher
+            </button>
+            <button
+              type="button"
+              className={activeRightTab === "suggestions" ? "is-active" : ""}
+              onClick={() => setActiveRightTab("suggestions")}
+            >
+              AI Diffs {aiSuggestions.length > 0 && <span className="rf-badge-count">{aiSuggestions.length}</span>}
+            </button>
+          </div>
+
+          <div className="rf-panel__body rf-ai-content">
+            {/* ── TAB 1: ATS SCORE & AUDIT ── */}
+            {activeRightTab === "ats" && (
+              <div className="rf-ats-audit">
+                <div className="rf-score-card">
+                  <div className="rf-score-ring">
+                    <svg viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="42" className="rf-score-ring__bg" />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="42"
+                        className="rf-score-ring__progress"
+                        style={{
+                          strokeDasharray: 264,
+                          strokeDashoffset: 264 - (264 * liveATS.score) / 100,
+                          stroke: liveATS.score >= 80 ? "#10B981" : liveATS.score >= 60 ? "#F59E0B" : "#EF4444"
+                        }}
+                      />
+                    </svg>
+                    <div className="rf-score-ring__value">
+                      <strong>{liveATS.score}</strong>
+                      <span>/ 100</span>
+                    </div>
+                  </div>
+
+                  <div className="rf-score-meta">
+                    <h4>{liveATS.score >= 80 ? "Strong Recruiter Match" : liveATS.score >= 60 ? "Competitive Signal" : "Needs Optimization"}</h4>
+                    <p className="rf-score-sub">{liveATS.percentile} for {resume.role || "Software Roles"}</p>
+                    <button
+                      type="button"
+                      className="rf-btn-primary-sm"
+                      onClick={() => handleAISummary("standard")}
+                      disabled={isAILoading}
+                    >
+                      <Sparkles size={12} /> Optimize with AI
+                    </button>
+                  </div>
+                </div>
+
+                {/* Score Category Breakdown */}
+                <div className="rf-audit-section">
+                  <h4 className="rf-audit-title">Score Breakdown</h4>
+                  <div className="rf-breakdown-list">
+                    <div className="rf-breakdown-item">
+                      <div className="rf-breakdown-item__head">
+                        <span>Contact Completeness</span>
+                        <strong>{liveATS.breakdown.contact}%</strong>
+                      </div>
+                      <div className="rf-progress-track">
+                        <div className="rf-progress-fill" style={{ width: `${liveATS.breakdown.contact}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="rf-breakdown-item">
+                      <div className="rf-breakdown-item__head">
+                        <span>Experience & Metrics</span>
+                        <strong>{liveATS.breakdown.experience}%</strong>
+                      </div>
+                      <div className="rf-progress-track">
+                        <div className="rf-progress-fill" style={{ width: `${liveATS.breakdown.experience}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="rf-breakdown-item">
+                      <div className="rf-breakdown-item__head">
+                        <span>Project Depth</span>
+                        <strong>{liveATS.breakdown.projects}%</strong>
+                      </div>
+                      <div className="rf-progress-track">
+                        <div className="rf-progress-fill" style={{ width: `${liveATS.breakdown.projects}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="rf-breakdown-item">
+                      <div className="rf-breakdown-item__head">
+                        <span>Skills Diversity</span>
+                        <strong>{liveATS.breakdown.skills}%</strong>
+                      </div>
+                      <div className="rf-progress-track">
+                        <div className="rf-progress-fill" style={{ width: `${liveATS.breakdown.skills}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actionable Recommendations */}
+                <div className="rf-audit-section">
+                  <h4 className="rf-audit-title">Optimization Checklist</h4>
+                  <div className="rf-checklist">
+                    {liveATS.suggestions.map((sug, i) => (
+                      <div className="rf-check-item" key={i}>
+                        <AlertTriangle size={14} className="rf-warn-icon" />
+                        <p>{sug}</p>
+                      </div>
+                    ))}
+                    {liveATS.formattingIssues.map((iss, i) => (
+                      <div className="rf-check-item rf-check-item--info" key={i}>
+                        <CheckCircle2 size={14} className="rf-info-icon" />
+                        <p>{iss}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── TAB 2: JOB MATCHER ── */}
+            {activeRightTab === "matcher" && (
+              <div className="rf-job-matcher">
+                <p className="rf-tab-desc">
+                  Paste the job description you are targeting. ResumeForge will compare keywords and highlight missing requirements.
+                </p>
+
+                <div className="rf-field">
+                  <label>Target Job Description</label>
+                  <textarea
+                    rows={6}
+                    placeholder="Paste job requirements, tech stack, and responsibilities here..."
+                    value={targetJD}
+                    onChange={(e) => setTargetJD(e.target.value)}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  className="rf-btn-primary rf-btn-block"
+                  onClick={handleRunJobMatcher}
+                >
+                  <Target size={14} /> Analyze Alignment
+                </button>
+
+                {jdAnalysis && (
+                  <div className="rf-matcher-results">
+                    <div className="rf-matcher-score">
+                      <span>Match Compatibility</span>
+                      <strong>{jdAnalysis.score}%</strong>
+                    </div>
+
+                    {/* Matched Keywords */}
+                    <div className="rf-kw-block">
+                      <h5>Matched Keywords ({jdAnalysis.keywords.length})</h5>
+                      <div className="rf-kw-pills">
+                        {jdAnalysis.keywords.map((kw, i) => (
+                          <span className="rf-kw-pill is-matched" key={i}>
+                            <Check size={11} /> {kw}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Missing Keywords with 1-click Add */}
+                    <div className="rf-kw-block">
+                      <h5>Missing Keywords ({jdAnalysis.missingKeywords.length})</h5>
+                      <div className="rf-kw-pills">
+                        {jdAnalysis.missingKeywords.map((kw, i) => (
+                          <button
+                            type="button"
+                            className="rf-kw-pill is-missing"
+                            key={i}
+                            title="Click to add to skills"
+                            onClick={() => addMissingSkill(kw)}
+                          >
+                            + {kw}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── TAB 3: AI SUGGESTIONS DIFF ── */}
+            {activeRightTab === "suggestions" && (
+              <div className="rf-suggestions-tab">
+                <div className="rf-suggestions-header">
+                  <p className="rf-tab-desc">
+                    Review and apply proposed optimizations. You have full control over all changes.
+                  </p>
+                  <button
+                    type="button"
+                    className="rf-ai-btn"
+                    onClick={() => handleAISummary("standard")}
+                    disabled={isAILoading}
+                  >
+                    <Sparkles size={12} /> Generate Suggestions
+                  </button>
+                </div>
+
+                {aiSuggestions.length === 0 ? (
+                  <div className="rf-empty-state">
+                    <Sparkles size={24} className="rf-empty-icon" />
+                    <h4>No Pending Suggestions</h4>
+                    <p>Click "Generate Suggestions" or use the inline AI buttons in the editor to optimize sections.</p>
+                  </div>
+                ) : (
+                  <div className="rf-diff-cards">
+                    {aiSuggestions.map(sug => (
+                      <div className="rf-diff-card" key={sug.id}>
+                        <div className="rf-diff-card__head">
+                          <span className="rf-diff-badge">{sug.section}</span>
+                        </div>
+
+                        <div className="rf-diff-block rf-diff-block--original">
+                          <small>Current</small>
+                          <p>{sug.original || "(Empty)"}</p>
+                        </div>
+
+                        <div className="rf-diff-block rf-diff-block--suggested">
+                          <small>✨ AI Recommended</small>
+                          <p>{sug.suggested}</p>
+                        </div>
+
+                        <div className="rf-diff-card__actions">
+                          <button
+                            type="button"
+                            className="rf-btn-apply"
+                            onClick={() => applySuggestion(sug)}
+                          >
+                            <Check size={13} /> Apply to Resume
+                          </button>
+                          <button
+                            type="button"
+                            className="rf-btn-reject"
+                            onClick={() => dismissSuggestion(sug.id)}
+                          >
+                            <X size={13} /> Dismiss
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </aside>
         )}
       </div>
+
+      {/* ── Cover Letter Generator Modal ── */}
+      {coverLetterOpen && (
+        <div className="rf-modal-overlay" onClick={() => setCoverLetterOpen(false)}>
+          <div className="rf-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="rf-modal__head">
+              <div>
+                <h3>AI Cover Letter Generator</h3>
+                <p>Generate a tailored, high-converting cover letter based strictly on your verified resume background</p>
+              </div>
+              <button type="button" className="rf-close-btn" onClick={() => setCoverLetterOpen(false)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="rf-modal__body">
+              <div className="rf-grid-2">
+                <div className="rf-field">
+                  <label>Company Name</label>
+                  <input
+                    placeholder="e.g. Stripe, Google, Acme Labs"
+                    value={coverLetterForm.company}
+                    onChange={(e) => setCoverLetterForm(prev => ({ ...prev, company: e.target.value }))}
+                  />
+                </div>
+                <div className="rf-field">
+                  <label>Tone</label>
+                  <select
+                    value={coverLetterForm.tone}
+                    onChange={(e) => setCoverLetterForm(prev => ({ ...prev, tone: e.target.value }))}
+                  >
+                    <option value="Professional">Professional</option>
+                    <option value="Confident">Confident & Impactful</option>
+                    <option value="Technical">Technical & Architecture-Focused</option>
+                    <option value="Concise">Concise & Direct</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="rf-field">
+                <label>Job Description Requirements</label>
+                <textarea
+                  rows={4}
+                  placeholder="Paste the target job description here..."
+                  value={coverLetterForm.jd}
+                  onChange={(e) => setCoverLetterForm(prev => ({ ...prev, jd: e.target.value }))}
+                />
+              </div>
+
+              <button
+                type="button"
+                className="rf-btn-primary rf-btn-block"
+                onClick={handleGenerateCoverLetter}
+                disabled={isAILoading}
+              >
+                <Sparkles size={14} /> {isAILoading ? "Drafting Cover Letter..." : "Generate Tailored Cover Letter"}
+              </button>
+
+              {generatedCoverLetter && (
+                <div className="rf-cover-letter-result">
+                  <div className="rf-cover-letter-head">
+                    <h4>{generatedCoverLetter.subject}</h4>
+                    <button
+                      type="button"
+                      className="rf-copy-btn"
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedCoverLetter.coverLetter);
+                        showToast("Cover letter copied to clipboard!", "success");
+                      }}
+                    >
+                      <Copy size={13} /> Copy Text
+                    </button>
+                  </div>
+                  <pre className="rf-cover-letter-text">{generatedCoverLetter.coverLetter}</pre>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── AI Copilot Chat Drawer ── */}
+      {chatOpen && (
+        <aside className="rf-chat-drawer">
+          <div className="rf-chat-drawer__head">
+            <div>
+              <h3>ResumeForge Copilot</h3>
+              <p>Ask for phrasing advice, ATS tips, or interview questions</p>
+            </div>
+            <button type="button" onClick={() => setChatOpen(false)}>
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="rf-chat-drawer__messages">
+            {chatMessages.map((m, idx) => (
+              <div key={idx} className={`rf-chat-bubble rf-chat-bubble--${m.role}`}>
+                <span>{m.role === "assistant" ? "AI Copilot" : "You"}</span>
+                <p>{m.text}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="rf-chat-drawer__input">
+            <input
+              placeholder="Ask for feedback or wording advice..."
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+            />
+            <button type="button" onClick={handleSendMessage}>
+              <Send size={14} />
+            </button>
+          </div>
+        </aside>
+      )}
+
+      {/* ── Command Palette (Ctrl+K) ── */}
+      {commandPaletteOpen && (
+        <div className="rf-modal-overlay" onClick={() => setCommandPaletteOpen(false)}>
+          <div className="rf-cmd-palette" onClick={(e) => e.stopPropagation()}>
+            <div className="rf-cmd-palette__input">
+              <Search size={16} />
+              <input
+                autoFocus
+                placeholder="Type a command or action (e.g. Export, Template, Summary, Matcher)..."
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setCommandPaletteOpen(false);
+                }}
+              />
+            </div>
+            <div className="rf-cmd-palette__list">
+              <div
+                className="rf-cmd-item"
+                onClick={() => {
+                  setCommandPaletteOpen(false);
+                  handlePrint();
+                }}
+              >
+                <Printer size={14} />
+                <span>Export / Print PDF</span>
+                <span className="rf-cmd-sub">A4 Document</span>
+              </div>
+              <div
+                className="rf-cmd-item"
+                onClick={() => {
+                  setCommandPaletteOpen(false);
+                  handleAISummary("standard");
+                }}
+              >
+                <Sparkles size={14} />
+                <span>AI Improve Professional Summary</span>
+                <span className="rf-cmd-sub">Optimization</span>
+              </div>
+              <div
+                className="rf-cmd-item"
+                onClick={() => {
+                  setCommandPaletteOpen(false);
+                  setActiveRightTab("matcher");
+                }}
+              >
+                <Target size={14} />
+                <span>Open Job Description Matcher</span>
+                <span className="rf-cmd-sub">ATS Tool</span>
+              </div>
+              <div
+                className="rf-cmd-item"
+                onClick={() => {
+                  setCommandPaletteOpen(false);
+                  setCoverLetterOpen(true);
+                }}
+              >
+                <Briefcase size={14} />
+                <span>Generate Tailored Cover Letter</span>
+                <span className="rf-cmd-sub">Application</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Subtle Floating Toast (Doesn't cover header) ── */}
+      {toast.visible && (
+        <div className={`rf-toast rf-toast--${toast.type}`}>
+          {toast.type === "success" && <CheckCircle2 size={15} />}
+          {toast.type === "warning" && <AlertTriangle size={15} />}
+          <span>{toast.text}</span>
+        </div>
+      )}
     </div>
   );
 }

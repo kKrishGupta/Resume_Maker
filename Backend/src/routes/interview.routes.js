@@ -63,6 +63,13 @@ interviewRouter.post(
   interviewController.generateFollowUp
 );
 
+// re-analyze interview report
+interviewRouter.post(
+  "/:interviewId/re-analyze",
+  authMiddleware,
+  interviewController.reAnalyzeInterviewReportController
+);
+
 // interview - questions and mock
 interviewRouter.post(
   "/mock/evaluate",

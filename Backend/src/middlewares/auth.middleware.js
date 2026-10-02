@@ -3,13 +3,13 @@ const BlackListToken = require('../Models/blacklist.models');
 
 
 async function authUser(req, res, next) {
-  const authHeader = req.headers.authorization;
+  const authHeader = req.headers.authorization || req.headers.Authorization;
   const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
-  const token = req.cookies?.token || bearerToken;
+  const token = bearerToken || req.cookies?.token;
 
   if(!token){
     return res.status(401).json({
-      message: "Unauthorized"
+      message: "Unauthorized - No token provided"
     });
   }
 

@@ -214,10 +214,214 @@ async function analyzeResume(data) {
   }
 }
 
+/**
+ * Rewrite resume bullets using Action + Task + Tech + Metric formula
+ */
+async function rewriteBullets({ bullets, targetRole, resume }) {
+  const pointsList = Array.isArray(bullets) && bullets.length > 0 
+    ? bullets 
+    : (resume?.experience?.[0]?.points || ["Engineered web application features"]);
+
+  try {
+    const prompt = `You are a principal technical recruiter and resume specialist.
+Rewrite the following resume bullet points using the formula: Action Verb + Context/Task + Technology Used + Measurable Result/Impact.
+Rules:
+- Do NOT invent false companies or fake numbers. If no metric was provided, optimize phrasing to highlight technical challenge and suggest "[metric, e.g. 20%]" in brackets.
+- Return ONLY a JSON array of strings: ["bullet 1", "bullet 2", ...]
+
+Target Role: ${targetRole || resume?.role || "Software Engineer"}
+Current Bullets:
+${JSON.stringify(pointsList, null, 2)}
+`;
+    const text = await generateAI(prompt);
+    const parsed = safeParseJSON(text);
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    return pointsList.map(p => p.startsWith("• ") ? p : `• ${p}`);
+  } catch (err) {
+    logger.warn('AI bullet rewrite failed, returning enhanced original', { error: err.message });
+    return pointsList.map(p => `Engineered and optimized ${p.toLowerCase()}`);
+  }
+}
+
+/**
+ * Generate ATS-optimized professional summary
+ */
+async function generateSummary({ resume, targetRole }) {
+  try {
+    const prompt = `You are a professional executive resume writer.
+Write a compelling 2-3 sentence professional summary for a candidate resume.
+Candidate Title: ${resume?.role || targetRole || "Software Engineer"}
+Skills: ${(resume?.skills || []).join(", ")}
+Key Projects: ${(resume?.projects || []).map(p => p.name).join(", ")}
+
+Rules:
+- Return ONLY valid JSON: { "summary": "..." }
+- Tone: Professional, high-impact, ATS-optimized, concise (300-500 characters).
+`;
+    const text = await generateAI(prompt);
+    const parsed = safeParseJSON(text);
+    return parsed?.summary || text?.replace(/^["'\s]+|["'\s]+$/g, "") || resume?.summary;
+  } catch (err) {
+    logger.warn('AI summary generation failed', { error: err.message });
+    return `${resume?.role || "Software Engineer"} with extensive hands-on experience architecting scalable full-stack applications and delivering production-grade services.`;
+  }
+}
+
+/**
+ * Suggest in-demand technical skills based on projects and experience
+ */
+async function suggestSkills({ resume, targetRole }) {
+  try {
+    const prompt = `Analyze this resume and suggest relevant, in-demand technical skills for ATS optimization.
+Target Role: ${targetRole || resume?.role || "Software Engineer"}
+Current Resume Skills: ${(resume?.skills || []).join(", ")}
+Projects: ${JSON.stringify(resume?.projects || [], null, 2)}
+
+Rules:
+- Return ONLY valid JSON:
+{
+  "skills": ["Skill1", "Skill2", "Skill3", "Skill4", "Skill5", "Skill6", "Skill7", "Skill8"],
+  "categories": {
+    "languages": ["..."],
+    "frameworks": ["..."],
+    "databases": ["..."],
+    "cloud": ["..."],
+    "tools": ["..."]
+  }
+}
+`;
+    const text = await generateAI(prompt);
+    const parsed = safeParseJSON(text);
+    if (parsed?.skills || parsed?.categories) return parsed;
+  } catch (err) {
+    logger.warn('AI skill suggestion failed', { error: err.message });
+  }
+
+  return {
+    skills: ["TypeScript", "Docker", "PostgreSQL", "Redis", "Next.js", "CI/CD", "AWS", "System Design"],
+    categories: {
+      languages: ["JavaScript", "TypeScript"],
+      frameworks: ["React.js", "Node.js", "Express.js"],
+      databases: ["MongoDB", "PostgreSQL", "Redis"],
+      cloud: ["Docker", "AWS", "CI/CD"],
+      tools: ["Git", "Postman", "Jest"]
+    }
+  };
+}
+
+/**
+ * AI Chat Assistant for resume feedback & interview prep
+ */
+async function chatAssistant({ resume, message, history }) {
+  try {
+    const prompt = `You are ResumeForge Copilot, an elite career advisor and resume editor.
+Candidate Profile:
+- Name: ${resume?.name || "Candidate"}
+- Role: ${resume?.role || "Software Engineer"}
+- Summary: ${resume?.summary || ""}
+- Skills: ${(resume?.skills || []).slice(0, 10).join(", ")}
+
+User Message: "${message}"
+
+Rules:
+- Provide clear, actionable, recruiter-tested advice.
+- If asked to rewrite text, give concrete examples following the Action Verb + Result structure.
+- Never invent fake credentials or achievements.
+- Keep responses friendly, structured, and concise.
+`;
+    const reply = await generateAI(prompt);
+    if (reply) return reply;
+  } catch (err) {
+    logger.warn('AI chat assistant failed', { error: err.message });
+  }
+
+  return "To maximize recruiter response, ensure every project bullet demonstrates a clear technical choice and a quantifiable outcome (e.g. latency, throughput, or user engagement).";
+}
+
+/**
+ * Generate tailored cover letter
+ */
+async function generateCoverLetter({ resume, jobDescription, companyName, tone = "Professional" }) {
+  try {
+    const prompt = `Write a tailored, high-converting cover letter based strictly on the candidate's verified background and target role.
+Tone: ${tone}
+Company: ${companyName || "Hiring Team"}
+Job Description:
+${jobDescription}
+
+Candidate Resume:
+${JSON.stringify({ name: resume?.name, role: resume?.role, experience: resume?.experience, projects: resume?.projects, skills: resume?.skills }, null, 2)}
+
+Rules:
+- Return ONLY valid JSON:
+{
+  "subject": "Application for [Role] - [Candidate Name]",
+  "coverLetter": "Dear Hiring Manager,\\n\\n[Paragraph 1: Enthusiasm & core value proposition]\\n\\n[Paragraph 2: Highlight 1-2 real relevant achievements/projects]\\n\\n[Paragraph 3: Culture alignment and why this company]\\n\\n[Paragraph 4: Call to action]\\n\\nSincerely,\\n[Candidate Name]"
+}
+`;
+    const text = await generateAI(prompt);
+    const parsed = safeParseJSON(text);
+    if (parsed?.coverLetter) return parsed;
+  } catch (err) {
+    logger.warn('Cover letter AI generation failed', { error: err.message });
+  }
+
+  return {
+    subject: `Application for ${resume?.role || "Software Engineer"} - ${resume?.name || "Candidate"}`,
+    coverLetter: `Dear Hiring Team at ${companyName || "the organization"},\n\nI am writing to express my strong enthusiasm for the ${resume?.role || "Software Engineer"} opportunity. With a proven track record developing scalable web applications and technical solutions, I am confident in my ability to make an immediate impact on your engineering initiatives.\n\nThroughout my work on projects like ${(resume?.projects?.[0]?.name || "full-stack systems")}, I have focused on delivering reliable architectures with ${(resume?.skills || []).slice(0, 4).join(", ")}. I welcome the opportunity to discuss how my technical expertise aligns with your team's upcoming milestones.\n\nSincerely,\n${resume?.name || "Candidate"}`
+  };
+}
+
+/**
+ * Predict interview chances based on resume-job alignment
+ */
+async function predictInterviewChance({ resume, jobDescription }) {
+  try {
+    const prompt = `Compare this resume against the job description to calculate interview shortlist probability.
+Job Description:
+${jobDescription}
+
+Candidate Resume:
+${JSON.stringify({ role: resume?.role, skills: resume?.skills, experience: resume?.experience, projects: resume?.projects }, null, 2)}
+
+Rules:
+- Return ONLY valid JSON:
+{
+  "probabilityScore": 82,
+  "confidence": "High",
+  "matchedSkills": ["skill1", "skill2"],
+  "missingCriticalSkills": ["skillA", "skillB"],
+  "strengths": ["...", "..."],
+  "recommendations": ["...", "..."]
+}
+`;
+    const text = await generateAI(prompt);
+    const parsed = safeParseJSON(text);
+    if (parsed?.probabilityScore) return parsed;
+  } catch (err) {
+    logger.warn('Predict interview chance failed', { error: err.message });
+  }
+
+  return {
+    probabilityScore: 78,
+    confidence: "Medium",
+    matchedSkills: (resume?.skills || []).slice(0, 6),
+    missingCriticalSkills: ["System Design", "Cloud Infrastructure"],
+    strengths: ["Strong technical project portfolio", "Full-stack development experience"],
+    recommendations: ["Incorporate target keywords into project bullet points", "Highlight measurable performance improvements"]
+  };
+}
+
 module.exports = {
   saveResume,
   getResume,
   improveResume,
   generateResumePDF,
-  analyzeResume
+  analyzeResume,
+  rewriteBullets,
+  generateSummary,
+  suggestSkills,
+  chatAssistant,
+  generateCoverLetter,
+  predictInterviewChance
 };

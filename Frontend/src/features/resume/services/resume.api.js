@@ -138,6 +138,84 @@ export const downloadPDF = async (data) => {
 };
 
 /**
+ * Rewrite bullets using AI
+ */
+export const rewriteBullets = async (data) => {
+  try {
+    const response = await apiClient.post("/resume/rewrite-bullets", data);
+    return response.data.bullets || response.data;
+  } catch (error) {
+    console.error("[Resume API] Rewrite bullets failed:", error);
+    throw error;
+  }
+};
+
+/**
+ * Generate professional summary
+ */
+export const generateSummary = async (data) => {
+  try {
+    const response = await apiClient.post("/resume/generate-summary", data);
+    return response.data.summary || response.data;
+  } catch (error) {
+    console.error("[Resume API] Generate summary failed:", error);
+    throw error;
+  }
+};
+
+/**
+ * Suggest in-demand skills
+ */
+export const suggestSkills = async (data) => {
+  try {
+    const response = await apiClient.post("/resume/suggest-skills", data);
+    return response.data.skills || response.data;
+  } catch (error) {
+    console.error("[Resume API] Suggest skills failed:", error);
+    throw error;
+  }
+};
+
+/**
+ * Chat with AI Assistant
+ */
+export const chatAssistant = async (data) => {
+  try {
+    const response = await apiClient.post("/resume/chat", data);
+    return response.data.reply || response.data;
+  } catch (error) {
+    console.error("[Resume API] Chat failed:", error);
+    throw error;
+  }
+};
+
+/**
+ * Generate Tailored Cover Letter
+ */
+export const generateCoverLetter = async (data) => {
+  try {
+    const response = await apiClient.post("/resume/cover-letter", data);
+    return response.data.coverLetter || response.data;
+  } catch (error) {
+    console.error("[Resume API] Cover letter failed:", error);
+    throw error;
+  }
+};
+
+/**
+ * Predict interview chances
+ */
+export const predictInterviewChance = async (data) => {
+  try {
+    const response = await apiClient.post("/resume/interview-chance", data);
+    return response.data.prediction || response.data;
+  } catch (error) {
+    console.error("[Resume API] Interview chance failed:", error);
+    throw error;
+  }
+};
+
+/**
  * Get resume error message for UI display
  * @param {APIError|Error} error - Error object
  * @returns {string} User-friendly error message

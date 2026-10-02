@@ -11,15 +11,19 @@
 
 // Get API base URL from environment or window object
 const getAPIBaseURL = () => {
-  // Try Vite environment variable first
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) {
-    const url = import.meta.env.VITE_API_URL.replace(/\/+$/, '');
+  // Try Vite environment variables first
+  const envUrl = (typeof import.meta !== 'undefined' && import.meta.env)
+    ? (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL)
+    : null;
+
+  if (envUrl) {
+    const url = envUrl.replace(/\/+$/, '');
     return url.endsWith('/api') ? url : `${url}/api`;
   }
 
   // Try window object next (works in browser)
-  if (typeof window !== 'undefined' && window && window.__API_URL__) {
-    const url = window.__API_URL__.replace(/\/+$/, '');
+  if (typeof window !== 'undefined' && window && (window.__API_URL__ || window.__API_BASE_URL__)) {
+    const url = (window.__API_URL__ || window.__API_BASE_URL__).replace(/\/+$/, '');
     return url.endsWith('/api') ? url : `${url}/api`;
   }
   
@@ -262,12 +266,14 @@ class APIClient {
 
         return finalResponse;
       } catch (error) {
-        console.error('[APIClient] Error', {
-          method,
-          endpoint,
-          message: error.message,
-          duration: `${Date.now() - startTime}ms`,
-        });
+        if (error.statusCode !== 401 && error.response?.status !== 401) {
+          console.error('[APIClient] Error', {
+            method,
+            endpoint,
+            message: error.message,
+            duration: `${Date.now() - startTime}ms`,
+          });
+        }
 
         // Execute error interceptors
         const finalError = await this.executeErrorInterceptors(error);

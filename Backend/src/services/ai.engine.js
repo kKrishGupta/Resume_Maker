@@ -10,14 +10,14 @@ const providerMap = {
 const providers = [];
 
 if (process.env.GROQ_API_KEY) providers.push("groq");
-if (process.env.OPENROUTER_API_KEY) providers.push("openrouter");
+if (process.env.OPENROUTER_API_KEY || process.env.openRoute_api_key) providers.push("openrouter");
 if (process.env.GOOGLE_GENAI_API_KEY) providers.push("gemini");
 
 // ⏱️ Provider-specific timeouts
 const TIMEOUTS = {
-  groq: 4000,
-  openrouter: 8000,
-  gemini: 12000
+  groq: 15000,
+  openrouter: 20000,
+  gemini: 25000
 };
 
 let providerState = {
