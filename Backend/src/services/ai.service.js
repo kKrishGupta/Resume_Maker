@@ -71,7 +71,7 @@ const interviewReportSchema = z.object({
     technicalQuestions: z.array(z.object({
         question: z.string().describe("The technical question can be asked in the interview"),
         intention: z.string().describe("The intention of interviewer behind asking this question"),
-        answer: z.string().describe("How to answer this question, what points to cover, what approach to take etc.")
+        answer: z.string().describe("A comprehensive, high-scoring master-class model interview response. DO NOT write meta instructions like 'The candidate should explain...'. Write the direct articulate answer explaining core keywords, conceptual mechanics, trade-offs, and examples so the candidate can learn and answer the interviewer directly.")
     })).describe("Technical questions that can be asked in the interview along with their intention and how to answer them"),
     behavioralQuestions: z.array(z.object({
         question: z.string().describe("The technical question can be asked in the interview"),
@@ -151,6 +151,7 @@ STRICT REQUIREMENTS:
 - preparationPlan → between 5 to 7 objects
 - tasks MUST be an array of strings (NOT a single string)
 - Each object must contain ALL required fields
+- For technicalQuestions and behavioralQuestions, the "answer" MUST be a complete, in-depth model answer explaining core keywords and mechanics directly (NEVER start with "The candidate should explain..." or "Discuss...")
 - weakProjects MUST contain at least 2 items
 
 FORBIDDEN OUTPUTS:
@@ -300,6 +301,7 @@ You are an expert interviewer.
 Generate 5 NEW technical interview questions.
 
 STRICT RULES:
+- The "answer" field must be a complete, in-depth model answer explaining core keywords and mechanics directly (NEVER start with "The candidate should explain..." or "Discuss...")
 - Do NOT repeat previous questions
 - Return ONLY JSON
 - No explanation, no text

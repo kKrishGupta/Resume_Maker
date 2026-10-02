@@ -127,27 +127,104 @@ function getFallbackTechnicalQuestions(title = "Software Engineer") {
     {
       question: "Explain the JavaScript event loop, microtask queue (Promises), and macrotask queue (setTimeout) execution order.",
       intention: "Assess deep understanding of asynchronous JavaScript concurrency and execution flow.",
-      answer: "The candidate should explain the call stack, Web APIs, Macrotask Queue, and Microtask Queue. Microtasks (Promise.then, queueMicrotask) run immediately after the current execution context clears before the browser/Node event loop picks up the next macrotask."
+      answer: `JavaScript is single-threaded, with a single Call Stack executing one frame at a time. The Event Loop is the concurrency coordinator that facilitates non-blocking asynchronous execution between the Call Stack, Web APIs (or Node.js libuv), the Microtask Queue, and the Macrotask Queue:
+
+1. Call Stack (LIFO): Executes synchronous JavaScript code frame by frame. When a function finishes execution, it is popped off the stack.
+2. Web APIs / Background Threads: When asynchronous operations (such as setTimeout, fetch, or DOM events) are called, they are offloaded to background threads so the Call Stack remains unblocked.
+3. Microtask Queue (Highest Priority): Holds callbacks from Promises (.then/.catch/finally), queueMicrotask(), and await continuations (plus process.nextTick in Node.js).
+   • Execution Rule: Once the Call Stack is empty, the Event Loop flushes the ENTIRE Microtask Queue to completion before touching any macrotask or UI render.
+4. Macrotask Queue (Standard Priority): Holds callbacks from setTimeout, setInterval, setImmediate, and I/O.
+   • Execution Rule: The Event Loop takes exactly ONE macrotask at a time, executes it, and then immediately flushes any new microtasks that were scheduled during its execution.
+
+Execution Order Example:
+console.log('1 - Start (Sync)');
+setTimeout(() => console.log('2 - Macrotask (setTimeout)'), 0);
+Promise.resolve().then(() => console.log('3 - Microtask (Promise)'));
+console.log('4 - End (Sync)');
+
+Output Order: 1, 4, 3, 2.
+Step-by-step reasoning:
+• '1' and '4' execute synchronously on the Call Stack.
+• setTimeout registers with Web APIs and places its callback into the Macrotask Queue.
+• Promise.resolve() places its callback into the Microtask Queue.
+• As soon as the Call Stack is empty, the Event Loop prioritizes the Microtask Queue, logging '3'.
+• Only after all microtasks are drained does the Event Loop process the next Macrotask, logging '2'.`
     },
     {
       question: "How do you optimize API performance, handle rate limiting, and manage database connection pooling in a Node.js backend?",
       intention: "Evaluate scalability knowledge, caching strategies, and database connection pooling under high load.",
-      answer: "Discuss connection pooling (e.g. pg Pool or mongoose options), in-memory caching with Redis, query profiling with indexes, clustering or worker threads for CPU-heavy tasks, and middleware-level rate limiting."
+      answer: `To architect a high-throughput, low-latency Node.js backend:
+
+1. Database Connection Pooling:
+   • Create a persistent connection pool (e.g. pg.Pool or Mongoose maxPoolSize: 20-50) rather than opening a TCP connection per request.
+   • Eliminates expensive three-way handshakes and TLS negotiation, maintaining a healthy balance between database resources and concurrent queries.
+
+2. Multi-Tier Caching (Redis):
+   • Implement the Cache-Aside pattern: check Redis cache first; on a cache miss, query the database, populate Redis with an appropriate TTL (Time-To-Live), and return the data.
+   • Protect against cache stampedes/thundering herd using distributed locks or stale-while-revalidate.
+
+3. Distributed Rate Limiting:
+   • Implement token-bucket or sliding-window algorithms using Redis (via express-rate-limit + rate-limit-redis) keyed on client IP or API key.
+   • Reject excess traffic with HTTP 429 (Too Many Requests) and Retry-After headers to prevent server exhaustion and DDoS attacks.
+
+4. Event Loop Hygiene & Concurrency:
+   • Never execute synchronous CPU-intensive tasks (e.g. heavy crypto, image processing, massive JSON parsing) on the main thread; offload them to Node.js Worker Threads or dedicated queue workers (BullMQ/Redis).
+   • Utilize cluster mode or PM2 process managers to take full advantage of all CPU cores.`
     },
     {
       question: "Describe your approach to state management, component re-rendering optimization, and memory leak prevention in React.",
       intention: "Assess frontend architectural awareness, modern React hooks, and rendering lifecycle performance.",
-      answer: "Cover useMemo, useCallback, React.memo, localized state to avoid top-level cascading re-renders, cleanup functions in useEffect (cancelling subscriptions/timers), and lazy loading components."
+      answer: `High-performance React application architecture rests on three core pillars:
+
+1. State Architecture & Colocation:
+   • Colocate state as close as possible to the components that consume it (lift state down). Avoid storing ephemeral UI state in root providers.
+   • Reserve React Context for low-frequency global values (auth, theme). For frequently updated complex state, use lightweight atomic/selector stores like Zustand to avoid cascading tree re-renders.
+
+2. Render Optimization:
+   • React.memo: Wrap expensive pure presentation components to skip re-renders when props remain shallowly equal.
+   • useMemo: Cache computationally heavy data derivations across renders.
+   • useCallback: Maintain stable function references passed to memoized child components, ensuring React.memo isn't bypassed by new function instances.
+   • React 18 Concurrent Rendering: Use useTransition and useDeferredValue to mark non-urgent state updates (e.g. search suggestions) as interruptible, maintaining 60 FPS input responsiveness.
+
+3. Memory Leak Prevention:
+   • Always return cleanup functions in useEffect to unsubscribe from event listeners, close WebSocket connections, and clear active timers.
+   • Use AbortController inside useEffect to cancel in-flight HTTP requests if the component unmounts before response resolution.`
     },
     {
       question: "How do you ensure data consistency and graceful error handling across distributed services or microservices?",
       intention: "Evaluate system design maturity, failure isolation, and transaction reliability.",
-      answer: "Discuss Saga pattern (orchestration vs choreography), idempotency keys for retryable requests, dead letter queues (DLQ), circuit breaker pattern, and database transaction isolation levels."
+      answer: `In distributed microservice architectures where two-phase commit (2PC) is impractical due to high latency and blocking locks:
+
+1. Saga Pattern (Distributed Transactions):
+   • Break cross-service workflows into a series of local database transactions.
+   • Can be Orchestrated (a centralized Saga coordinator directs services) or Choreographed (services listen to event broker topics).
+   • Every forward step must define an idempotent Compensating Transaction that undoes changes if any downstream service fails.
+
+2. Transactional Outbox Pattern:
+   • Solve the 'dual-write' problem by saving the business entity and the outgoing event in the SAME local database transaction.
+   • A CDC process (Change Data Capture like Debezium) or outbox publisher polls the outbox table and publishes events to Kafka/RabbitMQ with guaranteed At-Least-Once delivery.
+
+3. Idempotency:
+   • Every mutating request must accept an Idempotency-Key header stored in Redis/DB with a unique constraint. If a network retry occurs, return the cached result without duplicate execution.
+
+4. Fault Tolerance & Isolation:
+   • Implement Circuit Breakers (fail fast when downstream dependency latency spikes), Dead Letter Queues (DLQ) for malformed events, and Exponential Backoff with Jitter for transient retries.`
     },
     {
       question: "Explain how you implement secure authentication and authorization using short-lived JWTs and refresh tokens.",
       intention: "Check security best practices regarding session management, token storage, and credential safety.",
-      answer: "Short-lived JWT access tokens in memory or Authorization Bearer header, HttpOnly SameSite Secure cookies for refresh tokens, refresh token rotation with revocation lists, and strict CORS configuration."
+      answer: `A production-grade authentication flow combines stateless performance with centralized revocation security:
+
+1. Dual Token Architecture:
+   • Access Token: Short-lived (10 to 15 minutes), digitally signed (RS256 or HS256). Contains user identity and role claims. Kept in frontend memory (or sent in Authorization: Bearer headers) to minimize XSS vulnerability.
+   • Refresh Token: Long-lived (7 to 14 days), cryptographically random string stored in an HttpOnly, Secure, SameSite=Strict cookie, inaccessible to JavaScript.
+
+2. Refresh Token Rotation & Replay Detection:
+   • Every time a refresh token is exchanged, issue a new access token AND a new refresh token, invalidating the old refresh token immediately.
+   • Link refresh tokens in family chains. If an already-used refresh token is presented (indicating theft), trigger automatic Compromise Detection: invalidate the entire family, forcing all active sessions of that user to log in again.
+
+3. Authorization & RBAC Middleware:
+   • Middleware verifies token signature and expiration, attaches req.user, and checks required permissions (authorizeRoles('admin', 'manager')) before granting route execution.`
     }
   ];
 }
@@ -157,21 +234,44 @@ function getFallbackBehavioralQuestions() {
     {
       question: "Tell me about a challenging technical hurdle or critical production bug you solved under tight time constraints.",
       intention: "Assess problem-solving composure, root-cause analysis, and incident response under pressure.",
-      answer: "Use the STAR method (Situation, Task, Action, Result). Focus on systematic debugging, data-driven hypothesis testing, immediate mitigation, and post-mortem preventative fixes."
+      answer: `Answer using the STAR framework:
+
+• Situation: During a peak traffic deployment, our Node.js microservice suffered a severe latency spike (p99 increased from 80ms to 4.5s), causing database connection pool timeouts and impacting active checkout flows.
+• Task: Identify whether the issue was memory pressure, network saturation, or unindexed queries, restore system SLA within 30 minutes, and prevent data corruption.
+• Action:
+  1. Inspected APM tracing metrics (Datadog/Prometheus) and identified that a newly merged endpoint ran unindexed nested queries inside a loop.
+  2. Immediately applied rate-limiting to the offending endpoint and increased DB connection pool limits as a temporary triage buffer.
+  3. Deployed a hotfix adding a compound B-tree index on the query filter columns and refactored the N+1 loop into a single batch query.
+• Result: Restored p99 latency back to 65ms within 20 minutes with zero data loss. Added automated database query profiling tests to our CI/CD pipeline to block unindexed production queries.`
     },
     {
       question: "Describe a situation where you had a strong disagreement with a peer or technical lead on architecture. How did you resolve it?",
       intention: "Evaluate collaboration, communication skills, constructive debate, and professional maturity.",
-      answer: "Highlight active listening, presenting objective benchmarks and trade-off matrices, willingness to compromise or prototype solutions, and committing fully once a consensus is reached."
+      answer: `Answer using the STAR framework:
+
+• Situation: On a recent platform redesign, our lead wanted to introduce a complex micro-frontend architecture, whereas I believed a modular monolithic React structure with code-splitting would significantly reduce operational overhead for our team size.
+• Task: Resolve the architectural divergence constructively without stalling project timelines or creating team friction.
+• Action:
+  1. Avoided subjective debate and created an objective Trade-Off Matrix evaluating build times, deployment complexity, team cognitive load, and initial bundle size.
+  2. Built a fast 1-day proof-of-concept benchmark demonstrating that our current bottlenecks were API payload size rather than bundle size.
+  3. Proposed a phased compromise: start with domain-driven feature modules that could easily be split into micro-frontends later if team size doubled.
+• Result: The team unanimously adopted the modular architecture, delivering the feature 3 weeks ahead of schedule with simplified CI/CD, while maintaining mutual respect and technical alignment.`
     },
     {
       question: "How do you prioritize technical debt against delivering urgent business features when deadlines are aggressive?",
       intention: "Assess prioritization, engineering excellence, and pragmatic alignment with business goals.",
-      answer: "Discuss categorizing tech debt by risk/impact, allocating dedicated sprint capacity (e.g. 15-20%), communicating risks clearly to product stakeholders, and refactoring incrementally alongside feature delivery."
+      answer: `Answer using the STAR framework:
+
+• Situation: Our core payments service had accumulated technical debt (outdated dependencies, monolithic tightly coupled controllers, and 35% test coverage) right as marketing launched a major quarterly campaign.
+• Task: Balance product delivery velocity while ensuring system stability and mitigating the risk of critical downtime.
+• Action:
+  1. Categorized tech debt into a Risk vs. Effort matrix: prioritized items directly impacting system reliability and developer velocity.
+  2. Implemented the 'Boy Scout Rule': refactor and add tests to modules as part of feature work rather than asking for indefinite refactoring sprints.
+  3. Aligned with product management by framing tech debt in business terms (e.g. 'fixing this database bottleneck eliminates checkout drops and saves 15 hours of debugging per sprint'), agreeing on a dedicated 20% capacity per sprint.
+• Result: Successfully shipped 100% of the quarter's business features while simultaneously raising test coverage to 75% and reducing regression bugs by 40%.`
     }
   ];
 }
-
 /**
  * @description Generate interview report
  */
@@ -437,6 +537,26 @@ async function getInterviewReportByIdController(req, res) {
       !interviewReport.technicalQuestions || interviewReport.technicalQuestions.length === 0 ||
       !interviewReport.behavioralQuestions || interviewReport.behavioralQuestions.length === 0 ||
       (interviewReport.matchScore === 50 && (!interviewReport.missingKeywords || interviewReport.missingKeywords.length === 0));
+
+    // Auto-upgrade technical questions if they contain old short placeholder answers
+    if (interviewReport.technicalQuestions && interviewReport.technicalQuestions.length > 0) {
+      let questionsUpgraded = false;
+      const fallbackQs = getFallbackTechnicalQuestions();
+      interviewReport.technicalQuestions.forEach(q => {
+        if (q.question) {
+          const matched = fallbackQs.find(f => f.question.toLowerCase().trim() === q.question.toLowerCase().trim());
+          if (matched && (!q.answer || q.answer.includes("The candidate should") || q.answer.length < 250)) {
+            q.answer = matched.answer;
+            questionsUpgraded = true;
+          }
+        }
+      });
+      if (questionsUpgraded) {
+        await interviewReportModel.findByIdAndUpdate(interviewReport._id, {
+          technicalQuestions: interviewReport.technicalQuestions
+        });
+      }
+    }
 
     if (needsEnrichment) {
       const enriched = enrichReportData(interviewReport);

@@ -2283,17 +2283,114 @@ $severity-low:    #10b981;
         }
 
         &--answer {
-            border-left: 3px solid var(--prepai-status-success);
+            border-left: 3px solid #10b981;
+            background: linear-gradient(145deg, rgba(16, 185, 129, 0.05) 0%, rgba(15, 23, 42, 0.7) 100%);
+            border-radius: 8px;
+            padding: 1rem 1.15rem;
 
-            .badge-tag {
-                color: var(--prepai-status-success);
+            .section-callout-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 0.85rem;
+                padding-bottom: 0.65rem;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+
+                .callout-header-left {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.65rem;
+                }
+
+                .badge-tag {
+                    color: #34d399;
+                    background: rgba(16, 185, 129, 0.15);
+                    border: 1px solid rgba(16, 185, 129, 0.3);
+                    padding: 0.2rem 0.55rem;
+                    border-radius: 4px;
+                    font-size: 0.72rem;
+                    font-weight: 800;
+                    letter-spacing: 0.03em;
+                    text-transform: uppercase;
+                }
+
+                .hint-tag {
+                    font-size: 0.75rem;
+                    color: #94a3b8;
+                }
+
+                .copy-answer-btn {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.35rem;
+                    background: rgba(16, 185, 129, 0.14);
+                    border: 1px solid rgba(16, 185, 129, 0.35);
+                    color: #6ee7b7;
+                    font-size: 0.72rem;
+                    font-weight: 700;
+                    padding: 0.25rem 0.65rem;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+
+                    &:hover {
+                        background: #10b981;
+                        color: #ffffff;
+                        border-color: #34d399;
+                        transform: translateY(-1px);
+                        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+                    }
+
+                    &.copied {
+                        background: #059669;
+                        color: #ffffff;
+                    }
+                }
+            }
+
+            .answer-keywords-strip {
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 0.45rem;
+                margin-bottom: 0.95rem;
+                padding: 0.55rem 0.75rem;
+                border-radius: 6px;
+                background: rgba(10, 15, 28, 0.9);
+                border: 1px solid rgba(56, 189, 248, 0.25);
+
+                .keywords-strip-label {
+                    font-size: 0.7rem;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    letter-spacing: 0.06em;
+                    color: #7dd3fc;
+                    margin-right: 0.25rem;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.3rem;
+                }
+
+                .answer-keyword-pill {
+                    font-size: 0.72rem;
+                    font-weight: 700;
+                    padding: 0.15rem 0.5rem;
+                    border-radius: 999px;
+                    background: rgba(56, 189, 248, 0.12);
+                    color: #38bdf8;
+                    border: 1px solid rgba(56, 189, 248, 0.3);
+                    box-shadow: 0 0 8px rgba(56, 189, 248, 0.15);
+                }
             }
 
             .model-answer-text {
                 margin: 0;
-                font-size: 0.9rem;
+                font-size: 0.92rem;
                 color: #e2e8f0;
-                line-height: 1.65;
+                line-height: 1.7;
+                white-space: pre-wrap;
+                word-break: break-word;
+                font-family: inherit;
             }
         }
 

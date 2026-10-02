@@ -61,11 +61,130 @@ const QuestionCard = ({ item, index, isBehavioral = false }) => {
         ? (item?.intention || item?.intent || item?.purpose || (isBehavioral ? "Evaluate candidate's problem-solving method, stakeholder communication, and emotional resilience under pressure." : "Assess practical understanding and depth of technical reasoning."))
         : (isBehavioral ? "Evaluate candidate's problem-solving method, stakeholder communication, and emotional resilience under pressure." : "Assess practical understanding and depth of technical reasoning.");
 
-    const answerText = typeof item === 'object'
-        ? (item?.answer || item?.modelAnswer || item?.sampleAnswer || item?.solution || "Provide a structured, methodical response detailing relevant concepts, architectural choices, and edge cases.")
-        : "Provide a structured, methodical response detailing relevant concepts, architectural choices, and edge cases.";
+    const [copiedModelAnswer, setCopiedModelAnswer] = useState(false);
 
-    const topicText = typeof item === 'object' && item?.topic 
+    let answerText = typeof item === 'object'
+        ? (item?.answer || item?.modelAnswer || item?.sampleAnswer || item?.solution || "")
+        : (typeof item === 'string' ? "" : "");
+
+    // Intelligent enrichment: if answer is short/meta rubric ("The candidate should..."), supply master-class answer
+    if (!answerText || answerText.includes("The candidate should explain") || answerText.length < 220) {
+        const qLower = questionText.toLowerCase();
+        if (qLower.includes("event loop")) {
+            answerText = `JavaScript is single-threaded, with a single Call Stack executing one frame at a time. The Event Loop is the concurrency coordinator that facilitates non-blocking asynchronous execution between the Call Stack, Web APIs (or Node.js libuv), the Microtask Queue, and the Macrotask Queue:
+
+1. Call Stack (LIFO): Executes synchronous JavaScript code frame by frame. When a function finishes execution, it is popped off the stack.
+2. Web APIs / Background Threads: When asynchronous operations (such as setTimeout, fetch, or DOM events) are called, they are offloaded to background threads so the Call Stack remains unblocked.
+3. Microtask Queue (Highest Priority): Holds callbacks from Promises (.then/.catch/finally), queueMicrotask(), and await continuations (plus process.nextTick in Node.js).
+   • Execution Rule: Once the Call Stack is empty, the Event Loop flushes the ENTIRE Microtask Queue to completion before touching any macrotask or UI render.
+4. Macrotask Queue (Standard Priority): Holds callbacks from setTimeout, setInterval, setImmediate, and I/O.
+   • Execution Rule: The Event Loop takes exactly ONE macrotask at a time, executes it, and then immediately flushes any new microtasks that were scheduled during its execution.
+
+Execution Order Example:
+console.log('1 - Start (Sync)');
+setTimeout(() => console.log('2 - Macrotask (setTimeout)'), 0);
+Promise.resolve().then(() => console.log('3 - Microtask (Promise)'));
+console.log('4 - End (Sync)');
+
+Output Order: 1, 4, 3, 2.
+Step-by-step reasoning:
+• '1' and '4' execute synchronously on the Call Stack.
+• setTimeout registers with Web APIs and places its callback into the Macrotask Queue.
+• Promise.resolve() places its callback into the Microtask Queue.
+• As soon as the Call Stack is empty, the Event Loop prioritizes the Microtask Queue, logging '3'.
+• Only after all microtasks are drained does the Event Loop process the next Macrotask, logging '2'.`;
+        } else if (qLower.includes("connection pooling") || qLower.includes("rate limiting")) {
+            answerText = `To architect a high-throughput, low-latency Node.js backend:
+
+1. Database Connection Pooling:
+   • Create a persistent connection pool (e.g. pg.Pool or Mongoose maxPoolSize: 20-50) rather than opening a TCP connection per request.
+   • Eliminates expensive three-way handshakes and TLS negotiation, maintaining a healthy balance between database resources and concurrent queries.
+
+2. Multi-Tier Caching (Redis):
+   • Implement the Cache-Aside pattern: check Redis cache first; on a cache miss, query the database, populate Redis with an appropriate TTL (Time-To-Live), and return the data.
+   • Protect against cache stampedes/thundering herd using distributed locks or stale-while-revalidate.
+
+3. Distributed Rate Limiting:
+   • Implement token-bucket or sliding-window algorithms using Redis (via express-rate-limit + rate-limit-redis) keyed on client IP or API key.
+   • Reject excess traffic with HTTP 429 (Too Many Requests) and Retry-After headers to prevent server exhaustion and DDoS attacks.
+
+4. Event Loop Hygiene & Concurrency:
+   • Never execute synchronous CPU-intensive tasks on the main thread; offload them to Node.js Worker Threads or dedicated queue workers (BullMQ/Redis).
+   • Utilize cluster mode or PM2 process managers to take full advantage of all CPU cores.`;
+        } else if (qLower.includes("re-rendering") || qLower.includes("memory leak") || qLower.includes("state management")) {
+            answerText = `High-performance React application architecture rests on three core pillars:
+
+1. State Architecture & Colocation:
+   • Colocate state as close as possible to the components that consume it (lift state down). Avoid storing ephemeral UI state in root providers.
+   • Reserve React Context for low-frequency global values (auth, theme). For frequently updated complex state, use lightweight atomic/selector stores like Zustand to avoid cascading tree re-renders.
+
+2. Render Optimization:
+   • React.memo: Wrap expensive pure presentation components to skip re-renders when props remain shallowly equal.
+   • useMemo: Cache computationally heavy data derivations across renders.
+   • useCallback: Maintain stable function references passed to memoized child components, ensuring React.memo isn't bypassed by new function instances.
+   • React 18 Concurrent Rendering: Use useTransition and useDeferredValue to mark non-urgent state updates as interruptible, maintaining 60 FPS input responsiveness.
+
+3. Memory Leak Prevention:
+   • Always return cleanup functions in useEffect to unsubscribe from event listeners, close WebSocket connections, and clear active timers.
+   • Use AbortController inside useEffect to cancel in-flight HTTP requests if the component unmounts before response resolution.`;
+        } else if (qLower.includes("data consistency") || qLower.includes("microservices")) {
+            answerText = `In distributed microservice architectures where two-phase commit (2PC) is impractical due to high latency and blocking locks:
+
+1. Saga Pattern (Distributed Transactions):
+   • Break cross-service workflows into a series of local database transactions.
+   • Can be Orchestrated (a centralized Saga coordinator directs services) or Choreographed (services listen to event broker topics).
+   • Every forward step must define an idempotent Compensating Transaction that undoes changes if any downstream service fails.
+
+2. Transactional Outbox Pattern:
+   • Solve the 'dual-write' problem by saving the business entity and the outgoing event in the SAME local database transaction.
+   • A CDC process (Change Data Capture like Debezium) or outbox publisher polls the outbox table and publishes events to Kafka/RabbitMQ with guaranteed At-Least-Once delivery.
+
+3. Idempotency:
+   • Every mutating request must accept an Idempotency-Key header stored in Redis/DB with a unique constraint. If a network retry occurs, return the cached result without duplicate execution.
+
+4. Fault Tolerance & Isolation:
+   • Implement Circuit Breakers (fail fast when downstream dependency latency spikes), Dead Letter Queues (DLQ) for malformed events, and Exponential Backoff with Jitter for transient retries.`;
+        } else if (qLower.includes("jwt") || qLower.includes("refresh token")) {
+            answerText = `A production-grade authentication flow combines stateless performance with centralized revocation security:
+
+1. Dual Token Architecture:
+   • Access Token: Short-lived (10 to 15 minutes), digitally signed (RS256 or HS256). Contains user identity and role claims. Kept in frontend memory (or sent in Authorization: Bearer headers) to minimize XSS vulnerability.
+   • Refresh Token: Long-lived (7 to 14 days), cryptographically random string stored in an HttpOnly, Secure, SameSite=Strict cookie, inaccessible to JavaScript.
+
+2. Refresh Token Rotation & Replay Detection:
+   • Every time a refresh token is exchanged, issue a new access token AND a new refresh token, invalidating the old refresh token immediately.
+   • Link refresh tokens in family chains. If an already-used refresh token is presented (indicating theft), trigger automatic Compromise Detection: invalidate the entire family, forcing all active sessions of that user to log in again.
+
+3. Authorization & RBAC Middleware:
+   • Middleware verifies token signature and expiration, attaches req.user, and checks required permissions (authorizeRoles('admin', 'manager')) before granting route execution.`;
+        } else if (!answerText) {
+            answerText = "Provide a structured, methodical response detailing relevant concepts, architectural choices, and edge cases.";
+        }
+    }
+
+    const extractKeyConcepts = (q, a) => {
+        const text = (q + " " + a).toLowerCase();
+        const concepts = [];
+        if (text.includes("event loop")) concepts.push("Call Stack", "Event Loop", "Microtask Queue", "Macrotask Queue", "Web APIs");
+        if (text.includes("connection pool") || text.includes("pool")) concepts.push("Connection Pooling", "maxPoolSize");
+        if (text.includes("redis") || text.includes("caching")) concepts.push("Cache-Aside", "TTL Expiration");
+        if (text.includes("rate limit")) concepts.push("Token Bucket", "Sliding Window", "HTTP 429");
+        if (text.includes("memo") || text.includes("render")) concepts.push("React.memo", "useMemo & useCallback", "State Colocation");
+        if (text.includes("leak") || text.includes("cleanup")) concepts.push("useEffect Cleanup", "AbortController");
+        if (text.includes("saga") || text.includes("distributed")) concepts.push("Saga Pattern", "Transactional Outbox", "Idempotency Keys");
+        if (text.includes("jwt") || text.includes("token")) concepts.push("Access Token (15m)", "HttpOnly Cookie", "Refresh Token Rotation");
+        if (text.includes("star") || isBehavioral) concepts.push("Situation", "Task", "Action", "Result");
+        return Array.from(new Set(concepts));
+    };
+
+    const keyConcepts = extractKeyConcepts(questionText, answerText);
+
+    const handleCopyModelAnswer = () => {
+        navigator.clipboard.writeText(answerText);
+        setCopiedModelAnswer(true);
+        setTimeout(() => setCopiedModelAnswer(false), 2000);
+    };
+const topicText = typeof item === 'object' && item?.topic 
         ? item.topic 
         : isBehavioral 
             ? "Behavioral · STAR Framework" 
@@ -190,9 +309,32 @@ const QuestionCard = ({ item, index, isBehavioral = false }) => {
                         {activeTab === 'answer' && (
                             <div className='q-card__section q-card__section--answer'>
                                 <div className="section-callout-header">
-                                    <span className="badge-tag">Recommended Response</span>
-                                    <span className="hint-tag">Core technical reasoning</span>
+                                    <div className="callout-header-left">
+                                        <span className="badge-tag">Recommended Response</span>
+                                        <span className="hint-tag">Master-class interview talking script</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className={`copy-answer-btn ${copiedModelAnswer ? 'copied' : ''}`}
+                                        onClick={handleCopyModelAnswer}
+                                        title="Copy answer to clipboard"
+                                    >
+                                        {copiedModelAnswer ? <Check size={12} /> : <Copy size={12} />}
+                                        <span>{copiedModelAnswer ? "Copied!" : "Copy Answer"}</span>
+                                    </button>
                                 </div>
+
+                                {keyConcepts.length > 0 && (
+                                    <div className="answer-keywords-strip">
+                                        <span className="keywords-strip-label">
+                                            <Sparkles size={12} /> Key Concepts to Mention:
+                                        </span>
+                                        {keyConcepts.map((kc, kIdx) => (
+                                            <span key={kIdx} className="answer-keyword-pill">{kc}</span>
+                                        ))}
+                                    </div>
+                                )}
+
                                 <p className="model-answer-text">{answerText}</p>
                             </div>
                         )}
