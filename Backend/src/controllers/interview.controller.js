@@ -99,16 +99,25 @@ function parseArray(arr) {
 function normalizePreparationPlan(plan) {
   if (!Array.isArray(plan)) return [];
 
-  return plan.map(day => ({
-    ...day,
-    tasks: (day.tasks || []).map(task => {
+  // Sort by existing numeric day (if present) to preserve curriculum progression
+  const sorted = [...plan].sort((a, b) => {
+    const numA = typeof a?.day === "number" ? a.day : (parseInt(String(a?.day || "").replace(/\D/g, ""), 10) || 0);
+    const numB = typeof b?.day === "number" ? b.day : (parseInt(String(b?.day || "").replace(/\D/g, ""), 10) || 0);
+    return numA - numB;
+  });
+
+  return sorted.map((dayItem, index) => ({
+    ...dayItem,
+    day: index + 1,
+    focus: dayItem.focus || `Core Technical Preparation (Day ${index + 1})`,
+    tasks: (dayItem.tasks || []).map(task => {
       if (typeof task === "string") {
         return { text: task, done: false };
       }
 
       return {
         text: task.text || "",
-        done: task.done || false
+        done: Boolean(task.done)
       };
     })
   }));
@@ -433,6 +442,17 @@ async function getInterviewReportByIdController(req, res) {
       const enriched = enrichReportData(interviewReport);
       await interviewReportModel.findByIdAndUpdate(interviewReport._id, enriched);
       interviewReport = await interviewReportModel.findById(interviewReport._id);
+    }
+
+    // Enforce canonical preparation plan sequencing (Day 1, Day 2, Day 3...)
+    if (interviewReport.preparationPlan && interviewReport.preparationPlan.length > 0) {
+      const needsPlanNormalization = interviewReport.preparationPlan.some((d, idx) => Number(d.day) !== idx + 1);
+      if (needsPlanNormalization) {
+        interviewReport.preparationPlan = normalizePreparationPlan(interviewReport.preparationPlan);
+        await interviewReportModel.findByIdAndUpdate(interviewReport._id, {
+          preparationPlan: interviewReport.preparationPlan
+        });
+      }
     }
 
     res.status(200).json({
@@ -790,24 +810,18 @@ async function updateRoadmap(req, res) {
       return res.status(404).json({ message: "Report not found" });
     }
 
-    // 🔥 CRITICAL FIX: normalize ENTIRE roadmap before update
-    report.preparationPlan = (report.preparationPlan || []).map(dayItem => ({
-      ...dayItem,
-      tasks: (dayItem.tasks || []).map(t => {
-        if (typeof t === "string") {
-          return { text: t, done: false };
-        }
-        return {
-          text: t?.text || "",
-          done: t?.done || false
-        };
-      })
-    }));
+    // Enforce canonical normalization before matching and saving
+    report.preparationPlan = normalizePreparationPlan(report.preparationPlan || []);
 
-    // ✅ FIND DAY SAFELY
-    const dayPlan = report.preparationPlan.find(
-      d => Number(d.day) === Number(day)
+    // Match by numeric day or by 1-based index
+    const targetDayNumber = Number(day);
+    let dayPlan = report.preparationPlan.find(
+      d => Number(d.day) === targetDayNumber
     );
+
+    if (!dayPlan && targetDayNumber >= 1 && targetDayNumber <= report.preparationPlan.length) {
+      dayPlan = report.preparationPlan[targetDayNumber - 1];
+    }
 
     if (!dayPlan) {
       return res.status(404).json({
@@ -816,10 +830,10 @@ async function updateRoadmap(req, res) {
       });
     }
 
-    // ✅ UPDATE
+    // UPDATE while preserving task integrity
     dayPlan.tasks = tasks;
     await report.save();
-    return res.json({ success: true });
+    return res.json({ success: true, preparationPlan: report.preparationPlan });
 
   } catch (err) {
     console.error("❌ FINAL ERROR:", err);
