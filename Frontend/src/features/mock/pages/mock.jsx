@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate,useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import Navbar from "../../interview/components/Navbar";
+import { ShieldCheck, Clock, CheckCircle2, ArrowLeft, Square, Sparkles } from "lucide-react";
 import { useMock } from "../hooks/useMock";
 import { endInterview } from "../service/mock.api";
 import "../style/mock.scss";
@@ -828,56 +830,63 @@ useEffect(() => {
 }, [sessionStarted, sessionId]);
 
   return (
-    <div className="mock-page">
-        {/* 🔥 TRUST SCORE UI */}
-   <div style={{
-      position: "fixed",
-      top: "10px",
-      right: "20px",
-      background: "#111",
-      padding: "10px 15px",
-      borderRadius: "10px",
-      color:
-        trustScore > 70 ? "limegreen" :
-        trustScore > 50 ? "orange" : "red"
-    }}>
-      Trust: {trustScore}
-    </div>
+    <div className={`mock-page ${sessionStarted ? "mock-page--in-session" : ""}`}>
+      {!sessionStarted && <Navbar />}
+        
 
       <div className="mock-shell">
         <header className="mock-topbar">
           <div className="mock-topbar__brand">
             <span className="mock-topbar__brand-mark">
-              <BotIcon />
+              <Sparkles size={16} />
             </span>
             <div>
-              <strong>AI Interview</strong>
-              <span>Premium practice cockpit</span>
+              <strong>PrepAI Studio</strong>
+              <span>{sessionStarted ? "Live Assessment Active" : "Interactive Interview Cockpit"}</span>
             </div>
           </div>
 
           <div className="mock-topbar__stats">
-            <div className="mock-stat-pill mock-stat-pill--timer">
-              <span className="mock-stat-pill__label">Timer</span>
+            <div className={`mock-stat-pill mock-stat-pill--timer ${timeLeft < 180 ? "mock-stat-pill--urgent" : ""}`}>
+              <Clock size={13} />
+              <span className="mock-stat-pill__label">Time</span>
               <strong>{formatTime(timeLeft)}</strong>
             </div>
+
             <div className="mock-stat-pill">
-              <span className="mock-stat-pill__label">Progress</span>
+              <span className="mock-stat-pill__label">Question</span>
               <strong>{currentProgress}</strong>
             </div>
+
+            {sessionStarted && (
+              <div className={`mock-stat-pill mock-stat-pill--trust ${trustScore > 75 ? "trust--high" : trustScore > 50 ? "trust--mid" : "trust--low"}`}>
+                <ShieldCheck size={13} />
+                <span className="mock-stat-pill__label">Trust</span>
+                <strong>{trustScore}%</strong>
+              </div>
+            )}
           </div>
 
           <div className="mock-topbar__actions">
-            <button type="button" className="mock-topbar__action">Help</button>
-            <button type="button" className="mock-topbar__action">Alerts</button>
-            <button
-              type="button"
-              className="mock-topbar__profile"
-              onClick={() => navigate(interviewId ? `/interview/${interviewId}` : "/")}
-            >
-              <span className="mock-topbar__profile-dot" />
-              <span>Back</span>
-            </button>
+            {sessionStarted ? (
+              <button
+                type="button"
+                className="mock-end-session-btn"
+                onClick={handleEndInterview}
+                title="Conclude interview and review full report"
+              >
+                <Square size={13} /> End &amp; View Report
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="mock-topbar__profile"
+                onClick={() => navigate(interviewId ? `/interview/${interviewId}` : "/")}
+              >
+                <ArrowLeft size={14} />
+                <span>Exit Studio</span>
+              </button>
+            )}
           </div>
         </header>
 

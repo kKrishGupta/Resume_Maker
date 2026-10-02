@@ -4,6 +4,20 @@ import { useInterview } from '../hooks/useInterview.js';
 import { useNavigate } from 'react-router-dom';
 import { deleteReport } from '../services/interview.api.js';
 import Navbar from '../components/Navbar.jsx';
+import { 
+  Sparkles, 
+  UploadCloud, 
+  FileText, 
+  Trash2, 
+  ArrowRight, 
+  Edit3, 
+  CheckCircle2, 
+  AlertCircle,
+  HelpCircle,
+  Clock,
+  Briefcase,
+  X
+} from 'lucide-react';
 
 const Home = () => {
     const [resumeFile, setResumeFile] = useState(null);
@@ -18,7 +32,6 @@ const Home = () => {
     const navigate = useNavigate();
 
     const handleEdit = (report) => {
-        console.log("Edit clicked:", report);
         navigate(`/interview/${report._id}`);
     };
 
@@ -103,17 +116,24 @@ const Home = () => {
     }, [initialReports]);
 
     return (
-        <>
+        <div className="prepai-home-wrapper">
             <Navbar />
             <div className='home-page'>
-
                 {/* Page Header */}
                 <header className='page-header'>
-                    <h1>Create Your Custom <span className='highlight'>Interview Plan</span></h1>
-                    <p>Let our AI analyze the job requirements and your unique profile to build a personalized winning strategy.</p>
+                    <div className="header-badge-row">
+                        <span className="hero-pill">
+                            <Sparkles size={13} /> AI Career Intelligence
+                        </span>
+                    </div>
+                    <h1>From Resume to <span className='highlight'>Interview Ready</span></h1>
+                    <p>
+                        Synthesize your unique background against any target job description. 
+                        Generate curated technical assessments, behavioral STAR guides, and a structured day-by-day roadmap.
+                    </p>
                 </header>
 
-                {/* Main Card */}
+                {/* Main Workspace Card */}
                 <div className='interview-card'>
                     <div className='interview-card__body'>
 
@@ -121,10 +141,7 @@ const Home = () => {
                         <div className='panel panel--left'>
                             <div className='panel__header'>
                                 <span className='panel__icon'>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                                    </svg>
+                                    <Briefcase size={17} />
                                 </span>
                                 <h2>Target Job Description</h2>
                                 <span className='badge badge--required'>Required</span>
@@ -134,7 +151,7 @@ const Home = () => {
                                     value={jobDescription}
                                     onChange={(e) => setJobDescription(e.target.value)}
                                     className='panel__textarea'
-                                    placeholder="Paste the full job description here...&#10;e.g. 'Senior Frontend Engineer at Google requires proficiency in React, TypeScript, and large-scale system design...'"
+                                    placeholder="Paste the target job description or requirements here...&#10;e.g. 'Senior Full-Stack Engineer at Stripe: Experience with React, Node.js, distributed databases, high availability, and API resilience...'"
                                     maxLength={5000}
                                 />
                                 <div className='char-counter'>{jobDescription.length} / 5000 chars</div>
@@ -148,45 +165,40 @@ const Home = () => {
                         <div className='panel panel--right'>
                             <div className='panel__header'>
                                 <span className='panel__icon'>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                                        <circle cx="12" cy="7" r="4" />
-                                    </svg>
+                                    <FileText size={17} />
                                 </span>
-                                <h2>Your Profile</h2>
+                                <h2>Candidate Profile</h2>
                             </div>
 
                             {/* Upload Resume */}
                             <div className='upload-section'>
-                                <label className='section-label'>
-                                    <span>Upload Resume</span>
-                                    <span className='badge badge--best'>Best Results</span>
-                                </label>
+                                <div className='section-label-row'>
+                                    <label className='section-label'>Upload Resume Document</label>
+                                    <span className='badge badge--best'>Recommended</span>
+                                </div>
 
                                 <label
-                                    className={`dropzone ${isDragging ? 'dropzone--dragging' : ''}`}
+                                    className={`dropzone ${isDragging ? 'dropzone--dragging' : ''} ${resumeFile ? 'dropzone--has-file' : ''}`}
                                     htmlFor='resume'
                                     onDragOver={handleDragOver}
                                     onDragLeave={handleDragLeave}
                                     onDrop={handleDrop}
                                 >
                                     <span className='dropzone__icon'>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <polyline points="16 16 12 12 8 16" />
-                                            <line x1="12" y1="12" x2="12" y2="21" />
-                                            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
-                                        </svg>
+                                        <UploadCloud size={30} />
                                     </span>
 
                                     {!resumeFile ? (
-                                        <>
-                                            <p className='dropzone__title'>Click to upload or drag & drop</p>
+                                        <div className="dropzone-text">
+                                            <p className='dropzone__title'>Click to browse or drag & drop</p>
                                             <p className='dropzone__subtitle'>PDF or DOCX (Max 5MB)</p>
-                                        </>
+                                        </div>
                                     ) : (
                                         <div className='dropzone__uploaded'>
-                                            <span className='file-status'>✅ File Uploaded Successfully</span>
-                                            <span className='file-name'>📄 {resumeFile.name}</span>
+                                            <span className='file-status'>
+                                                <CheckCircle2 size={15} /> Resume Attached
+                                            </span>
+                                            <span className='file-name'>{resumeFile.name}</span>
                                             <button
                                                 type="button"
                                                 className="remove-file-btn"
@@ -199,7 +211,7 @@ const Home = () => {
                                                     }
                                                 }}
                                             >
-                                                ✕ Remove File
+                                                <X size={13} /> Remove File
                                             </button>
                                         </div>
                                     )}
@@ -224,27 +236,23 @@ const Home = () => {
 
                             {/* Quick Self-Description */}
                             <div className='self-description'>
-                                <label className='section-label' htmlFor='selfDescription'>Quick Self-Description</label>
+                                <label className='section-label' htmlFor='selfDescription'>Quick Background Summary</label>
                                 <textarea
                                     value={selfDescription}
                                     onChange={(e) => setSelfDescription(e.target.value)}
                                     id='selfDescription'
                                     name='selfDescription'
                                     className='panel__textarea panel__textarea--short'
-                                    placeholder="Briefly describe your experience, key skills, and years in the field if you don't have a resume file handy..."
+                                    placeholder="Briefly describe your years of experience, primary tech stack, and notable projects if you don't have a resume file handy..."
                                 />
                             </div>
 
                             {/* Info Box */}
                             <div className='info-box'>
                                 <span className='info-box__icon'>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <circle cx="12" cy="12" r="10" />
-                                        <line x1="12" y1="16" x2="12" y2="12" />
-                                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                                    </svg>
+                                    <HelpCircle size={15} />
                                 </span>
-                                <p>Either a <strong>Resume file</strong> or a <strong>Self-Description</strong> is required to generate a tailored interview strategy.</p>
+                                <p>Provide either a <strong>Resume file</strong> or a <strong>Quick Summary</strong> so the AI can compute skill match and generate precision questions.</p>
                             </div>
                         </div>
                     </div>
@@ -252,21 +260,16 @@ const Home = () => {
                     {/* Card Footer */}
                     <div className='interview-card__footer'>
                         <span className='footer-info'>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10" />
-                                <polyline points="12 6 12 12 16 14" />
-                            </svg>
-                            AI Strategy Generation &bull; Approx 30s
+                            <Clock size={14} />
+                            AI Strategy Synthesis &bull; Approx 20-30s
                         </span>
                         <button
                             onClick={handleGenerateReport}
                             disabled={isGenerating}
                             className='generate-btn'
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
-                            </svg>
-                            {isGenerating ? "Analyzing & Generating Strategy..." : "Generate My Interview Strategy"}
+                            <Sparkles size={16} />
+                            {isGenerating ? "Synthesizing Preparation Strategy..." : "Generate Interview Preparation Plan"}
                         </button>
                     </div>
                 </div>
@@ -274,67 +277,74 @@ const Home = () => {
                 {/* Recent Reports List */}
                 {reports?.length > 0 && (
                     <section className='recent-reports'>
-                        <h2>My Recent Interview Plans</h2>
-                        <ul className='reports-list'>
-                            {reports.map(report => (
-                                <li key={report._id} className='report-item'>
-                                    {/* HEADER */}
-                                    <div className="report-header">
-                                        <h3 onClick={() => navigate(`/interview/${report._id}`)}>
-                                            {report.title || 'Untitled Position Plan'}
-                                        </h3>
+                        <div className="section-head">
+                            <h2>Saved Preparation Blueprints</h2>
+                            <span className="reports-count">{reports.length} Plans</span>
+                        </div>
 
-                                        <div className="report-actions">
+                        <div className='reports-grid'>
+                            {reports.map(report => (
+                                <div key={report._id} className='report-item-card' onClick={() => navigate(`/interview/${report._id}`)}>
+                                    <div className="report-header">
+                                        <div className="report-title-wrap">
+                                            <h3>{report.title || 'Untitled Target Role Plan'}</h3>
+                                            <p className='report-meta'>
+                                                Generated on {new Date(report.createdAt).toLocaleDateString()}
+                                            </p>
+                                        </div>
+
+                                        <div className="report-actions" onClick={(e) => e.stopPropagation()}>
                                             <button
-                                                title="View/Edit Plan"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleEdit(report);
-                                                }}
+                                                title="View / Edit Plan"
+                                                onClick={() => handleEdit(report)}
+                                                className="report-action-icon"
+                                                aria-label="Edit Plan"
                                             >
-                                                ✏️
+                                                <Edit3 size={15} />
                                             </button>
 
                                             <button
                                                 title="Delete Plan"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDelete(report._id);
-                                                }}
+                                                onClick={() => handleDelete(report._id)}
+                                                className="report-action-icon report-action-icon--delete"
+                                                aria-label="Delete Plan"
                                             >
-                                                🗑
+                                                <Trash2 size={15} />
                                             </button>
                                         </div>
                                     </div>
 
-                                    {/* BODY */}
-                                    <p className='report-meta'>
-                                        Generated on {new Date(report.createdAt).toLocaleDateString()}
-                                    </p>
-
-                                    {report.matchScore !== undefined && (
-                                        <div className={`match-score ${
-                                            report.matchScore >= 80 ? 'score--high'
-                                            : report.matchScore >= 60 ? 'score--mid'
-                                            : 'score--low'
-                                        }`}>
-                                            Match Score: {report.matchScore}%
-                                        </div>
-                                    )}
-                                </li>
+                                    <div className="report-card-footer">
+                                        {report.matchScore !== undefined && (
+                                            <div className={`match-score-pill ${
+                                                report.matchScore >= 80 ? 'score--high'
+                                                : report.matchScore >= 60 ? 'score--mid'
+                                                : 'score--low'
+                                            }`}>
+                                                Match: {report.matchScore}%
+                                            </div>
+                                        )}
+                                        <span className="report-enter-link">
+                                            Open Workspace <ArrowRight size={13} />
+                                        </span>
+                                    </div>
+                                </div>
                             ))}
-                        </ul>
+                        </div>
                     </section>
                 )}
 
                 {/* Page Footer */}
                 <footer className='page-footer'>
-                    <a href='#'>Privacy Policy</a>
-                    <a href='#'>Terms of Service</a>
-                    <a href='#'>Help Center</a>
+                    <span>PrepAI &bull; From Resume to Ready</span>
+                    <div className="footer-links">
+                        <a href='/resume'>Resume Builder</a>
+                        <a href='/mock'>Mock Studio</a>
+                        <a href='/dashboard'>Command Center</a>
+                    </div>
                 </footer>
             </div>
-        </>
+        </div>
     );
 };
 

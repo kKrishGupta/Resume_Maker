@@ -4,32 +4,67 @@ import { useInterview } from '../hooks/useInterview.js';
 import { useNavigate, useParams } from 'react-router-dom';
 import { generateMoreQuestions, generateMoreBehavioral, generateFollowUp, updateRoadmap, reAnalyzeReport } from "../services/interview.api";
 import Navbar from '../components/Navbar.jsx';
+import { 
+  Code2, 
+  Users, 
+  Map, 
+  BarChart3, 
+  Sparkles, 
+  Play, 
+  FileText, 
+  Plus, 
+  CheckCircle2, 
+  HelpCircle, 
+  ChevronDown, 
+  ChevronUp, 
+  MessageSquare, 
+  Trash2, 
+  Edit3, 
+  Check, 
+  Copy, 
+  RefreshCw, 
+  Compass,
+  ArrowUp
+} from 'lucide-react';
 
 const NAV_ITEMS = [
-    { id: 'technical', label: 'Technical Questions', icon: (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>) },
-    { id: 'behavioral', label: 'Behavioral Questions', icon: (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>) },
-    { id: 'roadmap', label: 'Road Map', icon: (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>) },
-    { id: 'analysis', label: 'Match & Skills', mobileOnly: true, icon: (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>) },
+    { id: 'technical', label: 'Technical Questions', icon: <Code2 size={16} /> },
+    { id: 'behavioral', label: 'Behavioral Questions', icon: <Users size={16} /> },
+    { id: 'roadmap', label: 'Preparation Road Map', icon: <Map size={16} /> },
+    { id: 'analysis', label: 'Match & Skills', mobileOnly: true, icon: <BarChart3 size={16} /> },
 ];
 
 // ── Question Card Component ──────────────────────────────────────────────────
-const QuestionCard = ({ item, index }) => {
+const QuestionCard = ({ item, index, isBehavioral = false }) => {
     const [open, setOpen] = useState(false);
     const [followUps, setFollowUps] = useState([]);
     const [loadingFollow, setLoadingFollow] = useState(false);
+    const [confidence, setConfidence] = useState(null); // 'confident' | 'practice' | null
+    const [practiceAnswer, setPracticeAnswer] = useState("");
+    const [showPractice, setShowPractice] = useState(false);
 
-    // Resilient question text extraction so questions always display cleanly
+    // Resilient question text extraction
     const questionText = typeof item === 'string'
         ? item
-        : (item?.question || item?.q || item?.questionText || item?.title || item?.prompt || `Technical Assessment Question ${index + 1}`);
+        : (item?.question || item?.q || item?.questionText || item?.title || item?.prompt || `Assessment Question ${index + 1}`);
 
     const intentionText = typeof item === 'object'
-        ? (item?.intention || item?.intent || item?.purpose || "Assess practical understanding and depth of technical reasoning.")
-        : "Assess practical understanding and depth of technical reasoning.";
+        ? (item?.intention || item?.intent || item?.purpose || (isBehavioral ? "Evaluate candidate's problem-solving method, stakeholder communication, and emotional resilience under pressure." : "Assess practical understanding and depth of technical reasoning."))
+        : (isBehavioral ? "Evaluate candidate's problem-solving method, stakeholder communication, and emotional resilience under pressure." : "Assess practical understanding and depth of technical reasoning.");
 
     const answerText = typeof item === 'object'
         ? (item?.answer || item?.modelAnswer || item?.sampleAnswer || item?.solution || "Provide a structured, methodical response detailing relevant concepts, architectural choices, and edge cases.")
         : "Provide a structured, methodical response detailing relevant concepts, architectural choices, and edge cases.";
+
+    const topicText = typeof item === 'object' && item?.topic 
+        ? item.topic 
+        : isBehavioral 
+            ? "STAR Framework · Behavioral" 
+            : (index % 3 === 0 ? "System Architecture & Design" : index % 2 === 0 ? "Data Flow & Concurrency" : "API & Distributed Systems");
+
+    const difficultyText = typeof item === 'object' && item?.difficulty
+        ? item.difficulty
+        : (index > 4 ? "Advanced" : index > 1 ? "Intermediate" : "Core");
 
     const handleFollowUp = async (e) => {
         e.stopPropagation();
@@ -53,36 +88,128 @@ const QuestionCard = ({ item, index }) => {
     };
 
     return (
-        <div className='q-card'>
+        <div className={`q-card ${open ? 'q-card--expanded' : ''} ${confidence ? `q-card--${confidence}` : ''}`}>
+            {/* Header / Question Banner */}
             <div className='q-card__header' onClick={() => setOpen(o => !o)}>
-                <span className='q-card__index'>Q{index + 1}</span>
-                <p className='q-card__question'>{questionText}</p>
-                <button
-                    type="button"
-                    className="follow-btn"
-                    onClick={handleFollowUp}
-                    title="Generate follow-up questions"
-                >
-                    {loadingFollow ? "Thinking..." : "💬 Follow-up"}
-                </button>
-                <span className={`q-card__chevron ${open ? 'q-card__chevron--open' : ''}`}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
-                </span>
+                <div className="q-card__index-col">
+                    <span className='q-card__index'>Q{String(index + 1).padStart(2, '0')}</span>
+                </div>
+
+                <div className="q-card__meta-content">
+                    <div className="q-card__tags-row">
+                        <span className="q-card__topic">{topicText}</span>
+                        <span className={`q-card__diff q-card__diff--${difficultyText.toLowerCase()}`}>
+                            {difficultyText}
+                        </span>
+                        {confidence === 'confident' && (
+                            <span className="confidence-pill confidence-pill--confident">
+                                <CheckCircle2 size={11} /> Mastered
+                            </span>
+                        )}
+                        {confidence === 'practice' && (
+                            <span className="confidence-pill confidence-pill--practice">
+                                <HelpCircle size={11} /> Needs Practice
+                            </span>
+                        )}
+                    </div>
+                    <p className='q-card__question'>{questionText}</p>
+                </div>
+
+                <div className="q-card__actions" onClick={(e) => e.stopPropagation()}>
+                    <button
+                        type="button"
+                        className="follow-btn"
+                        onClick={handleFollowUp}
+                        title="Generate follow-up probing questions"
+                        disabled={loadingFollow}
+                    >
+                        <MessageSquare size={13} />
+                        <span>{loadingFollow ? "Synthesizing..." : "Follow-up"}</span>
+                    </button>
+
+                    <button 
+                        type="button" 
+                        className="q-card__chevron-btn"
+                        onClick={() => setOpen(o => !o)}
+                        aria-label={open ? "Collapse details" : "Expand details"}
+                    >
+                        {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                    </button>
+                </div>
             </div>
+
+            {/* Expanded Content */}
             {open && (
                 <div className='q-card__body'>
+                    {/* Intention Section */}
                     <div className='q-card__section'>
-                        <span className='q-card__tag q-card__tag--intention'>Interviewer's Intention</span>
+                        <span className='q-card__tag q-card__tag--intention'>
+                            <HelpCircle size={12} /> Interviewer's Evaluation Goal
+                        </span>
                         <p>{intentionText}</p>
                     </div>
+
+                    {/* Model Answer Section */}
                     <div className='q-card__section'>
-                        <span className='q-card__tag q-card__tag--answer'>Strong Model Answer</span>
+                        <span className='q-card__tag q-card__tag--answer'>
+                            <CheckCircle2 size={12} /> Recommended Framework & Model Answer
+                        </span>
                         <p>{answerText}</p>
                     </div>
 
+                    {/* Interactive Practice Box */}
+                    <div className="q-card__practice-bar">
+                        <div className="confidence-selector">
+                            <span className="selector-label">Confidence:</span>
+                            <button
+                                type="button"
+                                className={`conf-btn ${confidence === 'confident' ? 'is-active' : ''}`}
+                                onClick={() => setConfidence(confidence === 'confident' ? null : 'confident')}
+                            >
+                                <Check size={12} /> Confident
+                            </button>
+                            <button
+                                type="button"
+                                className={`conf-btn ${confidence === 'practice' ? 'is-active' : ''}`}
+                                onClick={() => setConfidence(confidence === 'practice' ? null : 'practice')}
+                            >
+                                <HelpCircle size={12} /> Review Later
+                            </button>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="toggle-practice-btn"
+                            onClick={() => setShowPractice(p => !p)}
+                        >
+                            <Edit3 size={13} /> {showPractice ? "Hide Practice Draft" : "Draft Your Answer"}
+                        </button>
+                    </div>
+
+                    {showPractice && (
+                        <div className="practice-draft-area">
+                            <textarea
+                                value={practiceAnswer}
+                                onChange={(e) => setPracticeAnswer(e.target.value)}
+                                placeholder={isBehavioral 
+                                    ? "Outline your STAR response:\n• Situation: The context & problem...\n• Task: Your responsibility...\n• Action: Concrete technical steps you took...\n• Result: Measurable outcome (%, scale, speed)..."
+                                    : "Structure your technical points, trade-offs, architecture decisions, and edge-cases here..."
+                                }
+                                rows={4}
+                            />
+                            <div className="practice-draft-footer">
+                                <span className="char-note">{practiceAnswer.length} characters</span>
+                                <span className="autosave-note">Self-practice notes preserved in session</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Follow-up Questions Probes */}
                     {followUps.length > 0 && (
                         <div className="followups">
-                            <p className="followups-title">Potential Follow-Up Probes</p>
+                            <p className="followups-title">
+                                <Sparkles size={14} /> Potential Follow-Up Probes
+                            </p>
                             {followUps.map((f, i) => (
                                 <div key={i} className="followup-card">
                                     <p className="followup-question">👉 {f.question || f.q}</p>
@@ -115,7 +242,7 @@ const RoadMapDay = ({ day, index, onUpdateDay }) => {
         setTasks(day.tasks || []);
     }, [day.tasks]);
 
-    // Ensure day display is always properly sequenced starting from Day 1
+    // Ensure day display is always mathematically sequenced starting from Day 1
     const displayDay = index !== undefined ? index + 1 : (day.day || 1);
     const dayIdentifier = day.day || displayDay;
 
@@ -150,22 +277,40 @@ const RoadMapDay = ({ day, index, onUpdateDay }) => {
         onUpdateDay(dayIdentifier, updated);
     };
 
+    const doneCount = tasks.filter(t => t.done).length;
+    const progressPercent = tasks.length > 0 ? Math.round((doneCount / tasks.length) * 100) : 0;
+    const isCompleted = tasks.length > 0 && doneCount === tasks.length;
+
     return (
-        <div className="roadmap-day">
+        <div className={`roadmap-day ${isCompleted ? 'roadmap-day--completed' : ''}`}>
             <div className="roadmap-day__header">
-                <span className="roadmap-day__badge">Day {displayDay}</span>
-                <p className="roadmap-day__focus">{day.focus || `Core Concepts & Practice (Day ${displayDay})`}</p>
+                <div className="roadmap-day__title-wrap">
+                    <span className="roadmap-day__badge">Day {displayDay}</span>
+                    <p className="roadmap-day__focus">{day.focus || `Core Concepts & Practice (Day ${displayDay})`}</p>
+                </div>
+
+                <div className="roadmap-day__progress-info">
+                    <span className="tasks-count">{doneCount} / {tasks.length} done</span>
+                    <div className="day-progress-bar">
+                        <div className="day-progress-fill" style={{ width: `${progressPercent}%` }} />
+                    </div>
+                </div>
             </div>
 
             <ul className="roadmap-day__tasks">
                 {tasks.map((task, i) => (
                     <li key={i} className={task.done ? "done" : ""}>
-                        <input
-                            type="checkbox"
-                            checked={task.done}
-                            onChange={() => handleToggle(i)}
-                            className="task-checkbox"
-                        />
+                        <label className="checkbox-wrap">
+                            <input
+                                type="checkbox"
+                                checked={task.done}
+                                onChange={() => handleToggle(i)}
+                                className="task-checkbox"
+                            />
+                            <span className="custom-checkbox">
+                                {task.done && <Check size={12} />}
+                            </span>
+                        </label>
 
                         {editingIndex === i ? (
                             <div className="edit-task-row">
@@ -193,25 +338,21 @@ const RoadMapDay = ({ day, index, onUpdateDay }) => {
                                 <button
                                     type="button"
                                     className="action-icon-btn edit-btn"
-                                    title="Edit task"
+                                    title="Edit step"
                                     onClick={() => { setEditingIndex(i); setEditText(task.text); }}
+                                    aria-label="Edit step"
                                 >
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                    </svg>
+                                    <Edit3 size={13} />
                                 </button>
                             )}
                             <button
                                 type="button"
                                 className="action-icon-btn delete-btn"
-                                title="Delete task"
+                                title="Remove step"
                                 onClick={() => handleDelete(i)}
+                                aria-label="Remove step"
                             >
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="3 6 5 6 21 6" />
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                </svg>
+                                <Trash2 size={13} />
                             </button>
                         </div>
                     </li>
@@ -222,10 +363,12 @@ const RoadMapDay = ({ day, index, onUpdateDay }) => {
                 <input
                     value={newTask}
                     onChange={(e) => setNewTask(e.target.value)}
-                    placeholder="Add step or revision topic..."
+                    placeholder="Add preparation milestone or revision task..."
                     onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
                 />
-                <button type="button" onClick={handleAddTask}>+ Add</button>
+                <button type="button" onClick={handleAddTask}>
+                    <Plus size={14} /> Add Step
+                </button>
             </div>
         </div>
     );
@@ -312,7 +455,8 @@ const AnalysisPanel = ({ report, onReAnalyze, isReAnalyzing }) => {
                             disabled={isReAnalyzing}
                             title="Re-run AI Analysis"
                         >
-                            {isReAnalyzing ? "Analyzing..." : "⚡ Re-Analyze"}
+                            <RefreshCw size={12} className={isReAnalyzing ? "prepai-spin" : ""} />
+                            <span>{isReAnalyzing ? "Analyzing..." : "Re-Analyze"}</span>
                         </button>
                     )}
                 </div>
@@ -338,7 +482,7 @@ const AnalysisPanel = ({ report, onReAnalyze, isReAnalyzing }) => {
                         </div>
                     </div>
                     <div className="submetric">
-                        <span className="submetric-name">Scale / Arch</span>
+                        <span className="submetric-name">Architecture</span>
                         <div className="submetric-bar">
                             <div className="submetric-fill" style={{ width: `${Math.min(100, Math.max(55, score - 8))}%`, background: '#34D399' }} />
                         </div>
@@ -348,156 +492,71 @@ const AnalysisPanel = ({ report, onReAnalyze, isReAnalyzing }) => {
 
             {/* Missing Keywords */}
             <div className="analysis-card">
-                <div
-                    className="analysis-card__header"
-                    onClick={() => toggleSection("keywords")}
-                >
-                    <span className="card-title">
-                        <span className="icon">🎯</span> Missing Keywords
-                    </span>
-                    <div className="card-header-right">
-                        <span className="pill-badge">{rawKeywords.length}</span>
-                        <span className={`chevron-icon ${isSectionOpen("keywords") ? "chevron-icon--open" : ""}`}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                        </span>
-                    </div>
+                <div className="analysis-card__header" onClick={() => toggleSection('keywords')}>
+                    <h4>Missing Keywords</h4>
+                    <span className="badge badge--pill">{rawKeywords.length}</span>
+                    <span className="chevron-icon">{isSectionOpen('keywords') ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</span>
                 </div>
-
-                {isSectionOpen("keywords") && (
+                {isSectionOpen('keywords') && (
                     <div className="analysis-card__body">
-                        <div className="analysis-tags-wrap">
-                            {rawKeywords.map((item, i) => (
-                                <span key={i} className="keyword-tag" title="Click to copy keyword" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(item); }}>
-                                    + {item}
+                        <p className="card-hint">Incorporate these keywords into your technical bullet points:</p>
+                        <div className="keyword-chips">
+                            {rawKeywords.map((kw, i) => (
+                                <span key={i} className="chip chip--missing">
+                                    + {kw}
                                 </span>
                             ))}
                         </div>
-                        <p className="analysis-hint">Key recruiter keywords extracted for this target role</p>
-                    </div>
-                )}
-            </div>
-
-            {/* Project Critique */}
-            <div className="analysis-card">
-                <div 
-                    className="analysis-card__header"
-                    onClick={() => toggleSection("projects")}
-                >
-                    <span className="card-title">
-                        <span className="icon">⚠️</span> Project Critique
-                    </span>
-                    <div className="card-header-right">
-                        <span className="pill-badge pill-badge--neutral">{rawCritique.length}</span>
-                        <span className={`chevron-icon ${isSectionOpen("projects") ? "chevron-icon--open" : ""}`}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                        </span>
-                    </div>
-                </div>
-                {isSectionOpen("projects") && (
-                    <div className="analysis-card__body">
-                        {rawCritique.map((item, i) => (
-                            <p key={i} className="analysis-text warning">• {item}</p>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Key Improvements */}
-            <div className="analysis-card">
-                <div 
-                    className="analysis-card__header"
-                    onClick={() => toggleSection("improvements")}
-                >
-                    <span className="card-title">
-                        <span className="icon">💡</span> Strategic Improvements
-                    </span>
-                    <div className="card-header-right">
-                        <span className="pill-badge pill-badge--neutral">{rawImprovements.length}</span>
-                        <span className={`chevron-icon ${isSectionOpen("improvements") ? "chevron-icon--open" : ""}`}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                        </span>
-                    </div>
-                </div>
-                {isSectionOpen("improvements") && (
-                    <div className="analysis-card__body">
-                        {rawImprovements.map((item, i) => (
-                            <p key={i} className="analysis-text">• {item}</p>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Resume Boost Lines */}
-            <div className="analysis-card">
-                <div 
-                    className="analysis-card__header"
-                    onClick={() => toggleSection("bullets")}
-                >
-                    <span className="card-title">
-                        <span className="icon">✨</span> Resume Bullet Points
-                    </span>
-                    <div className="card-header-right">
-                        <span className="pill-badge pill-badge--neutral">{rawBullets.length}</span>
-                        <span className={`chevron-icon ${isSectionOpen("bullets") ? "chevron-icon--open" : ""}`}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                        </span>
-                    </div>
-                </div>
-                {isSectionOpen("bullets") && (
-                    <div className="analysis-card__body">
-                        {rawBullets.map((item, i) => (
-                            <div key={i} className="boost-bullet">
-                                <span className="sparkle">✦</span>
-                                <p>{item}</p>
-                                <button 
-                                    type="button" 
-                                    className="copy-bullet-btn"
-                                    onClick={(e) => { e.stopPropagation(); handleCopy(item, i); }}
-                                    title="Copy bullet to clipboard"
-                                >
-                                    {copiedBullet === i ? "✓ Copied" : "Copy"}
-                                </button>
-                            </div>
-                        ))}
                     </div>
                 )}
             </div>
 
             {/* Skill Gaps */}
             <div className="analysis-card">
-                <div 
-                    className="analysis-card__header"
-                    onClick={() => toggleSection("skills")}
-                >
-                    <span className="card-title">
-                        <span className="icon">📊</span> Skill Gap Priorities
-                    </span>
-                    <div className="card-header-right">
-                        <span className="pill-badge pill-badge--neutral">{rawSkillGaps.length}</span>
-                        <span className={`chevron-icon ${isSectionOpen("skills") ? "chevron-icon--open" : ""}`}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                        </span>
-                    </div>
+                <div className="analysis-card__header" onClick={() => toggleSection('skills')}>
+                    <h4>Skill Gaps & Impact</h4>
+                    <span className="chevron-icon">{isSectionOpen('skills') ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</span>
                 </div>
-                {isSectionOpen("skills") && (
+                {isSectionOpen('skills') && (
                     <div className="analysis-card__body">
-                        <div className='skill-gaps-list'>
-                            {rawSkillGaps.map((gap, i) => (
-                                <span key={i} className={`skill-tag skill-tag--${gap.severity || 'low'}`}>
-                                    <span className="severity-dot" />
-                                    {gap.skill}
-                                    <span className="severity-lbl">{gap.severity}</span>
-                                </span>
+                        <ul className="gap-list">
+                            {rawSkillGaps.map((item, i) => {
+                                const skillName = typeof item === 'string' ? item : item.skill;
+                                const severity = typeof item === 'object' ? item.severity : 'medium';
+                                return (
+                                    <li key={i} className={`gap-item gap-item--${severity}`}>
+                                        <span className="gap-name">{skillName}</span>
+                                        <span className="gap-sev">{severity}</span>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </div>
+                )}
+            </div>
+
+            {/* Resume Bullet Upgrades */}
+            <div className="analysis-card">
+                <div className="analysis-card__header" onClick={() => toggleSection('bullets')}>
+                    <h4>AI Suggested Resume Bullets</h4>
+                    <span className="chevron-icon">{isSectionOpen('bullets') ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</span>
+                </div>
+                {isSectionOpen('bullets') && (
+                    <div className="analysis-card__body">
+                        <div className="bullet-list">
+                            {rawBullets.map((b, i) => (
+                                <div key={i} className="bullet-item">
+                                    <p className="bullet-text">"{b}"</p>
+                                    <button
+                                        type="button"
+                                        className="copy-btn"
+                                        onClick={() => handleCopy(b, i)}
+                                        title="Copy bullet"
+                                    >
+                                        {copiedBullet === i ? <Check size={12} /> : <Copy size={12} />}
+                                        <span>{copiedBullet === i ? "Copied" : "Copy"}</span>
+                                    </button>
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -507,46 +566,37 @@ const AnalysisPanel = ({ report, onReAnalyze, isReAnalyzing }) => {
     );
 };
 
-// ── Main Interview Component ─────────────────────────────────────────────────
-const Interview = () => {
-    const [activeNav, setActiveNav] = useState('technical');
-    const { report, setReport, getReportById, loading } = useInterview();
-    const [isReAnalyzing, setIsReAnalyzing] = useState(false);
-    const [generating, setGenerating] = useState(false);
-    const [questions, setQuestions] = useState([]);
+// ── Main Interview Component ──────────────────────────────────────────────────
+export const Interview = () => {
     const { interviewId } = useParams();
-    const [showScrollTop, setShowScrollTop] = useState(false);
-    const [behavioralQuestions, setBehavioralQuestions] = useState([]);
-    const [generatingBehavioral, setGeneratingBehavioral] = useState(false);
-    const contentRef = useRef(null);
     const navigate = useNavigate();
+    const { report, getReportById, loading, setReport } = useInterview() || {};
+
+    const [activeNav, setActiveNav] = useState('technical');
+    const [questions, setQuestions] = useState([]);
+    const [behavioralQuestions, setBehavioralQuestions] = useState([]);
+    const [generating, setGenerating] = useState(false);
+    const [generatingBehavioral, setGeneratingBehavioral] = useState(false);
+    const [isReAnalyzing, setIsReAnalyzing] = useState(false);
+    const [showScrollTop, setShowScrollTop] = useState(false);
+
+    const contentRef = useRef(null);
 
     const resetContentScroll = () => {
         if (contentRef.current) {
-            contentRef.current.scrollTop = 0;
+            contentRef.current.scrollTo({ top: 0, behavior: "instant" });
         }
-        window.scrollTo(0, 0);
+        window.scrollTo({ top: 0, behavior: "instant" });
     };
 
-    const handleNavClick = (navId) => {
-        setActiveNav(navId);
+    const handleNavClick = (id) => {
+        setActiveNav(id);
         resetContentScroll();
-        setTimeout(resetContentScroll, 10);
     };
-
-    useEffect(() => {
-        resetContentScroll();
-        const frameId = requestAnimationFrame(resetContentScroll);
-        const timer = setTimeout(resetContentScroll, 60);
-        return () => {
-            cancelAnimationFrame(frameId);
-            clearTimeout(timer);
-        };
-    }, [activeNav, report]);
 
     const handleReAnalyze = async () => {
-        if (!interviewId) return;
         try {
+            if (!interviewId) return;
             setIsReAnalyzing(true);
             const data = await reAnalyzeReport(interviewId);
             if (data?.interviewReport) {
@@ -635,7 +685,7 @@ const Interview = () => {
         return (
             <main className='loading-screen'>
                 <div className="loading-spinner"></div>
-                <h1>Loading your interview plan...</h1>
+                <h1>Synthesizing your interview intelligence...</h1>
             </main>
         );
     }
@@ -649,7 +699,7 @@ const Interview = () => {
                     {/* ── Left Navigation / Top Pill Bar on Mobile ── */}
                     <nav className='interview-nav'>
                         <div className="nav-content">
-                            <p className='interview-nav__label'>Workspace</p>
+                            <p className='interview-nav__label'>Intelligence Hub</p>
                             {NAV_ITEMS.map(item => (
                                 <button
                                     key={item.id}
@@ -667,8 +717,8 @@ const Interview = () => {
                                 onClick={() => navigate(`/resume/${interviewId}`)}
                                 className="nav-resume-btn"
                             >
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
-                                Create Tailored Resume
+                                <Sparkles size={15} />
+                                <span>Create Tailored Resume</span>
                             </button>
                         </div>
                     </nav>
@@ -693,14 +743,15 @@ const Interview = () => {
                                             onClick={handleGenerateMore}
                                             disabled={generating}
                                         >
-                                            {generating ? "Generating..." : "➕ Generate More"}
+                                            <Plus size={14} />
+                                            {generating ? "Generating..." : "Generate More"}
                                         </button>
 
                                         <button
                                             className="mock-btn"
                                             onClick={() => navigate(`/mock/${interviewId}`)}
                                         >
-                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                                            <Play size={14} />
                                             Start Mock
                                         </button>
 
@@ -708,7 +759,8 @@ const Interview = () => {
                                             className="resume-btn"
                                             onClick={() => navigate(`/resume/${interviewId}`)}
                                         >
-                                            ✨ Resume
+                                            <FileText size={14} />
+                                            Resume
                                         </button>
                                     </div>
                                 </div>
@@ -718,6 +770,7 @@ const Interview = () => {
                                             key={i}
                                             item={q}
                                             index={i}
+                                            isBehavioral={false}
                                         />
                                     ))}
                                 </div>
@@ -728,7 +781,7 @@ const Interview = () => {
                             <section>
                                 <div className='content-header'>
                                     <div className="content-header__title-row">
-                                        <h2>Behavioral Questions</h2>
+                                        <h2>Behavioral & STAR Questions</h2>
                                         <span className='content-header__count'>
                                             {behavioralQuestions.length} questions
                                         </span>
@@ -740,21 +793,22 @@ const Interview = () => {
                                             onClick={handleGenerateBehavioral}
                                             disabled={generatingBehavioral}
                                         >
-                                            {generatingBehavioral ? "Generating..." : "➕ Generate More"}
+                                            <Plus size={14} />
+                                            {generatingBehavioral ? "Generating..." : "Generate More"}
                                         </button>
 
                                         <button
                                             className="mock-btn"
                                             onClick={() => navigate(`/mock/${interviewId}`)}
                                         >
-                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                                            <Play size={14} />
                                             Start Mock
                                         </button>
                                     </div>
                                 </div>
                                 <div className='q-list'>
                                     {behavioralQuestions.map((q, i) => (
-                                        <QuestionCard key={i} item={q} index={i} />
+                                        <QuestionCard key={i} item={q} index={i} isBehavioral={true} />
                                     ))}
                                 </div>
                             </section>
@@ -807,7 +861,7 @@ const Interview = () => {
 
                 {showScrollTop && (
                     <button className="scroll-top-btn" onClick={scrollToTop} title="Scroll to top">
-                        ↑
+                        <ArrowUp size={16} />
                     </button>
                 )}
             </div>

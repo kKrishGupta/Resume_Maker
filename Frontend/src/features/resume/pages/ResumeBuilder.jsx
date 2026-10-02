@@ -42,11 +42,16 @@ import {
 } from "../services/resume.api";
 import "../style/resume.scss";
 import BrandLogo from "../../../components/BrandLogo";
+import { useAuth } from "../../auth/hooks/useAuth";
 
 export default function ResumeBuilder() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { resume, setResume, handleAIImprove } = useResume(id);
+
+  const userName = user?.username || user?.email?.split("@")[0] || "Candidate";
+  const userInitials = (userName || "CA").slice(0, 2).toUpperCase();
 
   // ── Workspace State ──
   const [docTitle, setDocTitle] = useState("Software Engineer Resume");
@@ -485,8 +490,8 @@ export default function ResumeBuilder() {
           </div>
 
           {/* User Profile */}
-          <div className="rf-avatar" title="Krish Gupta">
-            KG
+          <div className="rf-avatar" title={`Signed in as ${userName}`}>
+            {userInitials}
           </div>
         </div>
       </header>

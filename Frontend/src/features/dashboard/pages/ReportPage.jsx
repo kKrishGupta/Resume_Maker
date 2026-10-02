@@ -4,6 +4,8 @@ import PerformanceChart from "../components/PerformanceChart";
 import RecommendationBox from "../components/RecommendationBox";
 import ScoreCard from "../components/ScoreCard";
 import { useDashboard } from "../hooks/useDashboard";
+import Navbar from "../../interview/components/Navbar";
+import { ArrowLeft, RotateCw, AlertCircle, Sparkles, CheckCircle2, Target } from "lucide-react";
 import "../styles/dashboard.scss";
 
 const buildInsightList = (items = []) =>
@@ -38,57 +40,80 @@ export default function ReportPage() {
   const focusAreas = report.skillGaps.length ? report.skillGaps : report.missingKeywords;
 
   return (
-    <div className="candidate-dashboard candidate-dashboard--report">
-      <div className="candidate-shell">
-        <header className="candidate-hero candidate-hero--report">
-          <div className="candidate-hero__copy">
-            <p className="candidate-hero__eyebrow">Candidate Report</p>
-            <h1>{report.title || "Detailed Interview Report"}</h1>
-            <p>
-              Dive into your performance breakdown, strengths, and the next areas to
-              improve before the next interview round.
+    <div className="prepai-dashboard-page prepai-dashboard-page--report">
+      <Navbar />
+
+      <main className="prepai-dashboard-shell">
+        {/* Navigation Breadcrumb / Hero Header */}
+        <header className="prepai-report-header">
+          <div className="report-header__copy">
+            <Link
+              to="/dashboard"
+              state={{ reportSummary: report, reportId, sessionId }}
+              className="report-back-link"
+            >
+              <ArrowLeft size={16} /> Back to Command Center
+            </Link>
+
+            <div className="report-header__badge-row">
+              <span className="hero-pill">
+                <Sparkles size={12} /> Post-Interview Intelligence Report
+              </span>
+              {report.status && (
+                <span className="report-status-badge">
+                  <CheckCircle2 size={12} /> {report.status}
+                </span>
+              )}
+            </div>
+
+            <h1 className="report-title">{report.title || "Technical & Behavioral Assessment Report"}</h1>
+            <p className="report-subtitle">
+              Detailed performance breakdown across communication, technical knowledge, problem solving, and confidence.
             </p>
           </div>
 
-          <div className="candidate-hero__actions">
-            <Link
-              className="candidate-ghost-btn"
-              to="/dashboard"
-              state={{ reportSummary: report, reportId, sessionId }}
-            >
-              Back to Dashboard
-            </Link>
-
+          <div className="report-header__actions">
             <button
               type="button"
-              className="candidate-primary-btn"
+              className="dash-action-btn dash-action-btn--primary"
               onClick={() => void refreshReport()}
               disabled={isSyncing}
             >
+              <RotateCw size={15} className={isSyncing ? "prepai-spin" : ""} />
               {isSyncing ? "Refreshing..." : "Refresh Report"}
             </button>
           </div>
         </header>
 
-        {error && !hasReport ? (
-          <div className="dashboard-banner dashboard-banner--error">{error}</div>
-        ) : null}
-
-        {error && hasReport ? (
-          <div className="dashboard-banner">
-            Live sync is unavailable right now. Showing the latest saved report.
+        {error && !hasReport && (
+          <div className="prepai-dash-alert prepai-dash-alert--error">
+            <AlertCircle size={16} /> {error}
           </div>
-        ) : null}
+        )}
+
+        {error && hasReport && (
+          <div className="prepai-dash-alert prepai-dash-alert--warning">
+            <AlertCircle size={16} /> Live sync is unavailable right now. Showing the latest saved report.
+          </div>
+        )}
 
         {loading && !hasReport ? (
-          <div className="dashboard-loading">Loading the full interview report...</div>
+          <div className="prepai-dash-loading">
+            <div className="prepai-loading-spinner" />
+            <p>Loading full interview report analytics...</p>
+          </div>
         ) : !hasReport ? (
-          <div className="dashboard-empty">
-            No detailed report is available yet. Complete an interview to unlock this page.
+          <div className="prepai-dash-empty">
+            <Target size={40} className="empty-icon" />
+            <h3>No interview report available</h3>
+            <p>Complete a mock interview or interview preparation session to view performance metrics here.</p>
+            <Link to="/mock" className="dash-action-btn dash-action-btn--primary">
+              Start Mock Interview
+            </Link>
           </div>
         ) : (
           <>
-            <section className="candidate-grid">
+            <section className="prepai-report-grid">
               <ScoreCard
                 score={report.score}
                 title={report.title}
@@ -101,7 +126,7 @@ export default function ReportPage() {
               <PerformanceChart metrics={metrics} quickStats={quickStats} />
             </section>
 
-            <section className="dashboard-detail-grid">
+            <section className="prepai-report-details">
               <RecommendationBox
                 recommendation={report.recommendation}
                 strengths={report.strengths}
@@ -109,42 +134,43 @@ export default function ReportPage() {
                 suggestions={report.suggestions}
               />
 
-              <article className="dashboard-card insight-card">
-                <div className="insight-card__header">
-                  <div>
-                    <p className="dashboard-card__eyebrow">Growth Plan</p>
-                    <h2>Focus Areas</h2>
+              <article className="prepai-dash-card insight-card">
+                <div className="card-header">
+                  <div className="card-title-group">
+                    <span className="card-badge">Growth Roadmap</span>
+                    <h2>Focus Areas & Recommended Actions</h2>
                   </div>
-                  <span className="insight-card__badge">
-                    {focusAreas.length + report.suggestions.length}
+                  <span className="insight-badge">
+                    {focusAreas.length + report.suggestions.length} items
                   </span>
                 </div>
 
-                {focusAreas.length ? (
-                  <section className="insight-card__section">
-                    <h3>Priority topics</h3>
-                    <ul>{buildInsightList(focusAreas)}</ul>
-                  </section>
-                ) : null}
-
-                {report.suggestions.length ? (
-                  <section className="insight-card__section">
-                    <h3>Recommended actions</h3>
-                    <ul>{buildInsightList(report.suggestions)}</ul>
-                  </section>
-                ) : null}
-
-                {!focusAreas.length && !report.suggestions.length ? (
-                  <div className="dashboard-empty dashboard-empty--compact">
-                    More detailed coaching insights will appear here when the report API
-                    returns them.
+                {focusAreas.length > 0 && (
+                  <div className="insight-card__section">
+                    <h3>Priority Technical Topics</h3>
+                    <ul className="insight-list">{buildInsightList(focusAreas)}</ul>
                   </div>
-                ) : null}
+                )}
+
+                {report.suggestions.length > 0 && (
+                  <div className="insight-card__section">
+                    <h3>Strategic Coaching Recommendations</h3>
+                    <ul className="insight-list insight-list--success">
+                      {buildInsightList(report.suggestions)}
+                    </ul>
+                  </div>
+                )}
+
+                {!focusAreas.length && !report.suggestions.length && (
+                  <div className="dash-empty-inline">
+                    No specific gaps identified. Continue refining your core STAR framework delivery!
+                  </div>
+                )}
               </article>
             </section>
           </>
         )}
-      </div>
+      </main>
     </div>
   );
 }

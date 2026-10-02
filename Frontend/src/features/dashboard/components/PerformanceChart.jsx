@@ -40,7 +40,7 @@ export default function PerformanceChart({
       <article className="dashboard-card performance-card performance-card--studio">
         <div className="performance-card__studio-head">
           <h2>Performance Breakdown</h2>
-          <span>Customer Churn Rate</span>
+          <span>Competency Benchmark</span>
         </div>
 
         <div className="performance-card__studio-chart">
