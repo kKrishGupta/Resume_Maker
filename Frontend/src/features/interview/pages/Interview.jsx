@@ -522,7 +522,7 @@ const Interview = () => {
     }
 
     return (
-        <>
+        <div className="interview-page-wrapper">
             <Navbar />
             <div className='interview-page'>
                 <div className='interview-layout'>
@@ -696,7 +696,7 @@ const Interview = () => {
                     </button>
                 )}
             </div>
-        </>
+        </div>
     );
 };
 

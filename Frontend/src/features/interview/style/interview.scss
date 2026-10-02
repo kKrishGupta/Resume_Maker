@@ -37,12 +37,30 @@ $severity-low:    #10b981;
     }
 }
 
+// ── Page Wrapper & Full-Viewport Shell ────────────────────────────────────────
+.interview-page-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    width: 100%;
+    overflow: hidden;
+    background: $bg-page;
+    box-sizing: border-box;
+
+    @media (max-width: 960px) {
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+    }
+}
+
 // ── Page Shell (Fixed Desktop SaaS Viewport) ──────────────────────────────────
 .interview-page {
+    flex: 1;
+    min-height: 0; // CRITICAL: allows flex child to shrink within remaining viewport height!
+    height: 100%;
     width: 100%;
-    min-height: calc(100vh - 68px);
-    height: calc(100vh - 68px);
-    max-height: calc(100vh - 68px);
     overflow: hidden;
     background: 
         radial-gradient(circle at 10% 10%, rgba(99, 102, 241, 0.1), transparent 40%),
@@ -56,9 +74,9 @@ $severity-low:    #10b981;
     box-sizing: border-box;
 
     @media (max-width: 960px) {
+        flex: none;
         height: auto;
-        min-height: calc(100vh - 68px);
-        max-height: none;
+        min-height: 0;
         overflow: visible;
         padding: 0.75rem 0.5rem 2rem;
     }
@@ -70,8 +88,8 @@ $severity-low:    #10b981;
     flex-direction: row;
     width: 100%;
     height: 100%;
-    max-height: 100%;
     min-height: 0;
+    max-height: 100%;
     margin: 0 auto;
     background-color: $bg-card;
     border: 1px solid $border-color;
@@ -82,6 +100,7 @@ $severity-low:    #10b981;
         0 25px 50px -12px rgba(0, 0, 0, 0.5),
         0 0 35px -5px rgba(99, 102, 241, 0.06);
     overflow: hidden;
+    box-sizing: border-box;
 
     @media (max-width: 960px) {
         flex-direction: column;
@@ -108,14 +127,16 @@ $severity-low:    #10b981;
     width: 240px;
     flex-shrink: 0;
     height: 100%;
+    min-height: 0;
     max-height: 100%;
-    padding: 1.5rem 1rem;
+    padding: 1.25rem 1rem 1.25rem;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 0.75rem;
     background: rgba(11, 16, 28, 0.5);
     overflow: hidden;
+    box-sizing: border-box;
     user-select: none;
 
     &__label {
@@ -129,6 +150,8 @@ $severity-low:    #10b981;
     }
 
     .nav-content {
+        flex: 1;
+        min-height: 0;
         display: flex;
         flex-direction: column;
         gap: 0.35rem;
@@ -177,8 +200,10 @@ $severity-low:    #10b981;
     }
 
     .nav-desktop-action {
-        padding-top: 1rem;
+        flex-shrink: 0;
+        padding-top: 0.85rem;
         border-top: 1px solid $border-color;
+        margin-top: auto;
     }
 
     .nav-resume-btn {
