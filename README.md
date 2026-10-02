@@ -1,4 +1,4 @@
-# 📄 AI Resume Maker & Intelligent Mock Interview Platform
+# 🚀 PrepAI — Your AI-Powered Career Preparation Platform
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-black?style=for-the-badge&logo=vercel)](https://resume-maker-khaki-nine.vercel.app/)
 [![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
@@ -42,7 +42,7 @@ An end-to-end, full-stack AI platform designed to craft ATS-optimized resumes, c
 
 ## 🌟 Project Overview
 
-**Resume Maker** is a comprehensive career acceleration ecosystem that bridges the gap between resume building and interview readiness. Powered by advanced Large Language Models (LLMs) and computer vision, it equips candidates with:
+**PrepAI** is a comprehensive career acceleration platform that bridges the gap between resume building and interview readiness. Powered by advanced Large Language Models (LLMs) and computer vision, it equips candidates with:
 1. **ATS-Compliant Resumes** built with real-time feedback, customizable multi-page templates, and automated AI enhancement.
 2. **Interactive Mock Interviews** featuring dynamic questioning, voice/video interaction, speech recognition, and instant rubric-based grading.
 3. **Computer Vision Anti-Cheating & Proctoring** utilizing TensorFlow.js BlazeFace to calculate candidate Trust Scores in real time.

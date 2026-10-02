@@ -31,7 +31,7 @@ export const Navbar = () => {
         {/* Brand */}
         <Link to="/" className="app-navbar__brand" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <BrandLogo size={28} />
-          <span className="brand-name">ResumeForge</span>
+          <span className="brand-name">PrepAI</span>
         </Link>
 
         {/* Desktop Links */}

@@ -314,7 +314,7 @@ Rules:
  */
 async function chatAssistant({ resume, message, history }) {
   try {
-    const prompt = `You are ResumeForge Copilot, an elite career advisor and resume editor.
+    const prompt = `You are PrepAI Copilot, an elite career advisor and resume editor.
 Candidate Profile:
 - Name: ${resume?.name || "Candidate"}
 - Role: ${resume?.role || "Software Engineer"}

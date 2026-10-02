@@ -82,7 +82,7 @@ export default function ResumeBuilder() {
   const [generatedCoverLetter, setGeneratedCoverLetter] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState([
-    { role: "assistant", text: "Hello! I'm your ResumeForge Copilot. How can I help sharpen your resume for recruiters today?" }
+    { role: "assistant", text: "Hello! I'm your PrepAI Copilot. How can I help sharpen your resume for recruiters today?" }
   ]);
   const [chatInput, setChatInput] = useState("");
 
@@ -386,8 +386,8 @@ export default function ResumeBuilder() {
           <div className="rf-logo" onClick={() => navigate("/")}>
             <BrandLogo size={36} />
             <div className="rf-logo__text">
-              <span className="rf-logo__brand">ResumeForge</span>
-              <span className="rf-logo__tag">AI Career Workspace</span>
+              <span className="rf-logo__brand">PrepAI</span>
+              <span className="rf-logo__tag">AI Career Platform</span>
             </div>
           </div>
 
@@ -871,7 +871,7 @@ export default function ResumeBuilder() {
             {activeRightTab === "matcher" && (
               <div className="rf-job-matcher">
                 <p className="rf-tab-desc">
-                  Paste the job description you are targeting. ResumeForge will compare keywords and highlight missing requirements.
+                  Paste the job description you are targeting. PrepAI will compare keywords and highlight missing requirements.
                 </p>
 
                 <div className="rf-field">
@@ -1086,7 +1086,7 @@ export default function ResumeBuilder() {
         <aside className="rf-chat-drawer">
           <div className="rf-chat-drawer__head">
             <div>
-              <h3>ResumeForge Copilot</h3>
+              <h3>PrepAI Copilot</h3>
               <p>Ask for phrasing advice, ATS tips, or interview questions</p>
             </div>
             <button type="button" onClick={() => setChatOpen(false)}>
