@@ -22,18 +22,19 @@ $severity-low:    #10b981;
 
 // ── Sleek Modern Dark Scrollbar Styles ────────────────────────────────────────
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
 }
 ::-webkit-scrollbar-track {
-    background: transparent;
+    background: rgba(11, 16, 28, 0.4);
+    border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.22);
     border-radius: 4px;
 
     &:hover {
-        background: rgba(244, 63, 94, 0.4);
+        background: rgba(244, 63, 94, 0.6);
     }
 }
 

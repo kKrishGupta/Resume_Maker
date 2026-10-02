@@ -521,10 +521,27 @@ const Interview = () => {
     const contentRef = useRef(null);
     const navigate = useNavigate();
 
-    useEffect(() => {
+    const resetContentScroll = () => {
         if (contentRef.current) {
             contentRef.current.scrollTop = 0;
         }
+        window.scrollTo(0, 0);
+    };
+
+    const handleNavClick = (navId) => {
+        setActiveNav(navId);
+        resetContentScroll();
+        setTimeout(resetContentScroll, 10);
+    };
+
+    useEffect(() => {
+        resetContentScroll();
+        const frameId = requestAnimationFrame(resetContentScroll);
+        const timer = setTimeout(resetContentScroll, 60);
+        return () => {
+            cancelAnimationFrame(frameId);
+            clearTimeout(timer);
+        };
     }, [activeNav, report]);
 
     const handleReAnalyze = async () => {
@@ -557,6 +574,9 @@ const Interview = () => {
     };
 
     const scrollToTop = () => {
+        if (contentRef.current) {
+            contentRef.current.scrollTo({ top: 0, behavior: "smooth" });
+        }
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
@@ -602,12 +622,14 @@ const Interview = () => {
     }, [report]);
 
     useEffect(() => {
-        const handleScroll = () => {
-            setShowScrollTop(window.scrollY > 300);
+        const el = contentRef.current;
+        if (!el) return;
+        const handleContentScroll = () => {
+            setShowScrollTop(el.scrollTop > 120);
         };
-        window.addEventListener("scroll", handleScroll);
-        return () => window.removeEventListener("scroll", handleScroll);
-    }, []);
+        el.addEventListener("scroll", handleContentScroll, { passive: true });
+        return () => el.removeEventListener("scroll", handleContentScroll);
+    }, [report, activeNav]);
 
     if (loading || !report) {
         return (
@@ -632,7 +654,7 @@ const Interview = () => {
                                 <button
                                     key={item.id}
                                     className={`interview-nav__item ${activeNav === item.id ? 'interview-nav__item--active' : ''} ${item.mobileOnly ? 'nav-item--mobile-only' : ''}`}
-                                    onClick={() => setActiveNav(item.id)}
+                                    onClick={() => handleNavClick(item.id)}
                                 >
                                     <span className='interview-nav__icon'>{item.icon}</span>
                                     <span className='interview-nav__text'>{item.label}</span>
