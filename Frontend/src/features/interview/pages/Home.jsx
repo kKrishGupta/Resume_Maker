@@ -102,15 +102,6 @@ const Home = () => {
         }
     }, [initialReports]);
 
-    if (loading) {
-        return (
-            <main className='loading-screen'>
-                <div className='loading-spinner'></div>
-                <h1>Loading your interview workspace...</h1>
-            </main>
-        );
-    }
-
     return (
         <>
             <Navbar />
