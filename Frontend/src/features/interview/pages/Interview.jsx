@@ -170,13 +170,19 @@ const RoadMapDay = ({ day, index, onUpdateDay }) => {
                         {editingIndex === i ? (
                             <div className="edit-task-row">
                                 <input
+                                    className="edit-task-input"
                                     value={editText}
                                     onChange={(e) => setEditText(e.target.value)}
                                     autoFocus
-                                    onKeyDown={(e) => e.key === 'Enter' && handleEditSave(i)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleEditSave(i);
+                                        if (e.key === 'Escape') setEditingIndex(null);
+                                    }}
                                 />
-                                <button onClick={() => handleEditSave(i)}>Save</button>
-                                <button onClick={() => setEditingIndex(null)}>Cancel</button>
+                                <div className="edit-task-actions">
+                                    <button type="button" className="btn-save-task" onClick={() => handleEditSave(i)}>Save</button>
+                                    <button type="button" className="btn-cancel-task" onClick={() => setEditingIndex(null)}>Cancel</button>
+                                </div>
                             </div>
                         ) : (
                             <span className="task-text" onClick={() => handleToggle(i)}>{task.text}</span>
@@ -184,9 +190,29 @@ const RoadMapDay = ({ day, index, onUpdateDay }) => {
 
                         <div className="task-actions">
                             {editingIndex !== i && (
-                                <button title="Edit" onClick={() => { setEditingIndex(i); setEditText(task.text); }}>✏️</button>
+                                <button
+                                    type="button"
+                                    className="action-icon-btn edit-btn"
+                                    title="Edit task"
+                                    onClick={() => { setEditingIndex(i); setEditText(task.text); }}
+                                >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
+                                </button>
                             )}
-                            <button title="Delete" onClick={() => handleDelete(i)}>🗑</button>
+                            <button
+                                type="button"
+                                className="action-icon-btn delete-btn"
+                                title="Delete task"
+                                onClick={() => handleDelete(i)}
+                            >
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="3 6 5 6 21 6" />
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                </svg>
+                            </button>
                         </div>
                     </li>
                 ))}
