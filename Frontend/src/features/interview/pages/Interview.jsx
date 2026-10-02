@@ -4,7 +4,15 @@ import { useInterview } from '../hooks/useInterview.js';
 import { useNavigate, useParams } from 'react-router-dom';
 import { generateMoreQuestions, generateMoreBehavioral, generateFollowUp, updateRoadmap, reAnalyzeReport } from "../services/interview.api";
 import Navbar from '../components/Navbar.jsx';
-import { 
+import {
+  AlertTriangle,
+  Zap,
+  KeyRound,
+  Cpu,
+  Layers,
+  Target,
+  TrendingUp,
+  Flame,
   Code2, 
   Users, 
   Map, 
@@ -483,7 +491,10 @@ const AnalysisPanel = ({ report, onReAnalyze, isReAnalyzing }) => {
             {/* Match Score Card */}
             <div className='match-score-card'>
                 <div className="match-score-card__top">
-                    <p className='match-score-card__label'>Target Role Alignment</p>
+                    <div className="match-score-card__title-wrap">
+                        <span className="match-title-icon"><Target size={14} /></span>
+                        <p className='match-score-card__label'>Target Role Alignment</p>
+                    </div>
                     {onReAnalyze && (
                         <button 
                             type="button" 
@@ -498,49 +509,86 @@ const AnalysisPanel = ({ report, onReAnalyze, isReAnalyzing }) => {
                     )}
                 </div>
 
-                <div className={`match-score-ring ${scoreColor}`}>
-                    <span className='match-score-val'>{score}</span>
-                    <span className='match-score-unit'>%</span>
+                <div className="match-score-visual">
+                    <div className={`match-score-ring ${scoreColor}`}>
+                        <span className='match-score-val'>{score}</span>
+                        <span className='match-score-unit'>%</span>
+                    </div>
+                    <span className={`match-score-badge ${scoreColor}`}>
+                        {score >= 80 ? <CheckCircle2 size={12} /> : score >= 65 ? <TrendingUp size={12} /> : <AlertTriangle size={12} />}
+                        <span>{scoreLabel}</span>
+                    </span>
                 </div>
-                <span className={`match-score-badge ${scoreColor}`}>{scoreLabel}</span>
 
                 {/* Sub-breakdown Indicators */}
                 <div className="match-submetrics">
-                    <div className="submetric">
-                        <span className="submetric-name">Keywords</span>
+                    <div className="submetric submetric--keywords">
+                        <div className="submetric-header">
+                            <span className="submetric-name">
+                                <KeyRound size={12} className="submetric-icon" />
+                                <span>Keywords</span>
+                            </span>
+                            <span className="submetric-val">{Math.min(100, score - 4)}%</span>
+                        </div>
                         <div className="submetric-bar">
-                            <div className="submetric-fill" style={{ width: `${Math.min(100, score - 4)}%`, background: '#38BDF8' }} />
+                            <div className="submetric-fill" style={{ width: `${Math.min(100, score - 4)}%` }} />
                         </div>
                     </div>
-                    <div className="submetric">
-                        <span className="submetric-name">Tech Depth</span>
+                    <div className="submetric submetric--depth">
+                        <div className="submetric-header">
+                            <span className="submetric-name">
+                                <Cpu size={12} className="submetric-icon" />
+                                <span>Tech Depth</span>
+                            </span>
+                            <span className="submetric-val">{Math.min(100, score + 4)}%</span>
+                        </div>
                         <div className="submetric-bar">
-                            <div className="submetric-fill" style={{ width: `${Math.min(100, score + 4)}%`, background: '#818CF8' }} />
+                            <div className="submetric-fill" style={{ width: `${Math.min(100, score + 4)}%` }} />
                         </div>
                     </div>
-                    <div className="submetric">
-                        <span className="submetric-name">Architecture</span>
+                    <div className="submetric submetric--arch">
+                        <div className="submetric-header">
+                            <span className="submetric-name">
+                                <Layers size={12} className="submetric-icon" />
+                                <span>Architecture</span>
+                            </span>
+                            <span className="submetric-val">{Math.min(100, Math.max(55, score - 8))}%</span>
+                        </div>
                         <div className="submetric-bar">
-                            <div className="submetric-fill" style={{ width: `${Math.min(100, Math.max(55, score - 8))}%`, background: '#34D399' }} />
+                            <div className="submetric-fill" style={{ width: `${Math.min(100, Math.max(55, score - 8))}%` }} />
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Missing Keywords */}
-            <div className="analysis-card">
-                <div className="analysis-card__header" onClick={() => toggleSection('keywords')}>
-                    <h4>Missing Keywords</h4>
-                    <span className="badge badge--pill">{rawKeywords.length}</span>
-                    <span className="chevron-icon">{isSectionOpen('keywords') ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</span>
-                </div>
+            <div className={`analysis-card analysis-card--keywords ${isSectionOpen('keywords') ? 'is-open' : ''}`}>
+                <button 
+                    type="button" 
+                    className="analysis-card__header" 
+                    onClick={() => toggleSection('keywords')}
+                    aria-expanded={isSectionOpen('keywords')}
+                >
+                    <div className="card-header-left">
+                        <span className="card-icon-pill card-icon-pill--rose">
+                            <AlertTriangle size={14} />
+                        </span>
+                        <h4 className="card-title">Missing Keywords</h4>
+                    </div>
+                    <div className="card-header-right">
+                        <span className="pill-badge pill-badge--rose">{rawKeywords.length} Missing</span>
+                        <span className={`chevron-icon ${isSectionOpen('keywords') ? 'chevron-icon--open' : ''}`}>
+                            <ChevronDown size={15} />
+                        </span>
+                    </div>
+                </button>
                 {isSectionOpen('keywords') && (
                     <div className="analysis-card__body">
-                        <p className="card-hint">Incorporate these keywords into your technical bullet points:</p>
+                        <p className="card-hint">Incorporate these high-value ATS terms into your bullet points:</p>
                         <div className="keyword-chips">
                             {rawKeywords.map((kw, i) => (
                                 <span key={i} className="chip chip--missing">
-                                    + {kw}
+                                    <span className="chip-plus">+</span> {kw}
                                 </span>
                             ))}
                         </div>
@@ -549,21 +597,43 @@ const AnalysisPanel = ({ report, onReAnalyze, isReAnalyzing }) => {
             </div>
 
             {/* Skill Gaps */}
-            <div className="analysis-card">
-                <div className="analysis-card__header" onClick={() => toggleSection('skills')}>
-                    <h4>Skill Gaps & Impact</h4>
-                    <span className="chevron-icon">{isSectionOpen('skills') ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</span>
-                </div>
+            <div className={`analysis-card analysis-card--skills ${isSectionOpen('skills') ? 'is-open' : ''}`}>
+                <button 
+                    type="button" 
+                    className="analysis-card__header" 
+                    onClick={() => toggleSection('skills')}
+                    aria-expanded={isSectionOpen('skills')}
+                >
+                    <div className="card-header-left">
+                        <span className="card-icon-pill card-icon-pill--amber">
+                            <Zap size={14} />
+                        </span>
+                        <h4 className="card-title">Skill Gaps & Impact</h4>
+                    </div>
+                    <div className="card-header-right">
+                        <span className="pill-badge pill-badge--amber">{rawSkillGaps.length} Gaps</span>
+                        <span className={`chevron-icon ${isSectionOpen('skills') ? 'chevron-icon--open' : ''}`}>
+                            <ChevronDown size={15} />
+                        </span>
+                    </div>
+                </button>
                 {isSectionOpen('skills') && (
                     <div className="analysis-card__body">
                         <ul className="gap-list">
                             {rawSkillGaps.map((item, i) => {
                                 const skillName = typeof item === 'string' ? item : item.skill;
-                                const severity = typeof item === 'object' ? item.severity : 'medium';
+                                const severity = (typeof item === 'object' ? item.severity : 'medium')?.toLowerCase();
+                                const isHigh = severity === 'high';
+                                const isMid = severity === 'medium' || severity === 'mid';
                                 return (
                                     <li key={i} className={`gap-item gap-item--${severity}`}>
-                                        <span className="gap-name">{skillName}</span>
-                                        <span className="gap-sev">{severity}</span>
+                                        <div className="gap-item-left">
+                                            <span className="gap-bullet-dot" />
+                                            <span className="gap-name">{skillName}</span>
+                                        </div>
+                                        <span className={`gap-sev gap-sev--${severity}`}>
+                                            {isHigh ? "High Impact" : isMid ? "Moderate" : "Low Impact"}
+                                        </span>
                                     </li>
                                 );
                             })}
@@ -572,26 +642,42 @@ const AnalysisPanel = ({ report, onReAnalyze, isReAnalyzing }) => {
                 )}
             </div>
 
-            {/* Resume Bullet Upgrades */}
-            <div className="analysis-card">
-                <div className="analysis-card__header" onClick={() => toggleSection('bullets')}>
-                    <h4>AI Suggested Resume Bullets</h4>
-                    <span className="chevron-icon">{isSectionOpen('bullets') ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</span>
-                </div>
+            {/* AI Suggested Resume Bullets */}
+            <div className={`analysis-card analysis-card--bullets ${isSectionOpen('bullets') ? 'is-open' : ''}`}>
+                <button 
+                    type="button" 
+                    className="analysis-card__header" 
+                    onClick={() => toggleSection('bullets')}
+                    aria-expanded={isSectionOpen('bullets')}
+                >
+                    <div className="card-header-left">
+                        <span className="card-icon-pill card-icon-pill--indigo">
+                            <Sparkles size={14} />
+                        </span>
+                        <h4 className="card-title">AI Suggested Resume Bullets</h4>
+                    </div>
+                    <div className="card-header-right">
+                        <span className="pill-badge pill-badge--indigo">ATS Tailored</span>
+                        <span className={`chevron-icon ${isSectionOpen('bullets') ? 'chevron-icon--open' : ''}`}>
+                            <ChevronDown size={15} />
+                        </span>
+                    </div>
+                </button>
                 {isSectionOpen('bullets') && (
                     <div className="analysis-card__body">
                         <div className="bullet-list">
                             {rawBullets.map((b, i) => (
                                 <div key={i} className="bullet-item">
-                                    <p className="bullet-text">"{b}"</p>
+                                    <div className="bullet-quote-decor">“</div>
+                                    <p className="bullet-text">{b}</p>
                                     <button
                                         type="button"
-                                        className="copy-btn"
+                                        className={`copy-btn ${copiedBullet === i ? 'copied' : ''}`}
                                         onClick={() => handleCopy(b, i)}
                                         title="Copy bullet"
                                     >
                                         {copiedBullet === i ? <Check size={12} /> : <Copy size={12} />}
-                                        <span>{copiedBullet === i ? "Copied" : "Copy"}</span>
+                                        <span>{copiedBullet === i ? "Copied!" : "Copy"}</span>
                                     </button>
                                 </div>
                             ))}
@@ -603,8 +689,7 @@ const AnalysisPanel = ({ report, onReAnalyze, isReAnalyzing }) => {
     );
 };
 
-// ── Main Interview Component ──────────────────────────────────────────────────
-export const Interview = () => {
+const Interview = () => {
     const { interviewId } = useParams();
     const navigate = useNavigate();
     const { report, getReportById, loading, setReport } = useInterview() || {};
@@ -909,7 +994,11 @@ export const Interview = () => {
                             <div className='interview-divider interview-divider--sidebar' />
                             <aside className='interview-sidebar'>
                                 <div className="interview-sidebar__header">
-                                    <span className="interview-sidebar__title">Role Intelligence</span>
+                                    <div className="interview-sidebar__header-left">
+                                        <span className="sidebar-header-icon"><Target size={14} /></span>
+                                        <span className="interview-sidebar__title">Role Intelligence</span>
+                                        <span className="sidebar-live-pill">LIVE ATS</span>
+                                    </div>
                                     <button 
                                         type="button"
                                         className="sidebar-close-btn"
