@@ -36,7 +36,7 @@ const defaultProject = {
   role: "Full Stack Developer",
   stack: "React, Node.js, MongoDB, AI APIs",
   liveUrl: "https://resumeforge-ai.vercel.app",
-  githubUrl: "https://github.com/krishgupta-dev/ai-interview-tool",
+  githubUrl: "",
   points: [
     "Built an AI-powered platform that analyzes resumes and job descriptions to generate personalized interview questions.",
     "Implemented JWT authentication, ATS scoring, and resume improvement recommendations.",
@@ -54,14 +54,14 @@ const defaultEducation = {
 };
 
 const baseResume = {
-  name: "Krish Gupta",
+  name: "Your Full Name",
   role: "Full Stack Developer",
   phone: "+91 7465982627",
-  email: "krish23153106@akgec.ac.in",
-  github: "https://github.com/krishgupta-dev",
-  linkedin: "https://linkedin.com/in/krish-gupta-dev",
-  leetcode: "https://leetcode.com/u/krishgupta",
-  portfolio: "https://krish-resumeforge.vercel.app",
+  email: "candidate@example.com",
+  github: "",
+  linkedin: "",
+  leetcode: "",
+  portfolio: "",
   location: "Ghaziabad, Uttar Pradesh",
   summary:
     "Full Stack Developer with experience building scalable web applications using React.js, Node.js, Express.js, and MongoDB. Strong in secure authentication, ATS optimization, AI API integrations, and recruiter-friendly product delivery.",
@@ -87,7 +87,7 @@ const baseResume = {
       role: "Backend Engineer",
       stack: "Node.js, Express, MongoDB",
       liveUrl: "https://ledger-demo.render.com",
-      githubUrl: "https://github.com/krishgupta-dev/banking-ledger-system",
+      githubUrl: "",
       points: [
         "Architected a secure double-entry ledger system with atomic MongoDB transactions.",
         "Designed idempotent transaction handling to prevent duplicate financial operations.",

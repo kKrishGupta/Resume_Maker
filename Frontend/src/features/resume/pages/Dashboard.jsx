@@ -78,7 +78,7 @@ export default function Dashboard() {
                   <FileText size={20} />
                 </div>
                 <div className="rf-resume-item__info">
-                  <h4>{resume.name || "Krish Gupta"} — {resume.role || "Software Engineer"}</h4>
+                  <h4>{resume.name || "Candidate Resume"} — {resume.role || "Software Engineer"}</h4>
                   <div className="rf-resume-item__meta">
                     <span><Clock size={12} /> Auto-synced just now</span>
                     <span>Template: <strong>{resume.template || "Modern"}</strong></span>

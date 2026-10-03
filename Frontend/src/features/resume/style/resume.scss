@@ -273,21 +273,61 @@
 .rf-btn-primary {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  justify-content: center;
+  gap: 8px;
   background: var(--rf-gradient-brand);
   color: #ffffff;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
-  padding: 8px 14px;
-  border-radius: var(--rf-radius-sm);
-  border: none;
+  padding: 11px 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.25);
-  transition: opacity 0.15s ease;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 
   &:hover {
-    opacity: 0.95;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+    filter: brightness(1.08);
   }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.rf-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #F8FAFC;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 11px 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: rgba(99, 102, 241, 0.5);
+    color: #FFFFFF;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.rf-btn-block {
+  width: 100%;
 }
 
 .rf-dropdown-menu {
@@ -3462,5 +3502,590 @@
     .rf-exit-text {
       display: none;
     }
+  }
+}
+
+/* ── Upload Resume Header Button ── */
+.rf-upload-hdr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap !important;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba(16, 185, 129, 0.25);
+    color: #ffffff;
+    border-color: #34d399;
+    transform: translateY(-1px);
+  }
+
+  @media (max-width: 768px) {
+    .rf-btn-lbl {
+      display: none;
+    }
+  }
+}
+
+/* ── Live A4 Preview Toolbar ── */
+.rf-preview-bar {
+  height: 46px;
+  min-height: 46px;
+  background: var(--rf-surface);
+  border-bottom: 1px solid var(--rf-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  gap: 12px;
+  box-sizing: border-box;
+  z-index: 10;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .rf-preview-tag {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(99, 102, 241, 0.12);
+    color: var(--rf-brand);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    white-space: nowrap;
+  }
+
+  .rf-preview-template-name {
+    font-size: 12px;
+    color: var(--rf-text-muted);
+    white-space: nowrap;
+
+    strong {
+      color: var(--rf-text);
+      text-transform: capitalize;
+    }
+  }
+
+  &__center {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .rf-template-chips {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--rf-surface-subtle);
+    padding: 3px;
+    border-radius: 8px;
+    border: 1px solid var(--rf-border);
+  }
+
+  .rf-tpl-chip {
+    padding: 4px 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--rf-text-muted);
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+
+    &:hover {
+      color: var(--rf-text);
+    }
+
+    &.is-selected {
+      background: var(--rf-brand);
+      color: #ffffff;
+      font-weight: 600;
+      box-shadow: 0 1px 4px rgba(79, 70, 229, 0.3);
+    }
+  }
+
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .rf-canvas-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--rf-text-muted);
+    background: var(--rf-surface-subtle);
+    border: 1px solid var(--rf-border);
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+
+    &:hover {
+      color: var(--rf-text);
+      border-color: var(--rf-brand);
+    }
+
+    &.is-active {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--rf-brand);
+      border-color: var(--rf-brand);
+    }
+  }
+
+  .rf-zoom-controls {
+    display: inline-flex;
+    align-items: center;
+    background: var(--rf-surface-subtle);
+    border: 1px solid var(--rf-border);
+    border-radius: 6px;
+    padding: 2px;
+
+    button {
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--rf-text-muted);
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        color: var(--rf-text);
+      }
+
+      &.is-active {
+        background: var(--rf-brand);
+        color: #ffffff;
+      }
+    }
+  }
+}
+
+/* ── Start Options / Upload Modal ── */
+.rf-start-modal {
+  width: 100%;
+  max-width: 680px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-border);
+  border-radius: 16px;
+  padding: 32px 28px;
+  position: relative;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  animation: modalPop 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  .rf-modal-close-btn {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    background: transparent;
+    border: none;
+    color: var(--rf-text-muted);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+
+    &:hover {
+      color: var(--rf-text);
+      background: var(--rf-surface-subtle);
+    }
+  }
+
+  &__header {
+    text-align: center;
+    margin-bottom: 28px;
+
+    .rf-start-modal__badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.14);
+      color: var(--rf-brand);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--rf-text);
+      margin: 0 0 8px;
+    }
+
+    p {
+      font-size: 13.5px;
+      color: var(--rf-text-muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .rf-option-card {
+    background: var(--rf-surface-subtle);
+    border: 2px dashed var(--rf-border);
+    border-radius: 12px;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: var(--rf-brand);
+      background: rgba(99, 102, 241, 0.06);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    &__icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+
+    
+  &--continue {
+    &:hover {
+      border-color: rgba(99, 102, 241, 0.55);
+      box-shadow: 0 16px 40px -12px rgba(99, 102, 241, 0.3);
+
+      &::before {
+        background: linear-gradient(135deg, #6366F1 0%, #3B82F6 100%);
+      }
+
+      .rf-onboarding-card__icon {
+        background: rgba(99, 102, 241, 0.2);
+        color: #818CF8;
+        border-color: rgba(99, 102, 241, 0.45);
+      }
+    }
+  }
+
+  &--upload {
+        background: rgba(16, 185, 129, 0.16);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.35);
+      }
+
+      &--fresh {
+        background: rgba(99, 102, 241, 0.16);
+        color: var(--rf-brand);
+        border: 1px solid rgba(99, 102, 241, 0.35);
+      }
+    }
+
+    h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--rf-text);
+      margin: 0 0 6px;
+    }
+
+    p {
+      font-size: 12px;
+      color: var(--rf-text-muted);
+      line-height: 1.45;
+      margin: 0 0 16px;
+      flex: 1;
+    }
+
+    &__action {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--rf-brand);
+      color: #ffffff;
+      font-size: 12.5px;
+      font-weight: 600;
+      transition: all 0.15s ease;
+
+      &--sec {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--rf-text);
+        border: 1px solid var(--rf-border);
+      }
+    }
+
+    &.is-loading {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+  }
+}
+
+
+/* ==========================================================================
+   ONBOARDING START PAGE (UPLOAD OR CREATE NEW RESUME)
+   ========================================================================== */
+.rf-onboarding-page {
+  width: 100vw;
+  min-height: 100vh;
+  background-color: var(--rf-bg);
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.18) 0%, transparent 60%),
+    radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.08) 0%, transparent 50%);
+  color: var(--rf-text);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.rf-onboarding-nav {
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(14, 22, 38, 0.6);
+  backdrop-filter: blur(12px);
+
+  .rf-onboarding-nav__right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+}
+
+.rf-onboarding-body {
+  max-width: 1080px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 60px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.rf-onboarding-hero {
+  text-align: center;
+  max-width: 680px;
+  margin-bottom: 48px;
+
+  .rf-onboarding-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(99, 102, 241, 0.28);
+    color: var(--rf-brand-secondary);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 20px;
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+  }
+
+  .rf-onboarding-title {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--rf-text);
+    letter-spacing: -0.8px;
+    line-height: 1.25;
+    margin-bottom: 16px;
+  }
+
+  .rf-onboarding-subtitle {
+    font-size: 15.5px;
+    color: var(--rf-text-muted);
+    line-height: 1.6;
+  }
+}
+
+.rf-onboarding-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  width: 100%;
+  max-width: 1120px;
+}
+
+.rf-onboarding-card {
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-border);
+  border-radius: 18px;
+  padding: 36px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: transparent;
+    transition: background 0.25s ease;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    border-color: rgba(99, 102, 241, 0.45);
+    box-shadow: 0 16px 40px -12px rgba(99, 102, 241, 0.25);
+    background: var(--rf-surface-subtle);
+
+    &::before {
+      background: var(--rf-gradient-brand);
+    }
+
+    .rf-onboarding-card__icon {
+      transform: scale(1.08);
+      background: rgba(99, 102, 241, 0.2);
+      color: var(--rf-brand-secondary);
+      border-color: rgba(99, 102, 241, 0.4);
+    }
+  }
+
+  &__icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--rf-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    transition: all 0.25s ease;
+  }
+
+  &__title {
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--rf-text);
+    margin-bottom: 12px;
+    letter-spacing: -0.3px;
+  }
+
+  &__desc {
+    font-size: 14px;
+    color: var(--rf-text-muted);
+    line-height: 1.6;
+    margin-bottom: 28px;
+    flex: 1;
+  }
+
+  &__action {
+    width: 100%;
+    margin-bottom: 14px;
+  }
+
+  &__hint {
+    font-size: 11.5px;
+    color: var(--rf-text-subtle);
+    font-weight: 500;
+  }
+
+  &--upload {
+    &:hover {
+      border-color: rgba(34, 197, 94, 0.45);
+      box-shadow: 0 16px 40px -12px rgba(34, 197, 94, 0.2);
+
+      &::before {
+        background: linear-gradient(135deg, #22C55E 0%, #10B981 100%);
+      }
+
+      .rf-onboarding-card__icon {
+        background: rgba(34, 197, 94, 0.15);
+        color: #4ADE80;
+        border-color: rgba(34, 197, 94, 0.35);
+      }
+    }
+  }
+}
+
+@media (max-width: 1024px) {
+  .rf-onboarding-grid {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 740px;
+  }
+}
+
+@media (max-width: 720px) {
+  .rf-onboarding-nav {
+    padding: 0 16px;
+  }
+  .rf-onboarding-body {
+    padding: 36px 16px 60px;
+  }
+  .rf-onboarding-hero {
+    margin-bottom: 32px;
+    .rf-onboarding-title {
+      font-size: 26px;
+    }
+    .rf-onboarding-subtitle {
+      font-size: 14px;
+    }
+  }
+  .rf-onboarding-grid {
+    grid-template-columns: 1fr;
+    max-width: 480px;
+    gap: 20px;
+  }
+  .rf-onboarding-card {
+    padding: 26px 20px;
   }
 }

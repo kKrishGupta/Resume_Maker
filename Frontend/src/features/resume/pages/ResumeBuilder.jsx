@@ -1,6 +1,7 @@
+import { extractTextFromFile, parseResumeText, BLANK_RESUME } from "../utils/resumeExtractor";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, useLocation } from "react-router";
 import { 
   Sparkles, 
   Download, 
@@ -80,6 +81,56 @@ export default function ResumeBuilder() {
   const [saveStatus, setSaveStatus] = useState("Saved just now");
   const [isAILoading, setIsAILoading] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const location = useLocation();
+  const [hasChosenStart, setHasChosenStart] = useState(false);
+
+  const markStartChosen = (chosen = true) => {
+    setHasChosenStart(chosen);
+  };
+  const [isExtractingFile, setIsExtractingFile] = useState(false);
+  const fileInputRef = useRef(null);
+
+  // Always show the 3 Option Cards landing page when entering Resume Builder without a specific ID!
+  useEffect(() => {
+    if (id) {
+      setHasChosenStart(true);
+    } else {
+      setHasChosenStart(false);
+    }
+  }, [id, location.key]);
+
+  const handleCreateNewResume = () => {
+    setResume({ ...BLANK_RESUME });
+    markStartChosen(true);
+    showToast("Created a clean blank resume ready for typing!", "info");
+  };
+
+  const handleContinueSavedResume = () => {
+    markStartChosen(true);
+    showToast("Resumed your active saved draft!", "info");
+  };
+
+  const handleFileUpload = async (file) => {
+    if (!file) return;
+    try {
+      setIsExtractingFile(true);
+      showToast("Extracting resume data...", "info");
+
+      const extractedText = await extractTextFromFile(file);
+      const parsedData = parseResumeText(extractedText, user);
+
+      setResume(parsedData);
+
+      showToast("Resume data successfully extracted & populated!", "success");
+      markStartChosen(true);
+    } catch (err) {
+      console.error("Extraction error:", err);
+      showToast("Failed to parse file. Starting with blank resume.", "error");
+      handleCreateNewResume();
+    } finally {
+      setIsExtractingFile(false);
+    }
+  };
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [editorCollapsed, setEditorCollapsed] = useState(false);
   const [aiCollapsed, setAiCollapsed] = useState(false);
@@ -400,6 +451,138 @@ export default function ResumeBuilder() {
     showToast("JSON export downloaded", "success");
   };
 
+    if (!hasChosenStart) {
+    return (
+      <div className="rf-onboarding-page">
+        <header className="rf-onboarding-nav">
+          <div className="rf-logo" onClick={() => navigate("/")}>
+            <BrandLogo size={36} />
+            <div className="rf-logo__text">
+              <span className="rf-logo__brand">PrepAI</span>
+              <span className="rf-logo__tag">Studio</span>
+            </div>
+          </div>
+
+          <div className="rf-onboarding-nav__right">
+            <div className="rf-avatar" title={`Signed in as ${userName}`}>
+              {userInitials}
+            </div>
+            <button 
+              type="button" 
+              onClick={() => navigate("/")} 
+              className="rf-exit-btn"
+              title="Exit to Interview Prep"
+            >
+              <LogOut size={14} />
+              <span>Exit</span>
+            </button>
+          </div>
+        </header>
+
+        <main className="rf-onboarding-body">
+          <div className="rf-onboarding-hero">
+            <div className="rf-onboarding-badge">
+              <Sparkles size={14} />
+              <span>AI-POWERED RESUME STUDIO</span>
+            </div>
+            <h1 className="rf-onboarding-title">How would you like to build your resume?</h1>
+            <p className="rf-onboarding-subtitle">
+              Upload your existing resume for automatic data extraction & live A4 formatting, or create a new resume step-by-step from scratch.
+            </p>
+          </div>
+
+          <div className="rf-onboarding-grid">
+            {/* Card 1: Upload Existing Resume */}
+            <div 
+              className={`rf-onboarding-card rf-onboarding-card--upload ${isExtractingFile ? "is-loading" : ""}`}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                accept=".json,.pdf,.docx,.txt"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    handleFileUpload(e.target.files[0]);
+                  }
+                }}
+              />
+              <div className="rf-onboarding-card__icon">
+                <Download size={32} style={{ transform: "rotate(180deg)" }} />
+              </div>
+              <h3 className="rf-onboarding-card__title">Upload Resume</h3>
+              <p className="rf-onboarding-card__desc">
+                Upload your PDF, DOCX, or TXT file. We will automatically extract all contact details, summary, skills, experience, and projects into the editor & live A4 preview.
+              </p>
+              <div className="rf-onboarding-card__action">
+                <button type="button" className="rf-btn-primary rf-btn-block" style={{ background: "linear-gradient(135deg, #10B981 0%, #059669 100%)", boxShadow: "0 4px 14px rgba(16, 185, 129, 0.35)" }}>
+                  {isExtractingFile ? "Extracting Data..." : "Upload & Extract Resume"}
+                </button>
+              </div>
+              <span className="rf-onboarding-card__hint">Supports PDF, DOCX, TXT, JSON</span>
+            </div>
+
+            {/* Card 2: Create New Resume (Clean Blank) */}
+            <div 
+              className="rf-onboarding-card rf-onboarding-card--create"
+              onClick={handleCreateNewResume}
+            >
+              <div className="rf-onboarding-card__icon">
+                <Sparkles size={32} />
+              </div>
+              <h3 className="rf-onboarding-card__title">Create New Resume</h3>
+              <p className="rf-onboarding-card__desc">
+                Start completely fresh with a clean slate. Every field will be emptied so you can build a new resume step-by-step with zero sample data.
+              </p>
+              <div className="rf-onboarding-card__action">
+                <button 
+                  type="button" 
+                  className="rf-btn-secondary rf-btn-block"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCreateNewResume();
+                  }}
+                >
+                  Create Blank Resume →
+                </button>
+              </div>
+              <span className="rf-onboarding-card__hint">Includes 4+ Modern ATS Layouts</span>
+            </div>
+
+            {/* Card 3: Continue Active Saved Draft */}
+            <div 
+              className="rf-onboarding-card rf-onboarding-card--continue"
+              onClick={handleContinueSavedResume}
+            >
+              <div className="rf-onboarding-card__icon">
+                <RotateCcw size={30} />
+              </div>
+              <h3 className="rf-onboarding-card__title">Continue Saved Resume</h3>
+              <p className="rf-onboarding-card__desc">
+                Pick up right where you left off. Continue editing your existing saved resume draft, ATS score checks, and AI bullet optimizations.
+              </p>
+              <div className="rf-onboarding-card__action">
+                <button 
+                  type="button" 
+                  className="rf-btn-primary rf-btn-block"
+                  style={{ background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleContinueSavedResume();
+                  }}
+                >
+                  Resume Active Draft →
+                </button>
+              </div>
+              <span className="rf-onboarding-card__hint">Saved session: {resume?.name && resume.name !== "Krish Gupta" && resume.name !== "Your Full Name" ? resume.name : "Active Draft"}</span>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="rf-app">
       {/* ── Top Header ── */}
@@ -436,6 +619,7 @@ export default function ResumeBuilder() {
             </button>
           )}
 
+          
           <div className="rf-header__divider" />
 
           {/* Editable Document Title */}

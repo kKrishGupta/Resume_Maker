@@ -15,6 +15,16 @@ const cleanUrl = (url) => {
     .replace(/\/$/, "");
 };
 
+const formatExternalUrl = (url) => {
+  if (!url) return "#";
+  const str = `${url}`.trim();
+  if (!str) return "#";
+  if (str.startsWith("http://") || str.startsWith("https://") || str.startsWith("mailto:") || str.startsWith("tel:")) {
+    return str;
+  }
+  return `https://${str}`;
+};
+
 export default function ResumePreviewLive({ resume, zoom = 1 }) {
   const paperRef = useRef(null);
   const [pageCount, setPageCount] = useState(1);
@@ -60,10 +70,10 @@ export default function ResumePreviewLive({ resume, zoom = 1 }) {
     safe.email && { key: "email", text: safe.email, href: `mailto:${safe.email}` },
     safe.phone && { key: "phone", text: safe.phone, href: `tel:${safe.phone}` },
     safe.location && { key: "location", text: safe.location },
-    safe.github && { key: "github", text: cleanUrl(safe.github), href: safe.github },
-    safe.linkedin && { key: "linkedin", text: cleanUrl(safe.linkedin), href: safe.linkedin },
-    safe.leetcode && { key: "leetcode", text: cleanUrl(safe.leetcode), href: safe.leetcode },
-    safe.portfolio && { key: "portfolio", text: cleanUrl(safe.portfolio), href: safe.portfolio },
+    safe.github && { key: "github", text: cleanUrl(safe.github), href: formatExternalUrl(safe.github) },
+    safe.linkedin && { key: "linkedin", text: cleanUrl(safe.linkedin), href: formatExternalUrl(safe.linkedin) },
+    safe.leetcode && { key: "leetcode", text: cleanUrl(safe.leetcode), href: formatExternalUrl(safe.leetcode) },
+    safe.portfolio && { key: "portfolio", text: cleanUrl(safe.portfolio), href: formatExternalUrl(safe.portfolio) },
   ].filter(Boolean);
 
   const renderSection = (key) => {
@@ -132,12 +142,12 @@ export default function ResumePreviewLive({ resume, zoom = 1 }) {
                     </div>
                     <div className="a4-entry__links">
                       {item.liveUrl && (
-                        <a href={item.liveUrl} target="_blank" rel="noreferrer">
+                        <a href={formatExternalUrl(item.liveUrl)} target="_blank" rel="noopener noreferrer">
                           Live Demo ↗
                         </a>
                       )}
                       {item.githubUrl && (
-                        <a href={item.githubUrl} target="_blank" rel="noreferrer">
+                        <a href={formatExternalUrl(item.githubUrl)} target="_blank" rel="noopener noreferrer">
                           GitHub ↗
                         </a>
                       )}

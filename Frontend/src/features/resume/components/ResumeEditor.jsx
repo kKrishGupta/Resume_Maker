@@ -385,7 +385,7 @@ export default function ResumeEditor({
               <label>Full Name</label>
               <input
                 type="text"
-                placeholder="e.g. Krish Gupta"
+                placeholder="Enter your full name"
                 value={safe.name}
                 onChange={(e) => updateField("name", e.target.value)}
               />
@@ -395,7 +395,7 @@ export default function ResumeEditor({
               <label>Professional Title</label>
               <input
                 type="text"
-                placeholder="e.g. Full Stack Developer"
+                placeholder="Enter your professional title"
                 value={safe.role}
                 onChange={(e) => updateField("role", e.target.value)}
               />
@@ -405,7 +405,7 @@ export default function ResumeEditor({
               <label>Email Address</label>
               <input
                 type="email"
-                placeholder="krish@example.com"
+                placeholder="candidate@example.com"
                 value={safe.email}
                 onChange={(e) => updateField("email", e.target.value)}
               />
@@ -415,7 +415,7 @@ export default function ResumeEditor({
               <label>Phone Number</label>
               <input
                 type="tel"
-                placeholder="+91 98765 43210"
+                placeholder="+91 9876543210"
                 value={safe.phone}
                 onChange={(e) => updateField("phone", e.target.value)}
               />
@@ -425,7 +425,7 @@ export default function ResumeEditor({
               <label>Location</label>
               <input
                 type="text"
-                placeholder="Ghaziabad, Uttar Pradesh, India"
+                placeholder="Enter city, state, country"
                 value={safe.location}
                 onChange={(e) => updateField("location", e.target.value)}
               />
@@ -435,7 +435,7 @@ export default function ResumeEditor({
               <label>LinkedIn URL</label>
               <input
                 type="text"
-                placeholder="linkedin.com/in/krish-gupta"
+                placeholder="linkedin.com/in/your-profile"
                 value={safe.linkedin}
                 onChange={(e) => updateField("linkedin", e.target.value)}
               />
@@ -445,7 +445,7 @@ export default function ResumeEditor({
               <label>GitHub URL</label>
               <input
                 type="text"
-                placeholder="github.com/krishgupta-dev"
+                placeholder="github.com/your-username"
                 value={safe.github}
                 onChange={(e) => updateField("github", e.target.value)}
               />
@@ -455,7 +455,7 @@ export default function ResumeEditor({
               <label>Portfolio / Website</label>
               <input
                 type="text"
-                placeholder="portfolio.vercel.app"
+                placeholder="your-portfolio.vercel.app"
                 value={safe.portfolio}
                 onChange={(e) => updateField("portfolio", e.target.value)}
               />
@@ -465,7 +465,7 @@ export default function ResumeEditor({
               <label>LeetCode / Other</label>
               <input
                 type="text"
-                placeholder="leetcode.com/u/krishgupta"
+                placeholder="leetcode.com/u/your-username"
                 value={safe.leetcode}
                 onChange={(e) => updateField("leetcode", e.target.value)}
               />
